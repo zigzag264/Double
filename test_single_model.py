@@ -46,7 +46,7 @@ prompt = prompt_template.format(
     lottery_history=history_json,
     prediction_date="2025-11-18",
     model_id="SSB-Team-001",
-    model_name="GPT-5"
+    model_name="SenseNova 6.7 Flash-Lite"
 )
 print(f"✅ Prompt 构建成功 ({len(prompt)} 字符)\n")
 
@@ -56,12 +56,12 @@ with open('/tmp/test_prompt.txt', 'w', encoding='utf-8') as f:
 print("💾 Prompt 已保存到 /tmp/test_prompt.txt\n")
 
 # 调用 API
-print("🤖 调用 GPT-5 模型...")
+print("🤖 调用 SenseNova 6.7 Flash-Lite 模型...")
 try:
     client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="sensetime/sensenova-6.7-flash-lite",
         messages=[
             {
                 "role": "system",

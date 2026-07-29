@@ -21,10 +21,9 @@ if not API_KEY:
 
 # 模型配置列表
 MODELS = [
-    {"id": "gpt-4o", "name": "GPT-5", "model_id": "SSB-Team-001"},
-    {"id": "claude-3-5-sonnet-20241022", "name": "Claude 4.5", "model_id": "team_alpha_arena_v1"},
-    {"id": "gemini-2.5-flash", "name": "Gemini 2.5", "model_id": "Gemini2.5"},
-    {"id": "deepseek-chat", "name": "DeepSeek R1", "model_id": "DeepseekR1"}
+    {"id": "sensetime/sensenova-6.7-flash-lite", "name": "SenseNova 6.7 Flash-Lite", "model_id": "SenseNova6.7Flash"},
+    {"id": "sensetime/sensenova-u1-fast", "name": "SenseNova U1 Fast", "model_id": "SenseNovaU1"},
+    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "DeepSeekV4"}
 ]
 
 # 文件路径

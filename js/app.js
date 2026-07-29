@@ -218,10 +218,9 @@ function prepareChartData() {
 
     // 转换为Chart.js数据集格式
     const colors = {
-        'GPT-5': '#10b981',
-        'Claude 4.5': '#8b5cf6',
-        'Gemini 2.5': '#3b82f6',
-        'DeepSeek R1': '#f59e0b'
+        'SenseNova 6.7 Flash-Lite': '#10b981',
+        'SenseNova U1 Fast': '#8b5cf6',
+        'DeepSeek V4 Flash': '#f59e0b'
     };
 
     const datasets = Object.keys(modelsData).map(modelName => ({

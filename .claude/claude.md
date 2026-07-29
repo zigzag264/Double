@@ -2,69 +2,140 @@
 
 ## 项目概述
 
-这是一个基于 AI 模型的双色球彩票预测系统，展示多个 AI 模型（GPT-5、Claude 4.5、Gemini 2.5、DeepSeek R1）对双色球开奖号码的预测，并提供历史预测准确率对比功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示多个大模型（SenseNova 6.7 Flash-Lite、SenseNova U1 Fast、DeepSeek V4 Flash）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
 
 **核心特性**:
-- 🤖 多 AI 模型预测展示
-- 📊 历史开奖数据查询
-- 🎯 预测命中率统计
+- 🤖 多 AI 模型预测（通过 API 自动生成）
+- 📊 数据趋势图表分析（Chart.js 5 类图表）
+- 🎯 历史预测命中率回溯
 - ⏰ 自动更新开奖数据（GitHub Actions）
-- 🔮 下期开奖信息展示
+- 📧 每日邮件汇总推送
+- 🎨 深色/浅色主题切换、响应式设计
 
 **双色球规则**:
 - 红球：从 01-33 中选择 6 个号码
 - 蓝球：从 01-16 中选择 1 个号码
 - 开奖时间：每周二、四、日 21:15
+- 线上地址：`https://double-color-ball-ai.vercel.app`
 
 ---
 
 ## 项目结构
 
 ```
-Double-Color-Ball-AI/
-├── index.html                    # 主页面
+double/
+├── index.html                        # 主页面（3 个 Tab）
 ├── css/
-│   └── style.css                 # 样式文件（支持深色/浅色主题）
+│   └── style.css                     # 样式（深色/浅色 CSS 变量）
 ├── js/
-│   ├── app.js                    # 主应用逻辑
-│   ├── components.js             # UI 组件
-│   └── data-loader.js            # 数据加载模块
-├── data/                         # 前端数据文件
-│   ├── lottery_history.json      # 历史开奖数据 + 下期开奖信息
-│   ├── ai_predictions.json       # 当前 AI 预测（未开奖期号）
-│   └── predictions_history.json  # 历史预测对比数据（已开奖期号）
-├── fetch_history/                # 数据爬取脚本
-│   ├── fetch_lottery_history.py  # 爬虫脚本（自动同步到 data/）
-│   ├── lottery_data.json         # 爬虫原始数据
-│   └── lottery_data_backup_*.json # 自动备份文件（不提交到 Git）
+│   ├── app.js                        # 主应用逻辑 + 图表渲染（Chart.js）
+│   ├── components.js                 # UI 组件（号码球、卡片、对比）
+│   └── data-loader.js                # 数据加载模块（fetch JSON）
+├── data/                             # 前端数据文件
+│   ├── lottery_history.json          # 历史开奖数据 + 下期开奖信息
+│   ├── lottery_data.json             # （历史文件，爬虫原始数据副本）
+│   ├── ai_predictions.json           # 当前 AI 预测（未开奖期号）
+│   └── predictions_history.json      # 历史预测对比（已开奖期号）
+├── fetch_history/                    # 数据爬取脚本
+│   ├── fetch_lottery_history.py      # 爬虫脚本（同步到 data/lottery_history.json）
+│   └── lottery_data.json             # 爬虫原始数据
+├── doc/                              # 文档与 Prompt 模板
+│   ├── AI需求文档.md                 # 原始需求文档
+│   ├── prompt.md                     # Prompt 模板 v1.0（5 种基础策略）
+│   └── prompt2.0.md                  # Prompt 模板 v2.0（增强型 5 策略，★主用）
 ├── .github/workflows/
-│   └── update-lottery-data.yml   # GitHub Actions 自动更新配置
-├── add_gpt5_prediction.py        # 辅助脚本：添加历史预测
-├── start_server.sh / .bat        # 本地开发服务器启动脚本
-├── vercel.json                   # Vercel 部署配置
-├── DATA_UPDATE_GUIDE.md          # 数据更新指南
-└── .gitignore                    # Git 忽略规则（排除备份文件）
+│   ├── update-lottery-data.yml       # 爬虫工作流：每天 UTC 14:00（北京 22:00）
+│   ├── generate-ai-prediction.yml    # AI 预测工作流：每周一三五 UTC 00:00
+│   └── email-daily-digest.yml        # 邮件推送工作流：每天 UTC 00:30
+├── .env.example                      # 环境变量模板
+├── .env                              # 本地环境变量（git 忽略）
+├── .vercelignore                     # Vercel 构建忽略
+├── .gitignore                        # Git 忽略规则
+├── generate_ai_prediction.py         # AI 预测自动生成脚本（主入口）
+├── email_content_builder.py          # 邮件内容组装模块（纯函数）
+├── email_daily_digest.py             # 每日邮件推送主入口
+├── add_gpt5_prediction.py            # 辅助脚本：手动添加历史预测
+├── test_prediction.py                # 预测文件格式测试脚本
+├── test_single_model.py              # 单模型 API 调用测试脚本
+├── diagnose.js                       # 前端命中逻辑调试脚本
+├── deploy.sh                         # Vercel 部署辅助脚本
+├── vercel.json                       # Vercel 部署配置
+├── start_server.sh / .bat            # 本地开发服务器
+├── AI_PREDICTION_GUIDE.md            # AI 预测自动生成指南
+├── AI_Prediction_Analysis_Report.md  # 历史预测分析报告
+├── DATA_UPDATE_GUIDE.md              # 数据更新指南
+├── DEPLOYMENT.md                     # Vercel 部署指南
+├── LICENSE                           # 许可证
+└── README.md                         # 项目说明
 ```
+
+---
+
+## 前端架构
+
+### 三个 Tab 页面
+
+| Tab | 内容 |
+|-----|------|
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、策略说明、4 个模型卡片（各 5 组预测）、免责声明 |
+| **图表分析** | 中奖规则卡片、4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、5 张 Chart.js 图表 |
+| **历史回溯** | AI 命中表现折线图、详细命中记录卡片、历史开奖号码表格 |
+
+### 图表（Chart.js 4.4.0，CDN 引入）
+
+位于 `app.js`，在"图表分析"和"历史回溯"Tab 中渲染：
+
+1. **红球热度分布**（柱状图）— 01-33 各号码出现频次
+2. **蓝球出现频率**（柱状图）— 01-16 各号码出现频次
+3. **奇偶比例分布**（环形图）— 红球奇偶比（0:6 ~ 6:0）
+4. **红球和值走势**（折线图）— 最近 30 期和值 + 平均线
+5. **区间分布统计**（柱状图）— 01-11 / 12-22 / 23-33 分布
+6. **AI 命中表现趋势**（折线图）— 各模型每期最佳命中数
+
+### 页面组件（`components.js`）
+
+- `createLotteryBall()` — 号码球元素（红/蓝、sm/md/lg、命中高亮）
+- `createModelCard()` — AI 模型卡片（含模型头部、策略行、最佳命中徽章）
+- `createStrategyRow()` — 策略预测行（含命中统计）
+- `createAccuracyCard()` — 历史命中记录卡片
+- `createPredictionGroupRow()` — 预测组行（含红/蓝命中数）
+- `createHistoryTableRow()` — 历史开奖表格行
+- `compareNumbers()` — 命中计算逻辑
+
+### 主题切换
+
+CSS 变量实现深色/浅色模式，偏好保存至 localStorage。
+
+### 启动方式
+
+```bash
+# Windows
+start_server.bat
+
+# macOS/Linux
+./start_server.sh
+
+# 手动
+python3 -m http.server 8000
+```
+
+访问 `http://localhost:8000`。**不能直接双击 `index.html`（CORS 限制）**。
 
 ---
 
 ## 核心数据文件
 
 ### 1. `data/lottery_history.json`
-**用途**: 网页前端使用的历史开奖数据
 
-**数据结构**:
 ```json
 {
   "last_updated": "2025-10-22T20:39:53Z",
-  "data": [
-    {
-      "period": "25121",
-      "date": "2025-10-21",
-      "red_balls": ["06", "08", "10", "25", "29", "30"],
-      "blue_ball": "08"
-    }
-  ],
+  "data": [{
+    "period": "25121",
+    "date": "2025-10-21",
+    "red_balls": ["06", "08", "10", "25", "29", "30"],
+    "blue_ball": "08"
+  }],
   "next_draw": {
     "next_period": "25122",
     "next_date": "2025-10-23",
@@ -75,322 +146,255 @@ Double-Color-Ball-AI/
 }
 ```
 
-**更新方式**:
-- 自动：GitHub Actions 每天 22:00 自动运行爬虫更新
-- 手动：运行 `cd fetch_history && python3 fetch_lottery_history.py`
-
----
-
 ### 2. `data/ai_predictions.json`
-**用途**: 当前 AI 模型对未开奖期号的预测
 
-**数据结构**:
 ```json
 {
-  "prediction_date": "2025-10-23",
-  "target_period": "25122",
-  "models": [
-    {
-      "model_id": "SSB-Team-001",
-      "model_name": "GPT-5",
-      "predictions": [
-        {
-          "group_id": 1,
-          "strategy": "热号追随者",
-          "red_balls": ["02", "09", "17", "25", "31", "33"],
-          "blue_ball": "02",
-          "description": "策略描述..."
-        }
-        // 每个模型 5 组预测
-      ]
-    }
-    // 4 个 AI 模型
-  ]
+  "prediction_date": "2025-10-27",
+  "target_period": "25124",
+  "models": [{
+    "prediction_date": "2025-10-27",
+    "target_period": "25124",
+    "model_id": "SSB-Team-001",
+    "model_name": "GPT-5",
+    "predictions": [
+      {
+        "group_id": 1,
+        "strategy": "增强型热号追随者",
+        "red_balls": ["09", "16", "17", "24", "25", "31"],
+        "blue_ball": "13",
+        "description": "基于5期加权频率..."
+      }
+    ]
+  }]
 }
 ```
-
-**更新时机**: 当 `target_period` 开奖后，需要手动更新为下一期的预测
-
----
 
 ### 3. `data/predictions_history.json`
-**用途**: 已开奖期号的历史预测和命中结果
 
-**数据结构**:
 ```json
 {
-  "predictions_history": [
-    {
-      "prediction_date": "2025-10-21",
-      "target_period": "25121",
-      "actual_result": {
-        "period": "25121",
-        "date": "2025-10-21",
-        "red_balls": ["06", "08", "10", "25", "29", "30"],
-        "blue_ball": "08"
-      },
-      "models": [
-        {
-          "model_id": "SSB-Team-001",
-          "model_name": "GPT-5",
-          "predictions": [
-            {
-              "group_id": 1,
-              "strategy": "热号追随者",
-              "red_balls": ["02", "09", "17", "25", "31", "33"],
-              "blue_ball": "02",
-              "description": "...",
-              "hit_result": {
-                "red_hits": ["25"],
-                "red_hit_count": 1,
-                "blue_hit": false,
-                "total_hits": 1
-              }
-            }
-          ],
-          "best_group": 2,
-          "best_hit_count": 2
-        }
-      ]
-    }
-  ]
+  "predictions_history": [{
+    "prediction_date": "2025-10-21",
+    "target_period": "25121",
+    "actual_result": { "period": "25121", ... },
+    "models": [{
+      "model_id": "SSB-Team-001",
+      "model_name": "GPT-5",
+      "predictions": [{ "...", "hit_result": {
+        "red_hits": ["25"],
+        "red_hit_count": 1,
+        "blue_hit": false,
+        "total_hits": 1
+      }}],
+      "best_group": 2,
+      "best_hit_count": 2
+    }]
+  }]
 }
 ```
 
-**更新方式**: 当期号开奖后，运行脚本计算命中结果并添加到历史
+---
+
+## GitHub Actions 自动化（3 个工作流）
+
+### 1. `update-lottery-data.yml` — 爬取开奖数据
+- **触发**: 每天 UTC 14:00（北京时间 22:00）+ 手动
+- **执行**: `fetch_history/fetch_lottery_history.py`
+- **依赖**: `requests`, `beautifulsoup4`
+- **推送**: `data/lottery_history.json`, `fetch_history/lottery_data.json`
+
+### 2. `generate-ai-prediction.yml` — 生成 AI 预测
+- **触发**: 每周一三五 UTC 00:00（北京时间 08:00）+ 手动
+- **执行**: `python3 generate_ai_prediction.py`
+- **Secrets**: `AI_API_KEY`, `AI_BASE_URL`
+- **推送**: `data/ai_predictions.json`, `data/predictions_history.json`（归档）
+
+### 3. `email-daily-digest.yml` — 每日邮件推送
+- **触发**: 每天 UTC 00:30（北京时间 08:30）+ 手动
+- **执行**: `python3 email_daily_digest.py`
+- **Secrets**: `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_RECIPIENT`
+- **注意**: 在 AI 预测生成之后运行，确保邮件含最新预测
+
+> ⚠️ 工作流需启用写入权限：Settings > Actions > General > Workflow permissions → **Read and write permissions**
 
 ---
 
 ## 关键脚本
 
-### `fetch_history/fetch_lottery_history.py`
-**功能**:
-1. 从 500.com 爬取最新双色球开奖数据
-2. 与现有数据合并去重
-3. 自动创建带时间戳的备份文件
-4. **自动同步到 `../data/lottery_history.json`**（网页数据）
-5. **自动计算下期开奖信息**（基于周二、四、日规律）
+### `generate_ai_prediction.py` — AI 预测自动生成（主入口）
 
-**运行方式**:
-```bash
-cd fetch_history
-python3 fetch_lottery_history.py
+**功能**:
+1. 加载 Prompt 模板（`doc/prompt2.0.md`）
+2. 加载历史数据（`data/lottery_history.json`，取最近 30 期）
+3. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
+4. 逐个调用 4 个 AI 模型生成预测
+5. 验证数据格式（5 组、6 红球已排序、蓝球非空）
+6. 创建备份并保存
+
+**模型配置**（内置）:
+```python
+MODELS = [
+    {"id": "sensetime/sensenova-6.7-flash-lite", "name": "SenseNova 6.7 Flash-Lite", "model_id": "SenseNova6.7Flash"},
+    {"id": "sensetime/sensenova-u1-fast", "name": "SenseNova U1 Fast", "model_id": "SenseNovaU1"},
+    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "DeepSeekV4"}
+]
 ```
 
-**依赖**:
-- `requests` - HTTP 请求
-- `beautifulsoup4` - HTML 解析
+**环境变量**:
+- `AI_API_KEY`（必填）
+- `AI_BASE_URL`（可选，默认 `https://aihubmix.com/v1`）
+
+```bash
+pip install openai
+python3 generate_ai_prediction.py
+```
+
+### `email_daily_digest.py` / `email_content_builder.py` — 每日邮件
+
+`email_content_builder.py`（纯函数模块）:
+- `load_data()` — 加载 3 个 JSON 数据源（独立异常隔离）
+- `validate_data()` — 返回 `(errors, warnings)`
+- `build_email_content()` — 渲染纯文本邮件正文（4 栏：最新开奖 / 下期预告 / AI 预测 / 命中情况）
+
+`email_daily_digest.py`（主入口）:
+- 读取环境变量（SMTP 配置）
+- 加载 → 校验 → 组装 → 发送
+- 支持 `EMAIL_DRY_RUN=true` 仅打印不发送
+
+**环境变量**（详见 `.env.example`）:
+```
+SMTP_SERVER=smtp.qq.com
+SMTP_PORT=465
+SMTP_USER=your-qq-number@qq.com
+SMTP_PASSWORD=your-qq-auth-code
+EMAIL_RECIPIENT=recipient@example.com
+EMAIL_DRY_RUN=true
+```
+
+### 其他脚本
+
+| 脚本 | 用途 |
+|------|------|
+| `add_gpt5_prediction.py` | 手动添加某期预测到历史并计算命中 |
+| `test_prediction.py` | 验证 `ai_predictions.json` 格式 |
+| `test_single_model.py` | 单模型 API 调用调试（输出 prompt/response 到 `/tmp/`） |
+| `diagnose.js` | 前端命中对比逻辑模拟 |
+| `deploy.sh` | Vercel CLI 部署辅助 |
 
 ---
 
-### `add_gpt5_prediction.py`
-**功能**: 将某期的 AI 预测添加到历史记录并计算命中结果
+## AI 预测策略（Prompt v2.0）
 
-**使用场景**: 当某期开奖后，需要将预测数据从 `ai_predictions.json` 移到 `predictions_history.json`
+Prompt 模板位于 `doc/prompt2.0.md`，每个 AI 模型生成 5 组预测：
 
-**自动功能**:
-- 计算红球命中数和蓝球命中情况
-- 计算每个模型的最佳预测组
-- 添加到历史记录顶部
+| 策略 | 核心逻辑 |
+|------|---------|
+| **增强型热号追随者** | 多周期加权频率（5期×5 + 10期×3 + 30期×2），衰减因子，三区间平衡 |
+| **增强型冷号逆向者** | 遗漏期数加权，奇偶 3:3 硬约束，尾数覆盖，质合平衡 |
+| **增强型平衡策略师** | 历史分布拟合，精细约束（AC 值 8-14，总和 100-120），区间分布 |
+| **增强型周期理论家** | 三周期频率交叉，趋势强度评分，周期转折点识别 |
+| **增强型综合决策者** | 加权投票（热30%+冷25%+平衡20%+周期25%），多样性保证 |
 
----
-
-## GitHub Actions 自动化
-
-### 工作流文件
-`.github/workflows/update-lottery-data.yml`
-
-### 触发时机
-- **定时**: 每天 UTC 14:00（北京时间 22:00）
-- **手动**: GitHub Actions 页面点击 "Run workflow"
-
-### 执行流程
-1. 安装 Python 和依赖（requests, beautifulsoup4）
-2. 运行 `fetch_lottery_history.py` 爬取数据
-3. 检测 `data/` 目录是否有变更
-4. 如有变更，自动提交并推送到仓库
-5. Vercel 监听到仓库更新，自动重新部署
-
-### 权限配置
-确保仓库设置中启用了工作流写入权限：
-- Settings > Actions > General > Workflow permissions
-- 选择 **Read and write permissions**
-
----
-
-## 前端架构
-
-### 页面结构
-- **顶部导航**: 标题、刷新按钮、主题切换
-- **Tab 切换**:
-  - AI 预测：下期开奖卡片 + 最新开奖结果 + 预测状态 + 多模型预测
-  - 预测对比：历史预测命中率对比
-  - 历史开奖：历史开奖记录列表
-
-### 主要功能
-
-#### 1. 下期开奖卡片
-- 显示下期期号、日期、星期、开奖时间
-- 智能检测是否有 AI 预测：
-  - 🟢 已有AI预测
-  - 🟡 暂无AI预测
-
-#### 2. 预测状态
-- 比较 `ai_predictions.json` 的 `target_period` 和最新开奖期号
-- 显示两种状态：
-  - 🔮 **未开奖**: target_period > 最新期号
-  - ✅ **已开奖**: target_period ≤ 最新期号
-
-#### 3. 模型选择器
-- 下拉菜单切换不同 AI 模型
-- 显示该模型的 5 组预测方案
-
-#### 4. 历史预测对比
-- 按期号分组显示所有模型的历史预测
-- 高亮显示命中的号码
-- 显示准确率徽章（优秀/良好/一般/较差）
-- 标记每个模型的最佳预测组
-
-### 主题切换
-- 支持浅色/深色模式
-- 使用 CSS 变量实现
-- 状态保存在 localStorage
+> v1.0 模板在 `doc/prompt.md`（5 种基础策略），当前生成脚本使用 v2.0。
 
 ---
 
 ## 数据更新工作流
 
-### 场景 1: 新期号开奖
-1. **自动**: GitHub Actions 在 22:00 自动运行爬虫
-2. **自动**: 更新 `lottery_history.json` 和 `next_draw` 信息
-3. **自动**: 提交并部署到 Vercel
-4. **手动**: 运行辅助脚本将旧预测移到历史：
-   ```bash
-   python3 add_gpt5_prediction.py
-   ```
-5. **手动**: 更新 `ai_predictions.json` 为新期号的预测
+### 自动流程（推荐）
 
-### 场景 2: 添加新模型预测
-1. 编辑 `ai_predictions.json`
-2. 添加新模型到 `models` 数组
-3. 提交并推送到仓库
-4. Vercel 自动重新部署
+```
+开奖 (周二/四/日 21:15)
+  ↓ 北京时间 22:00
+[update-lottery-data.yml] 爬虫 → 更新 lottery_history.json
+  ↓ 周一/三/五 北京 08:00
+[generate-ai-prediction.yml] 归档旧预测 + 生成新预测
+  ↓ 北京 08:30
+[email-daily-digest.yml] 发送每日汇总邮件
+  ↓
+Vercel 自动重新部署
+```
 
-### 场景 3: 立即更新数据
-1. 访问 GitHub 仓库
-2. Actions > Update Lottery Data > Run workflow
-3. 等待工作流完成
-4. Vercel 自动部署
+### 手动触发
+
+1. **立即更新开奖数据**: GitHub Actions → Update Lottery Data → Run workflow
+2. **手动生成预测**: `python3 generate_ai_prediction.py`
+3. **测试邮件**: 设置 `EMAIL_DRY_RUN=true` 后运行 `python3 email_daily_digest.py`
+
+### 数据更新检查清单
+
+- [ ] `lottery_history.json` 含最新开奖
+- [ ] `ai_predictions.json` 的 `target_period` 是未开奖期号
+- [ ] 旧预测已归档至 `predictions_history.json` 并含 `hit_result`
+- [ ] 每个模型标记了 `best_group`
+
+---
+
+## 环境变量配置
+
+见 `.env.example`，所有凭证通过环境变量注入，**绝不硬编码**：
+
+| 变量 | 用途 | 使用方 |
+|------|------|--------|
+| `AI_API_KEY` | AI 模型调用凭证 | `generate_ai_prediction.py` |
+| `AI_BASE_URL` | AI API 端点（默认 aihubmix.com） | `generate_ai_prediction.py` |
+| `SMTP_SERVER` | SMTP 服务器（默认 smtp.qq.com） | `email_daily_digest.py` |
+| `SMTP_PORT` | SMTP 端口（默认 465） | `email_daily_digest.py` |
+| `SMTP_USER` | 邮箱地址 | `email_daily_digest.py` |
+| `SMTP_PASSWORD` | 邮箱授权码 | `email_daily_digest.py` |
+| `EMAIL_RECIPIENT` | 收件人 | `email_daily_digest.py` |
+| `EMAIL_DRY_RUN` | `true` 仅打印不发送 | `email_daily_digest.py` |
+
+> GitHub Actions secrets 需同步配置同名字段。
 
 ---
 
 ## 部署
 
-### Vercel 部署
-项目配置了 `vercel.json`，自动部署静态站点。
+### Vercel（主要部署方式）
 
-**配置说明**:
-```json
-{
-  "headers": [
-    {
-      "source": "/data/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    }
-  ]
-}
+项目配置 `vercel.json`：数据文件 `max-age=0` 不缓存，含安全响应头。
+
+```bash
+npm install -g vercel
+vercel login
+vercel --prod      # 生产部署
 ```
 
-**注意**: 不要同时使用 `routes` 和 `headers`，会导致部署失败。
+从 GitHub 导入后每次 push 自动部署。
+
+详细指南见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
 ### 本地开发
+
 ```bash
-# macOS/Linux
-./start_server.sh
+# 安装 Python 依赖
+pip install openai requests beautifulsoup4
 
-# Windows
-start_server.bat
-```
-
-访问 `http://localhost:8000`
-
----
-
-## AI 预测策略
-
-每个 AI 模型提供 5 种预测策略：
-
-1. **热号追随者**: 选择最近 30 期高频号码
-2. **冷号逆向者**: 选择最近 30 期低频号码，期待均值回归
-3. **平衡策略师**: 满足奇偶比、大小比、和值、连号等多维平衡
-4. **周期理论家**: 选择短期频率上穿长期频率的号码
-5. **综合决策者**: 融合多种策略的综合方案
-
----
-
-## 常见问题
-
-### Q: GitHub Actions 运行失败怎么办？
-**A**: 检查以下内容：
-1. Actions 是否启用（Settings > Actions）
-2. 工作流权限是否设置为读写（Settings > Actions > Workflow permissions）
-3. Python 依赖是否正确安装
-4. 查看 Actions 运行日志定位具体错误
-
-### Q: 网页不显示最新数据？
-**A**:
-1. 清除浏览器缓存
-2. 检查 `lottery_history.json` 是否已更新
-3. 确认 Vercel 已重新部署（查看 Vercel Dashboard）
-4. 验证 JSON 文件格式是否正确
-
-### Q: 如何修改自动更新时间？
-**A**: 编辑 `.github/workflows/update-lottery-data.yml` 中的 cron 表达式：
-```yaml
-schedule:
-  - cron: '0 14 * * *'  # UTC 14:00 = 北京时间 22:00
-```
-
-### Q: 备份文件太多怎么办？
-**A**: 备份文件已被 `.gitignore` 排除，不会提交到仓库。可以手动删除旧备份：
-```bash
-cd fetch_history
-rm lottery_data_backup_*.json
+# 启动服务器
+./start_server.sh    # macOS/Linux
+start_server.bat     # Windows
 ```
 
 ---
 
 ## 技术栈
 
-**前端**:
-- HTML5
-- CSS3 (CSS Variables, Grid, Flexbox)
-- Vanilla JavaScript (ES6+)
-
-**后端/数据**:
-- Python 3
-- requests + BeautifulSoup4（数据爬取）
-- JSON（数据存储）
-
-**自动化**:
-- GitHub Actions
-- Vercel（自动部署）
-
-**工具**:
-- Git（版本控制）
-- Python HTTP Server（本地开发）
+- **前端**: HTML5, CSS3（CSS Variables, Grid, Flexbox）, Vanilla JS（ES6+）
+- **图表**: Chart.js 4.4.0（CDN）
+- **字体**: Inter（Google Fonts）
+- **Python**: requests + BeautifulSoup4（爬虫）, openai（AI 调用）
+- **自动化**: GitHub Actions（3 个工作流）
+- **部署**: Vercel（自动部署 + CDN）
+- **邮件**: smtplib（SMTP_SSL，QQ 邮箱）
 
 ---
 
-## 文件编码和格式
+## 文件编码与格式
 
-- 所有 JSON 文件：UTF-8，ensure_ascii=False，indent=2
-- Python 文件：UTF-8，# -*- coding: utf-8 -*-
+- JSON 文件：UTF-8，`ensure_ascii=False`，`indent=2`
+- Python 文件：UTF-8，`# -*- coding: utf-8 -*-`
 - HTML/CSS/JS：UTF-8
 
 ---
@@ -398,37 +402,33 @@ rm lottery_data_backup_*.json
 ## Git 规则
 
 ### 提交信息格式
-- `feat:` - 新功能
-- `fix:` - 修复 bug
-- `chore:` - 杂项（自动更新数据等）
-- `docs:` - 文档更新
-- `style:` - 代码格式调整
+- `feat:` 新功能 / `fix:` 修复 bug / `chore:` 杂项 / `docs:` 文档 / `style:` 格式
 
-### .gitignore 关键规则
+### `.gitignore` 关键规则
 ```
 # 备份文件（本地保留，不提交）
 *_backup_*.json
-fetch_history/lottery_data_backup_*.json
-
 # Python 缓存
 __pycache__/
 *.py[cod]
-
+# 本地环境变量
+.env
 # 系统文件
 .DS_Store
 ```
 
 ---
 
-## 许可证
+## 免责声明
 
-本项目仅供学习交流使用，不构成任何投资建议。彩票具有随机性，AI 预测仅为技术演示，不保证准确性。
+本项目仅供学习交流使用，不构成任何投资建议。彩票具有随机性，AI 预测仅为技术演示，不保证准确性。双色球开奖为随机事件，任何预测均无法保证命中。
 
 ---
 
-## 维护者
+## 相关文档索引
 
-如需帮助或报告问题，请参考：
-- `DATA_UPDATE_GUIDE.md` - 数据更新详细指南
-- GitHub Issues - 问题追踪
-- 本文件 - 项目整体说明
+- [AI_PREDICTION_GUIDE.md](./AI_PREDICTION_GUIDE.md) — AI 预测自动生成详细指南
+- [AI_Prediction_Analysis_Report.md](./AI_Prediction_Analysis_Report.md) — 历史预测命中率分析报告
+- [DATA_UPDATE_GUIDE.md](./DATA_UPDATE_GUIDE.md) — 数据更新操作指南
+- [DEPLOYMENT.md](./DEPLOYMENT.md) — Vercel 部署指南
+- [README.md](./README.md) — 项目对外说明

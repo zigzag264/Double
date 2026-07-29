@@ -675,6 +675,11 @@ body::after {
     color: white;
 }
 
+.model-header-sensenova {
+    background: linear-gradient(to right, #2563eb, #7c3aed);
+    color: white;
+}
+
 .model-card-header-left {
     display: flex;
     align-items: center;
