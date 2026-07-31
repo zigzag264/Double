@@ -298,16 +298,54 @@ function renderAccuracyCards() {
 function renderHistoryTable() {
     if (!appData.lotteryHistory) return;
 
-    const tableBodyEl = document.getElementById('historyTableBody');
-    if (!tableBodyEl) return;
+    const tbodyEl = document.getElementById('historyTableBody');
+    if (!tbodyEl) return;
+    tbodyEl.innerHTML = '';
 
-    // 清空现有内容
-    tableBodyEl.innerHTML = '';
+    const table = tbodyEl.parentElement;           // <table>
+    const scrollWrap = table.parentElement;        // .history-table-scroll
+    const container = scrollWrap.parentElement;    // .history-table-container
 
-    // 渲染每一行
-    appData.lotteryHistory.data.forEach(draw => {
-        const row = Components.createHistoryTableRow(draw);
-        tableBodyEl.appendChild(row);
+    const allRows = appData.lotteryHistory.data;
+    const total = allRows.length;
+    const shown = Math.min(20, total);
+
+    for (let i = 0; i < shown; i++) {
+        tbodyEl.appendChild(Components.createHistoryTableRow(allRows[i]));
+    }
+
+    if (total <= shown) return;
+
+    const remaining = total - shown;
+
+    // 隐藏行：先插入一个 <tbody> 到表格末尾、初始隐藏
+    const hiddenTbody = document.createElement('tbody');
+    hiddenTbody.id = 'historyHiddenRows';
+    hiddenTbody.style.display = 'none';
+    for (let i = shown; i < total; i++) {
+        hiddenTbody.appendChild(Components.createHistoryTableRow(allRows[i]));
+    }
+    table.appendChild(hiddenTbody);
+
+    // 展开/折叠按钮：插入到 .history-table-container 中、表格之后
+    const toggle = document.createElement('div');
+    toggle.id = 'historyToggle';
+    toggle.className = 'history-toggle';
+    toggle.innerHTML = '<span>展开查看全部 ' + remaining + ' 期</span>'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+
+    container.appendChild(toggle);
+
+    toggle.addEventListener('click', function () {
+        if (hiddenTbody.style.display === 'none') {
+            hiddenTbody.style.display = '';
+            toggle.innerHTML = '<span>收起</span>'
+                + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>';
+        } else {
+            hiddenTbody.style.display = 'none';
+            toggle.innerHTML = '<span>展开查看全部 ' + remaining + ' 期</span>'
+                + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+        }
     });
 }
 

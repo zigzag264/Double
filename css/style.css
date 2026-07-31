@@ -1308,11 +1308,12 @@ body::after {
     border-radius: 1rem;
     border: 1px solid var(--slate-200);
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
+    overflow: visible;
 }
 
 .history-table-scroll {
     overflow-x: auto;
+    border-radius: 1rem;
 }
 
 .history-table {
@@ -1368,6 +1369,34 @@ body::after {
     gap: 0.375rem;
     transform: scale(0.9);
     transform-origin: left;
+}
+
+.history-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+    background: var(--slate-50);
+    border: 1px dashed var(--slate-300);
+    border-radius: 0.75rem;
+    color: var(--slate-600);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-toggle:hover {
+    background: var(--slate-100);
+    color: var(--indigo-600);
+    border-color: var(--indigo-100);
+}
+
+.history-toggle svg {
+    width: 18px;
+    height: 18px;
 }
 
 /* ==================== Chart Container ==================== */
