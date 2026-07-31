@@ -45,12 +45,6 @@
                             </svg>
                             图表分析
                         </button>
-                        <button class="nav-item" data-tab="history">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
-                            </svg>
-                            历史回溯
-                        </button>
                     </div>
                 </div>
             </div>
@@ -70,12 +64,6 @@
                         <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
                     </svg>
                     <span>图表分析</span>
-                </button>
-                <button class="mobile-nav-item" data-tab="history">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
-                    </svg>
-                    <span>历史回溯</span>
                 </button>
             </div>
         </div>
@@ -145,6 +133,59 @@
                         <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>
                     </svg>
                     <span>AI 预测结果仅供参考，不代表最终开奖结果</span>
+                </div>
+
+                <!-- 历史回溯 -->
+                <div class="section-header" style="margin-top: 2rem;">
+                    <div class="section-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
+                        </svg>
+                    </div>
+                    <h2 class="section-title">历史数据回溯</h2>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+                            </svg>
+                        </div>
+                        <div class="chart-title-wrapper">
+                            <h3>命中排行 Top 5</h3>
+                            <p class="chart-description">按模型 / 策略 / 命中数排名（本期 · 本月 · 上月 · 本年）</p>
+                        </div>
+                    </div>
+                    <div class="ranking-container" id="rankingContainer"></div>
+                </div>
+
+                <div class="history-section">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <h3 style="font-weight: 700; color: var(--slate-700); font-size: 1.125rem;">详细命中记录</h3>
+                        <span style="font-size: 10px; font-weight: 700; padding: 0.25rem 0.75rem; background: var(--slate-100); color: var(--slate-500); border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid var(--slate-200);">
+                            Verified Data
+                        </span>
+                    </div>
+                    <div id="accuracyCardsContainer"></div>
+                </div>
+
+                <div class="history-section">
+                    <h3 style="font-weight: 700; color: var(--slate-700); font-size: 1.125rem; margin-bottom: 1rem;">历史开奖号码一览</h3>
+                    <div class="history-table-container">
+                        <div class="history-table-scroll">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>期号</th>
+                                        <th>开奖日期</th>
+                                        <th>开奖号码</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -349,64 +390,6 @@
                         </div>
                         <div class="chart-canvas">
                             <canvas id="zoneDistributionChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab: History -->
-            <div class="tab-content" data-tab="history">
-                <div class="section-header">
-                    <div class="section-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
-                        </svg>
-                    </div>
-                    <h2 class="section-title">历史数据回溯</h2>
-                </div>
-
-                <!-- Chart: Hit Performance -->
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <div class="chart-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
-                            </svg>
-                        </div>
-                        <div class="chart-title-wrapper">
-                            <h3>命中排行 Top 5</h3>
-                            <p class="chart-description">按模型 / 策略 / 命中数排名（本期 · 本月 · 上月 · 本年）</p>
-                        </div>
-                    </div>
-                    <div class="ranking-container" id="rankingContainer"></div>
-                </div>
-
-                <!-- Accuracy Cards Container -->
-                <div class="history-section">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-                        <h3 style="font-weight: 700; color: var(--slate-700); font-size: 1.125rem;">详细命中记录</h3>
-                        <span style="font-size: 10px; font-weight: 700; padding: 0.25rem 0.75rem; background: var(--slate-100); color: var(--slate-500); border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid var(--slate-200);">
-                            Verified Data
-                        </span>
-                    </div>
-                    <div id="accuracyCardsContainer"></div>
-                </div>
-
-                <!-- History Table -->
-                <div class="history-section">
-                    <h3 style="font-weight: 700; color: var(--slate-700); font-size: 1.125rem; margin-bottom: 1rem;">历史开奖号码一览</h3>
-                    <div class="history-table-container">
-                        <div class="history-table-scroll">
-                            <table class="history-table">
-                                <thead>
-                                    <tr>
-                                        <th>期号</th>
-                                        <th>开奖日期</th>
-                                        <th>开奖号码</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="historyTableBody"></tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
