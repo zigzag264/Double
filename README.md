@@ -6,7 +6,7 @@
 
 ## ✨ 核心特性
 
-- 🤖 **AI 模型预测** — SenseNova 6.7 Flash-Lite、DeepSeek V4 Flash 双模型预测
+- 🤖 **多 AI 模型预测** — 多个前沿大模型协同预测，结果对比展示
 - 📊 **图表分析** — 红球热度、蓝球频率、奇偶比、和值走势、区间分布 5 类图表
 - 🎯 **命中回溯** — 时间窗口 Top 5 排行（本期 / 上周 / 本月 / 上月 / 本年）+ 详细命中记录
 - 📋 **历史开奖** — 折叠式历史开奖号码表，默认展示最近 20 期，点击展开全部
@@ -89,7 +89,7 @@ pip install openai requests beautifulsoup4
 ```bash
 # 设置环境变量
 export AI_API_KEY="your-api-key"
-export AI_BASE_URL="https://token.sensenova.cn/v1"
+export AI_BASE_URL="your-api-endpoint"
 
 # 运行
 python3 generate_ai_prediction.py
@@ -104,12 +104,12 @@ python3 generate_ai_prediction.py
 
 ### 模型配置
 
-当前使用 2 个大模型，配置在 `generate_ai_prediction.py` 的 `MODELS` 数组中：
+当前使用 2 个大模型，配置在 `generate_ai_prediction.py` 的 `MODELS` 数组中，支持灵活替换任意兼容 OpenAI 格式的模型。
 
-| 模型名称 | API ID | 数据标识 |
-|---------|--------|---------|
-| SenseNova 6.7 Flash-Lite | `sensenova-6.7-flash-lite` | `SenseNova6.7Flash` |
-| DeepSeek V4 Flash | `deepseek-v4-flash` | `DeepSeekV4` |
+| 模型名称 | 备注 |
+|---------|------|
+| 模型 A | 国产前沿大模型 |
+| 模型 B | 国际前沿大模型 |
 
 > 每个模型生成 5 组预测，分别采用增强型热号追随、冷号逆向、平衡策略、周期理论、综合决策 5 种策略。详见 `doc/prompt2.0.md`。
 
