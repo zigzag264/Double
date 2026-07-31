@@ -13,16 +13,25 @@ from typing import Dict, Any
 
 # ==================== 配置区 ====================
 # API 配置（通过环境变量设置）
-BASE_URL = os.environ.get("AI_BASE_URL") or "https://aihubmix.com/v1"
+BASE_URL = os.environ.get("AI_BASE_URL")
 API_KEY = os.environ.get("AI_API_KEY")
 if not API_KEY:
     print("❌ 请设置环境变量 AI_API_KEY")
     sys.exit(1)
+if not BASE_URL:
+    print("❌ 请设置环境变量 AI_BASE_URL")
+    sys.exit(1)
 
-# 模型配置列表
+# 模型配置列表（8 个模型共用同一套 API 凭证）
 MODELS = [
-    {"id": "sensenova-6.7-flash-lite", "name": "SenseNova 6.7 Flash-Lite", "model_id": "SenseNova6.7Flash"},
-    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "DeepSeekV4"}
+    {"id": "glm-4.5",                   "name": "模型 A",  "model_id": "ModelA"},
+    {"id": "glm-4.7",                   "name": "模型 B",  "model_id": "ModelB"},
+    {"id": "deepseek-v3",               "name": "模型 C",  "model_id": "ModelC"},
+    {"id": "deepseek-v3.2-exp",         "name": "模型 D",  "model_id": "ModelD"},
+    {"id": "qwen3.5-122b-a10b",         "name": "模型 E",  "model_id": "ModelE"},
+    {"id": "qwen3-32b",                 "name": "模型 F",  "model_id": "ModelF"},
+    {"id": "tongyi-xiaomi-analysis-pro","name": "模型 G",  "model_id": "ModelG"},
+    {"id": "Moonshot-Kimi-K2-Instruct", "name": "模型 H",  "model_id": "ModelH"},
 ]
 
 # 文件路径
