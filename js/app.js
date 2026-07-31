@@ -6,10 +6,7 @@
 let appData = {
     lotteryHistory: null,
     aiPredictions: null,
-    predictionsHistory: null,
-    pailie3History: null,
-    pailie3Predictions: null,
-    pailie3HistoryPredictions: null
+    predictionsHistory: null
 };
 
 // 初始化应用
@@ -22,7 +19,6 @@ async function initApp() {
         renderHeroBanner();
         renderModelsGrid();
         renderHistoryTab();
-        renderPailie3Tab();
 
         // 设置事件监听
         setupEventListeners();
@@ -38,22 +34,15 @@ async function initApp() {
 // 加载所有数据
 async function loadAllData() {
     try {
-        const [lotteryHistory, aiPredictions, predictionsHistory,
-                pailie3History, pailie3Predictions, pailie3HistoryPredictions] = await Promise.all([
+        const [lotteryHistory, aiPredictions, predictionsHistory] = await Promise.all([
             DataLoader.loadLotteryHistory(),
             DataLoader.loadPredictions(),
-            DataLoader.loadPredictionsHistory(),
-            DataLoader.loadPailie3History().catch(e => { console.warn('排列三历史加载失败:', e); return null; }),
-            DataLoader.loadPailie3Predictions().catch(e => { console.warn('排列三预测加载失败:', e); return null; }),
-            DataLoader.loadPailie3HistoryPredictions().catch(e => { console.warn('排列三命中历史加载失败:', e); return null; })
+            DataLoader.loadPredictionsHistory()
         ]);
 
         appData.lotteryHistory = lotteryHistory;
         appData.aiPredictions = aiPredictions;
         appData.predictionsHistory = predictionsHistory;
-        appData.pailie3History = pailie3History;
-        appData.pailie3Predictions = pailie3Predictions;
-        appData.pailie3HistoryPredictions = pailie3HistoryPredictions;
     } catch (error) {
         console.error('数据加载失败:', error);
         throw error;
@@ -279,49 +268,6 @@ function renderHistoryTable() {
         const row = Components.createHistoryTableRow(draw);
         tableBodyEl.appendChild(row);
     });
-}
-
-// 渲染排列三 Tab
-function renderPailie3Tab() {
-    const gridEl = document.getElementById('pailie3ModelsGrid');
-    if (!gridEl) return;
-    gridEl.innerHTML = '';
-
-    const p3pred = appData.pailie3Predictions;
-    const p3hist = appData.pailie3History;
-
-    if (!p3pred || !p3pred.models || !p3pred.models.length) {
-        gridEl.innerHTML = '<div class="empty-pailie3"><p>暂无排列三预测数据</p></div>';
-        return;
-    }
-
-    // 检测预测期号是否已开奖
-    const targetPeriod = p3pred.target_period;
-    const latestDraw = p3hist?.data?.[0];
-    let actualResult = null;
-
-    if (latestDraw && parseInt(targetPeriod) <= parseInt(latestDraw.period)) {
-        actualResult = p3hist.data.find(draw => draw.period === targetPeriod);
-        if (actualResult) {
-            const banner = createP3StatusBanner(actualResult);
-            gridEl.appendChild(banner);
-        }
-    }
-
-    p3pred.models.forEach(model => {
-        const card = Components.createPailie3ModelCard(model, actualResult?.result || null);
-        gridEl.appendChild(card);
-    });
-}
-
-// 创建排列三已开奖状态横幅
-function createP3StatusBanner(actualResult) {
-    const banner = document.createElement('div');
-    banner.className = 'p3-status-banner';
-    const digits = (actualResult.result || '').split('');
-    banner.innerHTML = '<div class="p3-status-content"><h3>第 ' + actualResult.period + ' 期已开奖</h3><p>预测命中对比</p></div>' +
-        '<div class="p3-status-digits">' + digits.map(d => '<span class="p3-digit actual">' + d + '</span>').join('') + '</div>';
-    return banner;
 }
 
 // 渲染频率图表 (分析标签页)
@@ -724,11 +670,7 @@ function handleTabSwitch(tabName, navItems) {
         setTimeout(() => renderAllAnalysisCharts(), 100);
     }
 
-    // 如果切换到排列三Tab，渲染排列三
-    if (tabName === 'pailie3') {
-        renderPailie3Tab();
     }
-}
 
 // 隐藏加载屏幕
 function hideLoadingScreen() {
