@@ -1,0 +1,12 @@
+{
+  "last_updated": "2026-07-31T00:00:00Z",
+  "data": [],
+  "note": "排列三历史数据 - 需要配置爬虫数据源或手动填充",
+  "next_draw": {
+    "next_period": "0",
+    "next_date": "",
+    "next_date_display": "",
+    "weekday": "",
+    "draw_time": "21:30"
+  }
+}

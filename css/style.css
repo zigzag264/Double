@@ -1844,6 +1844,200 @@ body::after {
     }
 }
 
+/* ==================== 排列三 ==================== */
+
+.p3-model-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.p3-model-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow);
+}
+
+.p3-model-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    color: white;
+}
+
+.p3-model-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.p3-model-card-content {
+    padding: 16px;
+}
+
+.p3-strategies {
+    display: flex;
+    flex-direction: column;
+}
+
+.p3-strategy-row {
+    padding: 12px 8px;
+}
+
+.p3-strategy-row:last-child .p3-strategy-separator {
+    display: none;
+}
+
+.p3-strategy-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.p3-strategy-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.p3-exact-badge {
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.p3-hit-count-badge {
+    background: var(--accent-bg);
+    color: var(--accent-color);
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.p3-digits-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.p3-digit {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #374151, #1f2937);
+    border-radius: 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    font-family: 'Consolas', 'Monaco', monospace;
+    border: 2px solid var(--card-border);
+    transition: all 0.2s;
+}
+
+.p3-digit.hit {
+    background: linear-gradient(145deg, #f59e0b, #d97706);
+    border-color: #f59e0b;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+}
+
+.p3-digit.actual {
+    background: linear-gradient(145deg, #10b981, #059669);
+    border-color: #10b981;
+}
+
+.p3-digits-sep {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-right: 4px;
+}
+
+.p3-strategy-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    flex: 1;
+}
+
+.p3-strategy-separator {
+    height: 1px;
+    background: var(--card-border);
+    margin: 8px 0;
+}
+
+.p3-status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+    border: 1px solid var(--accent-green);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+}
+
+.p3-status-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.p3-status-content h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.1rem;
+    color: var(--accent-green);
+}
+
+.p3-status-content p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.p3-status-digits {
+    display: flex;
+    gap: 8px;
+}
+
+.empty-pailie3 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-pailie3 p {
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* ============ Mobile ============ */
+@media (max-width: 768px) {
+    .p3-digit {
+        width: 44px;
+        height: 44px;
+        font-size: 1.25rem;
+    }
+    .p3-strategy-row {
+        padding: 10px 4px;
+    }
+    .p3-strategy-header {
+        flex-wrap: wrap;
+    }
+    .p3-digits-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}
+
 /* ==================== Utilities ==================== */
 .hidden {
     display: none !important;
