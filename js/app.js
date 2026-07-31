@@ -169,12 +169,15 @@ function renderHitRankings() {
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    // 取最新一期的开奖日期（用作"最新一期"窗口）
+    const latestDate = records[0]?.actual_result?.date || null;
+
     const windows = [
+        { key: 'latest',   label: '最新一期', sub: latestDate || '—', filter: (d) => d === latestDate },
         { key: 'today',    label: '本期', sub: '最近一期',  filter: (d) => { const x = new Date(d); return x >= today; } },
-        { key: 'week',     label: '上周', sub: '近 7 天',   filter: (d) => { const x = new Date(d); return x >= sevenDaysAgo && x < today; } },
         { key: 'month',    label: '本月', sub: '本月',      filter: (d) => { const x = new Date(d); return x >= thisMonthStart && x < today; } },
         { key: 'lastMonth',label: '上月', sub: '上月',      filter: (d) => { const x = new Date(d); return x >= lastMonthStart && x < thisMonthStart; } },
-        { key: 'year',     label: '本年', sub: '2025 年度', filter: (d) => { const x = new Date(d); return x >= thisYearStart && x < today; } },
+        { key: 'year',     label: '本年', sub: `${today.getFullYear()} 年度`, filter: (d) => { const x = new Date(d); return x >= thisYearStart && x < today; } },
     ];
 
     windows.forEach(win => {
@@ -235,9 +238,9 @@ function buildRankingPanel(title, sub, records, dateFilter) {
         return panel;
     }
 
-    // 按 bestHit ↓ → totalHits ↓ → games ↓ 排序，取 Top5
+    // 按 bestHit ↓ → totalHits ↓ → games ↓ 排序，取 Top10
     arr.sort((a, b) => b.bestHit - a.bestHit || b.totalHits - a.totalHits || b.games - a.games);
-    const top5 = arr.slice(0, 5);
+    const top10 = arr.slice(0, 10);
 
     // 表格
     const table = document.createElement('table');
@@ -250,12 +253,13 @@ function buildRankingPanel(title, sub, records, dateFilter) {
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
-    top5.forEach((e, i) => {
+    top10.forEach((e, i) => {
         const tr = document.createElement('tr');
         const avg = e.games > 0 ? (e.totalHits / e.games).toFixed(1) : '0.0';
         const bestTag = e.bestHit >= 5 ? 'excellent' : e.bestHit >= 3 ? 'good' : '';
+        const rankClass = i === 0 ? ' rank-1' : i === 1 ? ' rank-2' : i === 2 ? ' rank-3' : '';
         tr.innerHTML =
-            '<td class="rank-num">' + (i + 1) + '</td>' +
+            '<td class="rank-num' + rankClass + '">' + (i + 1) + '</td>' +
             '<td class="rank-model">' + escHtml(e.modelName) + '</td>' +
             '<td class="rank-strategy">' + escHtml(e.strategy) + '</td>' +
             '<td class="rank-games">' + e.games + '</td>' +

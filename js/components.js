@@ -82,7 +82,8 @@ const Components = {
                     <div class="model-name-wrapper">
                         <h3>${model.model_name}</h3>
                         <div class="model-id">
-                            <span>ID: ${model.model_id}</span>
+                            <span class="model-id-dot"></span>
+                            <span>Model: ${model.model_id}</span>
                         </div>
                     </div>
                 </div>

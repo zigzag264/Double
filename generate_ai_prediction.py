@@ -7,9 +7,19 @@
 import json
 import os
 import sys
+import time as time_module
 from datetime import datetime, timedelta
 from openai import OpenAI
-from typing import Dict, Any
+from openai import (
+    APITimeoutError,
+    RateLimitError,
+    APIConnectionError,
+    InternalServerError,
+    AuthenticationError,
+    NotFoundError,
+    BadRequestError,
+)
+from typing import Dict, Any, Optional
 
 # ==================== 配置区 ====================
 # API 配置（通过环境变量设置）
@@ -23,15 +33,80 @@ if not BASE_URL:
     sys.exit(1)
 
 # 模型配置列表（8 个模型共用同一套 API 凭证）
+# 每模型可单独配置：streaming 支持、超时、温度、重试次数
 MODELS = [
-    {"id": "glm-4.5",                   "name": "模型 A",  "model_id": "ModelA"},
-    {"id": "glm-4.7",                   "name": "模型 B",  "model_id": "ModelB"},
-    {"id": "deepseek-v3",               "name": "模型 C",  "model_id": "ModelC"},
-    {"id": "deepseek-v3.2-exp",         "name": "模型 D",  "model_id": "ModelD"},
-    {"id": "qwen3.5-122b-a10b",         "name": "模型 E",  "model_id": "ModelE"},
-    {"id": "qwen3-32b",                 "name": "模型 F",  "model_id": "ModelF"},
-    {"id": "tongyi-xiaomi-analysis-pro","name": "模型 G",  "model_id": "ModelG"},
-    {"id": "Moonshot-Kimi-K2-Instruct", "name": "模型 H",  "model_id": "ModelH"},
+    {
+        "id": "glm-4.5",
+        "name": "GLM-4.5",
+        "model_id": "glm-4.5",
+        "supports_streaming": True,
+        "timeout": 180,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "glm-4.7",
+        "name": "GLM-4.7",
+        "model_id": "glm-4.7",
+        "supports_streaming": True,
+        "timeout": 180,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "deepseek-v3",
+        "name": "DeepSeek V3",
+        "model_id": "deepseek-v3",
+        "supports_streaming": True,
+        "timeout": 180,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "deepseek-v3.2-exp",
+        "name": "DeepSeek V3.2 Exp",
+        "model_id": "deepseek-v3.2-exp",
+        "supports_streaming": True,
+        "timeout": 180,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "qwen3.5-122b-a10b",
+        "name": "Qwen 3.5 122B",
+        "model_id": "qwen3.5-122b-a10b",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.7,
+        "max_retries": 2,
+    },
+    {
+        "id": "qwen3-32b",
+        "name": "Qwen 3 32B",
+        "model_id": "qwen3-32b",
+        "supports_streaming": True,
+        "timeout": 180,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "tongyi-xiaomi-analysis-pro",
+        "name": "Tongyi Analysis Pro",
+        "model_id": "tongyi-xiaomi-analysis-pro",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "Moonshot-Kimi-K2-Instruct",
+        "name": "Kimi K2",
+        "model_id": "Moonshot-Kimi-K2-Instruct",
+        "supports_streaming": True,
+        "timeout": 180,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
 ]
 
 # 文件路径
@@ -87,9 +162,9 @@ def get_next_draw_date() -> str:
     # 理论上不会到这里
     return today.strftime("%Y-%m-%d")
 
-def get_openai_client() -> OpenAI:
+def get_openai_client(default_timeout: int = 120) -> OpenAI:
     """获取 OpenAI 客户端"""
-    return OpenAI(api_key=API_KEY, base_url=BASE_URL)
+    return OpenAI(api_key=API_KEY, base_url=BASE_URL, timeout=default_timeout, max_retries=0)
 
 def extract_json_from_response(response_text: str) -> str:
     """从 AI 响应中提取 JSON 内容"""
@@ -108,48 +183,151 @@ def extract_json_from_response(response_text: str) -> str:
 
     return text
 
-def call_ai_model(client: OpenAI, model_config: Dict[str, str], prompt: str) -> Dict[str, Any]:
-    """调用 AI 模型获取预测"""
+# ==================== 模型调用核心 ====================
+
+def _build_messages(prompt: str) -> list:
+    """构建统一的 messages 列表"""
+    return [
+        {
+            "role": "system",
+            "content": "你是一个专业的彩票数据分析师，擅长基于历史数据进行模式分析和预测。请严格按照要求返回 JSON 格式数据，不要有任何额外的解释或说明。"
+        },
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+
+
+def _call_with_streaming(client: OpenAI, model_config: dict, prompt: str) -> str:
+    """流式模式调用，返回完整响应文本"""
+    timeout = model_config.get("timeout", 120)
+    response_text = ""
+
+    stream = client.chat.completions.create(
+        model=model_config["id"],
+        messages=_build_messages(prompt),
+        temperature=model_config.get("temperature", 0.8),
+        stream=True,
+        timeout=timeout + 60,  # 流式较慢，额外加 60s
+    )
+
+    for chunk in stream:
+        delta = chunk.choices[0].delta
+        if delta.content:
+            response_text += delta.content
+
+    return response_text.strip()
+
+
+def _call_without_streaming(client: OpenAI, model_config: dict, prompt: str) -> str:
+    """非流式模式调用，返回完整响应文本"""
+    timeout = model_config.get("timeout", 120)
+
+    response = client.chat.completions.create(
+        model=model_config["id"],
+        messages=_build_messages(prompt),
+        temperature=model_config.get("temperature", 0.8),
+        stream=False,
+        timeout=timeout,
+    )
+
+    return response.choices[0].message.content.strip()
+
+
+def _is_retryable_error(e: Exception) -> bool:
+    """判断错误是否可重试"""
+    return isinstance(e, (APITimeoutError, RateLimitError, APIConnectionError, InternalServerError))
+
+
+def _is_skip_error(e: Exception) -> bool:
+    """判断错误是否应跳过（不重试）"""
+    return isinstance(e, (AuthenticationError, NotFoundError, BadRequestError))
+
+
+def _parse_prediction(response_text: str, model_name: str) -> Dict[str, Any]:
+    """从响应文本中提取并解析 JSON 预测数据"""
+    json_text = extract_json_from_response(response_text)
     try:
-        print(f"  ⏳ 正在调用 {model_config['name']} 模型...")
-
-        response = client.chat.completions.create(
-            model=model_config['id'],
-            messages=[
-                {
-                    "role": "system",
-                    "content": "你是一个专业的彩票数据分析师，擅长基于历史数据进行模式分析和预测。请严格按照要求返回 JSON 格式数据，不要有任何额外的解释或说明。"
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.8
-        )
-
-        response_text = response.choices[0].message.content.strip()
-
-        # 提取 JSON
-        json_text = extract_json_from_response(response_text)
-
-        # 解析 JSON
-        prediction_data = json.loads(json_text)
-
-        print(f"  ✅ {model_config['name']} 预测成功")
-        return prediction_data
-
+        return json.loads(json_text)
     except json.JSONDecodeError as e:
-        print(f"  ❌ {model_config['name']} JSON 解析失败: {str(e)}")
-        print(f"  原始响应前500字符:\n{response_text[:500]}")
+        print(f"    ❌ {model_name} JSON 解析失败: {e}")
+        print(f"    原始响应前500字符:\n{response_text[:500]}")
         raise
-    except Exception as e:
-        print(f"  ❌ {model_config['name']} 调用失败")
-        print(f"  错误类型: {type(e).__name__}")
-        print(f"  错误信息: {str(e)}")
-        import traceback
-        print(f"  详细堆栈:\n{traceback.format_exc()}")
-        raise
+
+
+def call_ai_model(client: OpenAI, model_config: dict, prompt: str) -> Optional[Dict[str, Any]]:
+    """
+    调用 AI 模型获取预测（带自动流式回退 + 重试）
+
+    流程：
+      1. 若模型支持 streaming → 尝试流式调用
+      2. 流式失败 → 自动回退到非流式
+      3. 对可重试错误（超时/限流/断连/500）进行重试
+      4. 对不可重试错误（认证/模型不存在/参数错误）直接跳过
+    """
+    model_name = model_config["name"]
+    max_retries = model_config.get("max_retries", 2)
+
+    # ---- 尝试流式调用 ----
+    if model_config.get("supports_streaming", True):
+        for attempt in range(max_retries + 1):
+            try:
+                t0 = time_module.time()
+                response_text = _call_with_streaming(client, model_config, prompt)
+                elapsed = time_module.time() - t0
+                prediction = _parse_prediction(response_text, model_name)
+                print(f"    ✅ 流式成功 | 耗时: {elapsed:.1f}s | 响应: {len(response_text)} 字符")
+                return prediction
+
+            except json.JSONDecodeError:
+                # JSON 解析失败不可重试
+                return None
+            except Exception as e:
+                if _is_skip_error(e):
+                    print(f"    ❌ 流式调用失败 (不可恢复): {type(e).__name__}")
+                    print(f"       {e}")
+                    break  # 不再尝试流式，进入非流式回退
+                if attempt < max_retries:
+                    wait = 2 ** attempt
+                    print(f"    ⚠️ 流式调用失败 (第{attempt+1}次): {type(e).__name__}")
+                    print(f"       {e}")
+                    print(f"    ℹ️  等待 {wait}s 后重试...")
+                    time_module.sleep(wait)
+                else:
+                    print(f"    ❌ 流式调用失败 ({max_retries+1}次均失败): {type(e).__name__}")
+                    print(f"       {e}")
+
+        # 流式全部失败 → 回退到非流式
+        print(f"    ℹ️  回退到非流式模式...")
+
+    # ---- 非流式调用 ----
+    for attempt in range(max_retries + 1):
+        try:
+            t0 = time_module.time()
+            response_text = _call_without_streaming(client, model_config, prompt)
+            elapsed = time_module.time() - t0
+            prediction = _parse_prediction(response_text, model_name)
+            print(f"    ✅ 非流式成功 | 耗时: {elapsed:.1f}s | 响应: {len(response_text)} 字符")
+            return prediction
+
+        except json.JSONDecodeError:
+            return None
+        except Exception as e:
+            if _is_skip_error(e):
+                print(f"    ❌ 非流式调用失败 (不可恢复): {type(e).__name__}")
+                print(f"       {e}")
+                return None
+            if attempt < max_retries:
+                wait = 2 ** attempt
+                print(f"    ⚠️ 非流式调用失败 (第{attempt+1}次): {type(e).__name__}")
+                print(f"       {e}")
+                print(f"    ℹ️  等待 {wait}s 后重试...")
+                time_module.sleep(wait)
+            else:
+                print(f"    ❌ 非流式调用失败 ({max_retries+1}次均失败): {type(e).__name__}")
+                print(f"       {e}")
+                return None
 
 def validate_prediction(prediction: Dict[str, Any]) -> bool:
     """验证预测数据格式"""
@@ -234,14 +412,20 @@ def generate_predictions() -> Dict[str, Any]:
     print(f"📅 预测日期: {prediction_date}\n")
 
     # 初始化 OpenAI 客户端
-    client = get_openai_client()
+    client = get_openai_client(default_timeout=120)
 
-    # 存储所有模型的预测
+    # 存储所有模型的预测和诊断信息
     all_predictions = []
+    diagnostics = []  # 每个模型一条诊断记录
 
     # 逐个调用模型
     print("🔮 开始生成预测...\n")
     for model_config in MODELS:
+        model_name = model_config["name"]
+        t_start = time_module.time()
+        status = "❌ 失败"
+        detail = ""
+
         try:
             # 构建 prompt
             prompt = prompt_template.format(
@@ -256,18 +440,40 @@ def generate_predictions() -> Dict[str, Any]:
             # 调用模型
             prediction = call_ai_model(client, model_config, prompt)
 
-            # 验证数据
-            if validate_prediction(prediction):
+            if prediction is None:
+                detail = "调用失败或解析失败"
+                print(f"  ✗ {model_name}: {detail}\n")
+            elif validate_prediction(prediction):
                 all_predictions.append(prediction)
-                print(f"  ✓ 验证通过\n")
+                status = "✅ 成功"
+                detail = "验证通过"
+                print(f"  ✓ {model_name}: 验证通过\n")
             else:
-                print(f"  ✗ 验证失败，跳过该模型\n")
+                detail = "验证失败（格式不正确）"
+                print(f"  ✗ {model_name}: {detail}\n")
 
         except Exception as e:
-            print(f"  ✗ 处理 {model_config['name']} 时失败")
-            print(f"  错误类型: {type(e).__name__}")
-            print(f"  错误信息: {str(e)}\n")
-            continue
+            detail = f"{type(e).__name__}: {str(e)}"
+            print(f"  ✗ 处理 {model_name} 时异常: {detail}\n")
+
+        elapsed = time_module.time() - t_start
+        diagnostics.append({
+            "name": model_name,
+            "model_id": model_config["model_id"],
+            "status": "✅ 成功" if status == "✅ 成功" else "❌ 失败",
+            "detail": detail if detail else "成功",
+            "elapsed": elapsed,
+        })
+
+    # 打印诊断汇总表
+    print("\n" + "=" * 60)
+    print("📊 模型调用诊断汇总")
+    print("=" * 60)
+    for d in diagnostics:
+        elapsed_str = f"{d['elapsed']:.1f}s" if d['elapsed'] < 60 else f"{d['elapsed']/60:.1f}min"
+        print(f"  {d['status']} | {d['name']:<8s} | {elapsed_str:>7s} | {d['detail']}")
+    print("=" * 60)
+    print(f"  总计: {sum(1 for d in diagnostics if d['status'] == '✅ 成功')}/{len(diagnostics)} 个模型成功\n")
 
     # 构建最终输出
     if not all_predictions:
