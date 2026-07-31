@@ -137,8 +137,8 @@ function createDrawnStatusBanner(actualResult) {
 
 // 渲染历史标签页
 function renderHistoryTab() {
-    // 渲染准确度图表
-    renderAccuracyChart();
+    // 渲染命中排行表
+    renderHitRankings();
 
     // 渲染准确度卡片
     renderAccuracyCards();
@@ -147,93 +147,134 @@ function renderHistoryTab() {
     renderHistoryTable();
 }
 
-// 渲染准确度图表
-function renderAccuracyChart() {
-    if (!appData.predictionsHistory) return;
+// 命中排行：按时间窗口分组、按 模型+策略 命中优劣 取 Top5
+function renderHitRankings() {
+    const container = document.getElementById('rankingContainer');
+    if (!container || !appData.predictionsHistory) return;
+    container.innerHTML = '';
 
-    const chartEl = document.getElementById('accuracyChart');
-    if (!chartEl) return;
+    const records = appData.predictionsHistory.predictions_history || [];
+    if (!records.length) {
+        container.innerHTML = '<div class="ranking-empty"><p>暂无命中回溯数据</p></div>';
+        return;
+    }
 
-    // 准备图表数据
-    const chartData = prepareChartData();
+    // 时间窗口
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const thisYearStart = new Date(today.getFullYear(), 0, 1);
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // 使用Chart.js渲染
-    new Chart(chartEl, {
-        type: 'line',
-        data: {
-            labels: chartData.labels,
-            datasets: chartData.datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 7,
-                    ticks: {
-                        stepSize: 1
-                    },
-                    title: {
-                        display: true,
-                        text: '命中球数'
-                    }
-                }
-            }
-        }
+    const windows = [
+        { key: 'today',    label: '本期', sub: '最近一期',  filter: (d) => { const x = new Date(d); return x >= today; } },
+        { key: 'week',     label: '上周', sub: '近 7 天',   filter: (d) => { const x = new Date(d); return x >= sevenDaysAgo && x < today; } },
+        { key: 'month',    label: '本月', sub: '本月',      filter: (d) => { const x = new Date(d); return x >= thisMonthStart && x < today; } },
+        { key: 'lastMonth',label: '上月', sub: '上月',      filter: (d) => { const x = new Date(d); return x >= lastMonthStart && x < thisMonthStart; } },
+        { key: 'year',     label: '本年', sub: '2025 年度', filter: (d) => { const x = new Date(d); return x >= thisYearStart && x < today; } },
+    ];
+
+    windows.forEach(win => {
+        const panel = buildRankingPanel(win.label, win.sub, records, win.filter);
+        container.appendChild(panel);
     });
 }
 
-// 准备图表数据
-function prepareChartData() {
-    const history = appData.predictionsHistory.predictions_history;
-    const labels = [];
-    const modelsData = {};
+// 构建单个时间窗口排行面板
+function buildRankingPanel(title, sub, records, dateFilter) {
+    // 收集该窗口内 每条记录的每个 模型+策略 的命中
+    // key = model_name + '|' + strategy
+    const stats = {};
 
-    // 反转以显示时间顺序
-    const reversedHistory = [...history].reverse();
-
-    reversedHistory.forEach(record => {
-        labels.push(record.target_period);
-
-        record.models.forEach(model => {
-            if (!modelsData[model.model_name]) {
-                modelsData[model.model_name] = [];
-            }
-
-            // 找到最佳命中数
-            const bestHit = Math.max(...model.predictions.map(p => p.hit_result?.total_hits || 0));
-            modelsData[model.model_name].push(bestHit);
+    records.forEach(rec => {
+        const adate = rec.actual_result?.date;
+        if (!adate || !dateFilter(adate)) return;
+        (rec.models || []).forEach(model => {
+            (model.predictions || []).forEach(pred => {
+                const hr = pred.hit_result;
+                if (!hr) return;
+                const key = model.model_name + '|' + (pred.strategy || '—');
+                const entry = stats[key] || {
+                    modelName: model.model_name,
+                    strategy: pred.strategy || '—',
+                    totalHits: 0,
+                    bestHit: 0,
+                    games: 0,
+                    redTotal: 0,
+                    blueHits: 0,
+                };
+                entry.totalHits += hr.total_hits || 0;
+                entry.games += 1;
+                entry.redTotal += hr.red_hit_count || 0;
+                entry.blueHits += hr.blue_hit || 0;
+                if (hr.total_hits > entry.bestHit) entry.bestHit = hr.total_hits;
+                stats[key] = entry;
+            });
         });
     });
 
-    // 转换为Chart.js数据集格式
-    const colors = {
-        'SenseNova 6.7 Flash-Lite': '#10b981',
-        'DeepSeek V4 Flash': '#f59e0b'
-    };
+    const panel = document.createElement('div');
+    panel.className = 'ranking-panel';
 
-    const datasets = Object.keys(modelsData).map(modelName => ({
-        label: modelName,
-        data: modelsData[modelName],
-        borderColor: colors[modelName] || '#6b7280',
-        backgroundColor: colors[modelName] || '#6b7280',
-        borderWidth: 3,
-        pointRadius: 4,
-        pointHoverRadius: 7,
-        tension: 0.1
-    }));
+    // 标题
+    const header = document.createElement('div');
+    header.className = 'ranking-header';
+    header.innerHTML = '<span class="ranking-title">' + title + '</span>'
+        + '<span class="ranking-sub">' + sub + '</span>';
+    panel.appendChild(header);
 
-    return { labels, datasets };
+    const arr = Object.values(stats);
+    if (!arr.length) {
+        const empty = document.createElement('div');
+        empty.className = 'ranking-empty';
+        empty.innerHTML = '<p>该时段暂无命中数据</p>';
+        panel.appendChild(empty);
+        return panel;
+    }
+
+    // 按 bestHit ↓ → totalHits ↓ → games ↓ 排序，取 Top5
+    arr.sort((a, b) => b.bestHit - a.bestHit || b.totalHits - a.totalHits || b.games - a.games);
+    const top5 = arr.slice(0, 5);
+
+    // 表格
+    const table = document.createElement('table');
+    table.className = 'ranking-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr>'
+        + '<th>#</th><th>模型</th><th>策略</th>'
+        + '<th>期数</th><th>最佳命中</th><th>累计命中</th>'
+        + '<th>命中率</th></tr>';
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    top5.forEach((e, i) => {
+        const tr = document.createElement('tr');
+        const avg = e.games > 0 ? (e.totalHits / e.games).toFixed(1) : '0.0';
+        const bestTag = e.bestHit >= 5 ? 'excellent' : e.bestHit >= 3 ? 'good' : '';
+        tr.innerHTML =
+            '<td class="rank-num">' + (i + 1) + '</td>' +
+            '<td class="rank-model">' + escHtml(e.modelName) + '</td>' +
+            '<td class="rank-strategy">' + escHtml(e.strategy) + '</td>' +
+            '<td class="rank-games">' + e.games + '</td>' +
+            '<td class="rank-best ' + bestTag + '">' + e.bestHit + ' 球</td>' +
+            '<td class="rank-total">' + e.totalHits + ' 球</td>' +
+            '<td class="rank-avg">' + avg + '</td>';
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    panel.appendChild(table);
+
+    return panel;
+}
+
+// HTML 转义
+function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
 }
 
 // 渲染准确度卡片
@@ -669,8 +710,7 @@ function handleTabSwitch(tabName, navItems) {
         // 延迟渲染以确保canvas可见
         setTimeout(() => renderAllAnalysisCharts(), 100);
     }
-
-    }
+}
 
 // 隐藏加载屏幕
 function hideLoadingScreen() {

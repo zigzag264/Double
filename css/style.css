@@ -1845,6 +1845,111 @@ body::after {
 }
 
 
+/* ==================== 命中排行 ==================== */
+
+.ranking-container {
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ranking-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.ranking-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.ranking-title {
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--slate-900);
+}
+
+.ranking-sub {
+    font-size: 0.75rem;
+    color: var(--slate-500);
+}
+
+.ranking-empty p {
+    color: var(--slate-500);
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 0.75rem 0;
+}
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.ranking-table thead th {
+    text-align: left;
+    padding: 0.5rem 0.625rem;
+    color: var(--slate-500);
+    font-weight: 600;
+    font-size: 0.75rem;
+    border-bottom: 1px solid var(--slate-200);
+    white-space: nowrap;
+}
+
+.ranking-table thead th:nth-child(n+4) {
+    text-align: center;
+}
+
+.ranking-table tbody td {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--slate-100);
+    color: var(--slate-700);
+    white-space: nowrap;
+}
+
+.ranking-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ranking-table tbody td:nth-child(n+4) {
+    text-align: center;
+}
+
+.rank-num {
+    font-weight: 800;
+    color: var(--slate-400);
+    width: 28px;
+}
+
+.rank-model {
+    font-weight: 600;
+    color: var(--slate-800);
+}
+
+.rank-strategy {
+    color: var(--slate-600);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rank-best.excellent {
+    color: var(--emerald-600);
+    font-weight: 700;
+}
+
+.rank-best.good {
+    color: var(--blue-600);
+    font-weight: 700;
+}
+
 /* ==================== Utilities ==================== */
 .hidden {
     display: none !important;
