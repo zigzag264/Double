@@ -21,8 +21,8 @@ if not API_KEY:
 
 # 模型配置列表
 MODELS = [
-    {"id": "sensetime/sensenova-6.7-flash-lite", "name": "SenseNova 6.7 Flash-Lite", "model_id": "SenseNova6.7Flash"},
-    {"id": "sensetime/sensenova-u1-fast", "name": "SenseNova U1 Fast", "model_id": "SenseNovaU1"},
+    {"id": "sensenova-6.7-flash-lite", "name": "SenseNova 6.7 Flash-Lite", "model_id": "SenseNova6.7Flash"},
+    {"id": "sensenova-u1-fast", "name": "SenseNova U1 Fast", "model_id": "SenseNovaU1"},
     {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "DeepSeekV4"}
 ]
 

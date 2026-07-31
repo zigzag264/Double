@@ -61,7 +61,7 @@ try:
     client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
     response = client.chat.completions.create(
-        model="sensetime/sensenova-6.7-flash-lite",
+        model="sensenova-6.7-flash-lite",
         messages=[
             {
                 "role": "system",
