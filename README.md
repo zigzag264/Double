@@ -4,26 +4,25 @@
 
 一个基于 AI 模型的双色球彩票预测与数据分析展示平台，提供多模型预测对比、图表分析和历史命中回溯。
 
-![预览](images/image1.jpg)
-
 ## ✨ 核心特性
 
 - 🤖 **AI 模型预测** — SenseNova 6.7 Flash-Lite、DeepSeek V4 Flash 双模型预测
 - 📊 **图表分析** — 红球热度、蓝球频率、奇偶比、和值走势、区间分布 5 类图表
-- 🎯 **命中回溯** — 历史预测准确率统计与趋势分析
+- 🎯 **命中回溯** — 时间窗口 Top 5 排行（本期 / 上周 / 本月 / 上月 / 本年）+ 详细命中记录
+- 📋 **历史开奖** — 折叠式历史开奖号码表，默认展示最近 20 期，点击展开全部
 - ⏰ **自动数据更新** — GitHub Actions 每日爬取开奖数据
 - 📧 **每日邮件推送** — SMTP 自动发送每日汇总邮件
-- 🎨 **深色/浅色主题** — CSS 变量实现，偏好保存至 localStorage
+- 🎨 **简约蓝白主题** — 统一蓝色配色，清爽简洁
 
 ## 🏗 项目结构
 
 ```
 double/
-├── index.html                    # 主页面（3 个 Tab）
+├── index.html                    # 主页面（2 个 Tab：最新预测 / 图表分析）
 ├── css/
-│   └── style.css                 # 样式（深色/浅色 CSS 变量）
+│   └── style.css                 # 样式（蓝白配色 CSS 变量）
 ├── js/
-│   ├── app.js                    # 主应用逻辑 + Chart.js 图表
+│   ├── app.js                    # 主应用逻辑 + Chart.js 图表 + 命中排行
 │   ├── components.js             # UI 组件（号码球、卡片、对比）
 │   └── data-loader.js            # 数据加载模块（fetch JSON）
 ├── data/                         # 前端数据文件
@@ -47,7 +46,6 @@ double/
 ├── add_gpt5_prediction.py            # 手动添加历史预测
 ├── test_prediction.py                # 预测文件格式测试
 ├── test_single_model.py              # 单模型 API 调用测试
-├── diagnose.js                       # 前端命中逻辑调试
 ├── deploy.sh                         # Vercel 部署辅助
 ├── vercel.json                       # Vercel 部署配置
 ├── start_server.sh / .bat            # 本地开发服务器
@@ -114,6 +112,14 @@ python3 generate_ai_prediction.py
 | DeepSeek V4 Flash | `deepseek-v4-flash` | `DeepSeekV4` |
 
 > 每个模型生成 5 组预测，分别采用增强型热号追随、冷号逆向、平衡策略、周期理论、综合决策 5 种策略。详见 `doc/prompt2.0.md`。
+
+## 🎯 命中排行说明
+
+在「最新预测」页下方嵌入历史回溯区，包含：
+
+- **命中排行 Top 5** — 按 5 个时间窗口（本期 / 上周 / 本月 / 上月 / 本年）分别统计，按 **模型 + 策略** 聚合，以最佳命中数 ↓ → 累计命中 ↓ → 期数 ↓ 排序取前五
+- **详细命中记录** — 每期开奖号码与 AI 预测对比
+- **历史开奖号码一览** — 默认展示最近 20 期，点击「展开查看全部 N 期」可查看所有历史
 
 ## 🔄 数据更新工作流
 
