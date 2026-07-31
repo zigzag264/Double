@@ -117,7 +117,7 @@ python3 generate_ai_prediction.py
 ```
 
 脚本功能：
-- 🤖 自动调用 3 个大模型（SenseNova 6.7 Flash-Lite, SenseNova U1 Fast, DeepSeek V4 Flash）
+- 🤖 自动调用 2 个大模型（SenseNova 6.7 Flash-Lite, DeepSeek V4 Flash）
 - 📊 基于历史数据生成 5 种策略预测
 - ✅ 自动验证预测数据格式
 - 💾 自动备份现有预测

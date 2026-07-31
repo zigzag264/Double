@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示多个大模型（SenseNova 6.7 Flash-Lite、SenseNova U1 Fast、DeepSeek V4 Flash）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示多个大模型（SenseNova 6.7 Flash-Lite、DeepSeek V4 Flash）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
@@ -235,8 +235,7 @@ python3 -m http.server 8000
 **模型配置**（内置）:
 ```python
 MODELS = [
-    {"id": "sensetime/sensenova-6.7-flash-lite", "name": "SenseNova 6.7 Flash-Lite", "model_id": "SenseNova6.7Flash"},
-    {"id": "sensetime/sensenova-u1-fast", "name": "SenseNova U1 Fast", "model_id": "SenseNovaU1"},
+    {"id": "sensenova-6.7-flash-lite", "name": "SenseNova 6.7 Flash-Lite", "model_id": "SenseNova6.7Flash"},
     {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "DeepSeekV4"}
 ]
 ```

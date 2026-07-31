@@ -219,7 +219,6 @@ function prepareChartData() {
     // 转换为Chart.js数据集格式
     const colors = {
         'SenseNova 6.7 Flash-Lite': '#10b981',
-        'SenseNova U1 Fast': '#8b5cf6',
         'DeepSeek V4 Flash': '#f59e0b'
     };
 
