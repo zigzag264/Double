@@ -107,7 +107,8 @@ def main():
     print("\n📝 组装邮件内容...")
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     body = build_email_content(data, warnings, generated_at=now)
-    subject = "AI 预测"
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    subject = f"AI 预测 · {today}"
     print("  ✓ 内容组装完成")
 
     # 4. 发送
