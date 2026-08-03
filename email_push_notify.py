@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Push 触发邮件通知脚本
-在 GitHub Actions 中由 push 事件触发，发送更新摘要到邮箱。
+Push 触发邮件通知脚本 — 增强版
+在 GitHub Actions 中由 push 事件触发，发送详细更新摘要到邮箱。
+
+内容包含：
+  - 提交信息
+  - 最新开奖数据
+  - AI 全部预测（6 模型 × 5 策略）
+  - 优劣排行前十（模型+策略命中率）
 """
 
 import os
@@ -31,130 +37,221 @@ if not all(REQUIRED):
         sys.exit(1)
 
 
-# ==================== 获取变更摘要 ====================
+def _data_path(name):
+    return os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", name
+    )
+
+
+# ==================== 数据获取 ====================
 
 def get_git_info():
     """获取最近一次提交的信息"""
     try:
-        # 提交者
         author = subprocess.run(
             ["git", "log", "-1", "--format=%an"],
             capture_output=True, text=True, check=True
         ).stdout.strip()
-
-        # 提交信息
         msg = subprocess.run(
             ["git", "log", "-1", "--format=%s"],
             capture_output=True, text=True, check=True
         ).stdout.strip()
-
-        # 变更文件列表
         files = subprocess.run(
             ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
             capture_output=True, text=True, check=True
         ).stdout.strip().split("\n")
-
-        # 变更统计
         stat = subprocess.run(
             ["git", "diff", "--stat", "HEAD~1", "HEAD"],
             capture_output=True, text=True, check=True
         ).stdout.strip()
-
         return author, msg, [f for f in files if f], stat
     except Exception as e:
         return "unknown", "no commit info", [], str(e)
 
 
-def get_lottery_summary():
-    """读取最新开奖数据摘要"""
+def get_latest_draw():
+    """获取最新开奖数据"""
     try:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            "data", "lottery_history.json")
-        with open(path, "r", encoding="utf-8") as f:
+        with open(_data_path("lottery_history.json"), "r", encoding="utf-8") as f:
             data = json.load(f)
         latest = data.get("data", [{}])[0]
         nd = data.get("next_draw", {})
-        return (
-            f"  最新期号: {latest.get('period', '—')} "
-            f"({latest.get('date', '—')})\n"
-            f"  开奖号码: {' '.join(latest.get('red_balls', []))} "
-            f"+ {latest.get('blue_ball', '')}\n"
-            f"  下期预告: {nd.get('next_period', '—')} "
-            f"{nd.get('next_date_display', '')} {nd.get('weekday', '')}"
-        )
+        return latest, nd
     except Exception as e:
-        return f"  (读取失败: {e})"
+        return {}, {}
 
 
-def get_prediction_summary():
-    """读取 AI 预测摘要"""
+def get_all_predictions():
+    """获取全部 AI 预测详情"""
     try:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            "data", "ai_predictions.json")
-        with open(path, "r", encoding="utf-8") as f:
+        with open(_data_path("ai_predictions.json"), "r", encoding="utf-8") as f:
             data = json.load(f)
-        models = data.get("models", [])
-        lines = [
-            f"  目标期号: {data.get('target_period', '—')}  "
-            f"预测日期: {data.get('prediction_date', '—')}",
-            f"  模型数: {len(models)}"
-        ]
-        for m in models:
-            lines.append(f"    - {m['model_name']}")
-        return "\n".join(lines)
+        return data
     except Exception as e:
-        return f"  (读取失败: {e})"
+        return None
 
 
-# ==================== 邮件构建 ====================
+def get_hit_rankings():
+    """获取历史命中排行 Top 10（按模型+策略，bestHit 降序）"""
+    try:
+        with open(_data_path("predictions_history.json"), "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return [], ""
+
+    records = data.get("predictions_history", [])
+    if not records:
+        return [], "暂无命中记录"
+
+    stats = {}
+    for rec in records:
+        for m in rec.get("models", []):
+            for pred in m.get("predictions", []):
+                hr = pred.get("hit_result")
+                if not hr:
+                    continue
+                key = f"{m['model_name']}|{pred.get('strategy','—')}"
+                if key not in stats:
+                    stats[key] = {
+                        "model": m["model_name"],
+                        "strategy": pred.get("strategy", "—"),
+                        "total": 0,
+                        "best": 0,
+                        "games": 0,
+                    }
+                t = hr.get("total_hits", 0)
+                stats[key]["total"] += t
+                stats[key]["games"] += 1
+                if t > stats[key]["best"]:
+                    stats[key]["best"] = t
+
+    sorted_stats = sorted(stats.values(),
+                          key=lambda x: (x["best"], x["total"]),
+                          reverse=True)
+    return sorted_stats[:10], ""
+
+
+# ==================== 邮件内容组装 ====================
+
+S = "━" * 34
+
+
+def build_latest_draw_section(latest, nd):
+    """【最新开奖】"""
+    if not latest:
+        return "【最新开奖】\n  (暂无数据)\n"
+    lines = [
+        "【最新开奖】",
+        f"  期号  : {latest.get('period', '—')}",
+        f"  日期  : {latest.get('date', '—')}",
+        f"  红球  : {' '.join(latest.get('red_balls', []))}",
+        f"  蓝球  : {latest.get('blue_ball', '')}",
+        "",
+        "【下期预告】",
+        f"  期号  : {nd.get('next_period', '—')}",
+        f"  开奖  : {nd.get('next_date_display', '—')} {nd.get('weekday', '')} {nd.get('draw_time', '21:15')}",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def build_predictions_section(pred):
+    """【AI 全部预测】— 6 模型 × 5 策略"""
+    if not pred or not pred.get("models"):
+        return "【AI 全部预测】\n  (暂无预测数据)\n"
+
+    lines = [
+        "【AI 全部预测】",
+        f"  目标期号: {pred.get('target_period', '—')}  "
+        f"预测日期: {pred.get('prediction_date', '—')}  "
+        f"模型数: {len(pred['models'])}",
+        "",
+    ]
+
+    for m in pred["models"]:
+        lines.append(f"  ── {m['model_name']} ──")
+        for g in m.get("predictions", []):
+            reds = " ".join(g.get("red_balls", []))
+            line = (
+                f"    [G{g['group_id']}] {g.get('strategy', '')}\n"
+                f"          红球: {reds}  蓝球: {g.get('blue_ball', '')}"
+            )
+            desc = g.get("description", "")
+            if desc:
+                line += f"\n          {desc}"
+            lines.append(line)
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def build_ranking_section(rankings, empty_msg):
+    """【优劣排行前十】"""
+    lines = ["【优劣排行前十】"]
+    if not rankings:
+        lines.append(f"  ({empty_msg})\n")
+        return "\n".join(lines)
+
+    lines.append(f"  {'排名':>3s}  {'模型':<20s} {'策略':<18s} {'最佳命中':>6s} {'累计':>6s} {'期数':>3s}")
+    lines.append(f"  {'─'*3}  {'─'*20} {'─'*18} {'─'*6} {'─'*6} {'─'*3}")
+    for i, r in enumerate(rankings):
+        avg = r["total"] / r["games"] if r["games"] > 0 else 0
+        lines.append(
+            f"  {i+1:>3d}  {r['model']:<20s} {r['strategy']:<18s} "
+            f"{r['best']:>3d}球  {r['total']:>4d}球  {r['games']:>3d}期"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
 
 def build_body():
     author, commit_msg, files, stat = get_git_info()
+    latest, nd = get_latest_draw()
+    pred = get_all_predictions()
+    rankings, empty_msg = get_hit_rankings()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    lines = []
-    sep = "━" * 34
+    sections = []
 
-    lines.append(sep)
-    lines.append("  双色球 AI 预测 · 项目更新通知")
-    lines.append(f"  推送时间: {now}")
-    lines.append(sep)
-    lines.append("")
+    # 头部
+    sections.append(S)
+    sections.append("  双色球 AI 预测 · 项目更新通知")
+    sections.append(f"  推送时间: {now}")
+    sections.append(S)
+    sections.append("")
 
     # 提交信息
-    lines.append("【提交信息】")
-    lines.append(f"  作者: {author}")
-    lines.append(f"  提交: {commit_msg}")
-    lines.append("")
-
-    # 变更文件
-    lines.append("【变更文件】")
+    sections.append("【提交信息】")
+    sections.append(f"  作者: {author}")
+    sections.append(f"  提交: {commit_msg}")
+    sections.append("")
     if files and files[0]:
+        sections.append("  变更文件:")
         for f in files:
-            lines.append(f"  - {f}")
+            sections.append(f"    - {f}")
     else:
-        lines.append("  (首次提交或无法获取变更列表)")
-    lines.append("")
-    lines.append(f"  统计: {stat}")
-    lines.append("")
+        sections.append("  (首次提交或因 squash 无法获取变更列表)")
+    sections.append("")
+    if stat:
+        sections.append(f"  统计: {stat.split(chr(10))[0] if chr(10) in stat else stat}")
+    sections.append("")
 
     # 最新开奖
-    lines.append("【最新开奖】")
-    lines.append(get_lottery_summary())
-    lines.append("")
+    sections.append(build_latest_draw_section(latest, nd))
 
-    # AI 预测
-    lines.append("【AI 预测】")
-    lines.append(get_prediction_summary())
-    lines.append("")
+    # 优劣排行前十
+    sections.append(build_ranking_section(rankings, empty_msg))
+
+    # AI 全部预测
+    sections.append(build_predictions_section(pred))
 
     # 尾部
-    lines.append(sep)
-    lines.append("  本邮件由 GitHub Actions 自动推送")
-    lines.append("  https://github.com/zhens/double-color-ball")
-    lines.append(sep)
+    sections.append(S)
+    sections.append("  本邮件由 GitHub Actions 自动推送")
+    sections.append("  https://github.com/zhens/double-color-ball")
+    sections.append(S)
 
-    return "\n".join(lines)
+    return "\n".join(sections)
 
 
 # ==================== 发送 ====================

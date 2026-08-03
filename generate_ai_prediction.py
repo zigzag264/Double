@@ -36,24 +36,6 @@ if not BASE_URL:
 # 每模型可单独配置：streaming 支持、超时、温度、重试次数
 MODELS = [
     {
-        "id": "glm-4.5",
-        "name": "GLM-4.5",
-        "model_id": "glm-4.5",
-        "supports_streaming": True,
-        "timeout": 180,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
-        "id": "glm-4.7",
-        "name": "GLM-4.7",
-        "model_id": "glm-4.7",
-        "supports_streaming": True,
-        "timeout": 180,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
         "id": "deepseek-v3",
         "name": "DeepSeek V3",
         "model_id": "deepseek-v3",
