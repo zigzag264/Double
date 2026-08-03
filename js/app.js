@@ -191,8 +191,11 @@ function buildRankingPanel(title, sub, records, dateFilter) {
     // 收集该窗口内 每条记录的每个 模型+策略 的命中
     // key = model_name + '|' + strategy
     const stats = {};
+    let hasLatest = false;
 
     records.forEach(rec => {
+        const isLatest = !hasLatest && records.indexOf(rec) === 0;
+        if (isLatest) hasLatest = true;
         const adate = rec.actual_result?.date;
         if (!adate || !dateFilter(adate)) return;
         (rec.models || []).forEach(model => {
@@ -208,12 +211,22 @@ function buildRankingPanel(title, sub, records, dateFilter) {
                     games: 0,
                     redTotal: 0,
                     blueHits: 0,
+                    currentHits: 0,
+                    hitNumbers: '',
                 };
                 entry.totalHits += hr.total_hits || 0;
                 entry.games += 1;
                 entry.redTotal += hr.red_hit_count || 0;
                 entry.blueHits += hr.blue_hit || 0;
                 if (hr.total_hits > entry.bestHit) entry.bestHit = hr.total_hits;
+                if (isLatest) {
+                    entry.currentHits = hr.total_hits || 0;
+                    const redHits = hr.red_hits || [];
+                    const parts = [];
+                    if (redHits.length) parts.push('红:' + redHits.join(' '));
+                    if (hr.blue_hit) parts.push('蓝✓');
+                    entry.hitNumbers = parts.join(' ') || '—';
+                }
                 stats[key] = entry;
             });
         });
@@ -248,24 +261,25 @@ function buildRankingPanel(title, sub, records, dateFilter) {
     const thead = document.createElement('thead');
     thead.innerHTML = '<tr>'
         + '<th>#</th><th>模型</th><th>策略</th>'
-        + '<th>期数</th><th>最佳命中</th><th>累计命中</th>'
-        + '<th>命中率</th></tr>';
+        + '<th>本期命中</th><th>命中号码</th>'
+        + '<th>历史最多</th><th>累计命中</th>'
+        + '<th>期数</th></tr>';
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
     top10.forEach((e, i) => {
         const tr = document.createElement('tr');
-        const avg = e.games > 0 ? (e.totalHits / e.games).toFixed(1) : '0.0';
         const bestTag = e.bestHit >= 5 ? 'excellent' : e.bestHit >= 3 ? 'good' : '';
         const rankClass = i === 0 ? ' rank-1' : i === 1 ? ' rank-2' : i === 2 ? ' rank-3' : '';
         tr.innerHTML =
             '<td class="rank-num' + rankClass + '">' + (i + 1) + '</td>' +
             '<td class="rank-model">' + escHtml(e.modelName) + '</td>' +
             '<td class="rank-strategy">' + escHtml(e.strategy) + '</td>' +
-            '<td class="rank-games">' + e.games + '</td>' +
+            '<td class="rank-current">' + e.currentHits + ' 球</td>' +
+            '<td class="rank-hits">' + escHtml(e.hitNumbers) + '</td>' +
             '<td class="rank-best ' + bestTag + '">' + e.bestHit + ' 球</td>' +
             '<td class="rank-total">' + e.totalHits + ' 球</td>' +
-            '<td class="rank-avg">' + avg + '</td>';
+            '<td class="rank-games">' + e.games + '</td>';
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);

@@ -92,7 +92,11 @@ def get_all_predictions():
 
 
 def get_hit_rankings():
-    """获取历史命中排行 Top 10（按模型+策略，bestHit 降序）"""
+    """
+    获取历史命中排行 Top 10（按模型+策略）。
+    每行显示：本期命中球数 / 具体命中号码 / 历史命中总和 / 历史最多命中 / 总期数。
+    排序：本期命中球数 → 历史最多命中球数 → 历史命中球数总和。
+    """
     try:
         with open(_data_path("predictions_history.json"), "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -103,8 +107,12 @@ def get_hit_rankings():
     if not records:
         return [], "暂无命中记录"
 
+    # 最新一期 = records[0]（按归档顺序，最新在前）
+    latest_record = records[0]
+
     stats = {}
     for rec in records:
+        is_latest = (rec is latest_record)
         for m in rec.get("models", []):
             for pred in m.get("predictions", []):
                 hr = pred.get("hit_result")
@@ -115,18 +123,32 @@ def get_hit_rankings():
                     stats[key] = {
                         "model": m["model_name"],
                         "strategy": pred.get("strategy", "—"),
-                        "total": 0,
-                        "best": 0,
-                        "games": 0,
+                        "total": 0,       # 历史命中球数总和
+                        "best": 0,         # 历史最多命中球数
+                        "games": 0,        # 总预测期数
+                        "current": 0,      # 本期命中球数
+                        "hits": "",        # 本期具体命中号码
                     }
                 t = hr.get("total_hits", 0)
                 stats[key]["total"] += t
                 stats[key]["games"] += 1
                 if t > stats[key]["best"]:
                     stats[key]["best"] = t
+                if is_latest:
+                    stats[key]["current"] = t
+                    # 组装具体命中号码
+                    red_hits = hr.get("red_hits", [])
+                    blue_hit = hr.get("blue_hit", False)
+                    parts = []
+                    if red_hits:
+                        parts.append("红:" + " ".join(red_hits))
+                    if blue_hit:
+                        parts.append("蓝✓")
+                    stats[key]["hits"] = " ".join(parts) if parts else "—"
 
+    # 排序：本期命中球数 ↓ → 历史最多命中球数 ↓ → 历史命中球数总和 ↓
     sorted_stats = sorted(stats.values(),
-                          key=lambda x: (x["best"], x["total"]),
+                          key=lambda x: (x["current"], x["best"], x["total"]),
                           reverse=True)
     return sorted_stats[:10], ""
 
@@ -192,13 +214,12 @@ def build_ranking_section(rankings, empty_msg):
         lines.append(f"  ({empty_msg})\n")
         return "\n".join(lines)
 
-    lines.append(f"  {'排名':>3s}  {'模型':<20s} {'策略':<18s} {'最佳命中':>6s} {'累计':>6s} {'期数':>3s}")
-    lines.append(f"  {'─'*3}  {'─'*20} {'─'*18} {'─'*6} {'─'*6} {'─'*3}")
+    lines.append(f"  {'排名':>3s}  {'模型':<20s} {'策略':<18s} {'本期命中':>6s} {'命中号码':<22s} {'历史总和':>6s} {'历史最多':>6s} {'期数':>3s}")
+    lines.append(f"  {'─'*3}  {'─'*20} {'─'*18} {'─'*6} {'─'*22} {'─'*6} {'─'*6} {'─'*3}")
     for i, r in enumerate(rankings):
-        avg = r["total"] / r["games"] if r["games"] > 0 else 0
         lines.append(
             f"  {i+1:>3d}  {r['model']:<20s} {r['strategy']:<18s} "
-            f"{r['best']:>3d}球  {r['total']:>4d}球  {r['games']:>3d}期"
+            f"{r['current']:>3d}球  {r['hits']:<22s} {r['total']:>4d}球  {r['best']:>3d}球  {r['games']:>3d}期"
         )
     lines.append("")
     return "\n".join(lines)
