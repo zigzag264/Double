@@ -1709,7 +1709,7 @@ body::before {
     letter-spacing: 0.05em;
 }
 
-.ranking-table thead th:nth-child(n+4):not(:nth-child(5)) {
+.ranking-table thead th:nth-child(n+4) {
     text-align: center;
 }
 
@@ -1724,7 +1724,7 @@ body::before {
     border-bottom: none;
 }
 
-.ranking-table tbody td:nth-child(n+4):not(:nth-child(5)) {
+.ranking-table tbody td:nth-child(n+4) {
     text-align: center;
 }
 
@@ -1783,6 +1783,12 @@ body::before {
 .rank-current {
     font-weight: 700;
     color: var(--red-500);
+    text-align: center;
+}
+
+.rank-blue {
+    font-weight: 700;
+    color: #3b82f6;
     text-align: center;
 }
 

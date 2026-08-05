@@ -241,35 +241,65 @@ function buildRankingPanel(title, sub, records, dateFilter) {
         return panel;
     }
 
-    // 按 bestHit ↓ → totalHits ↓ → games ↓ 排序，取 Top10
-    arr.sort((a, b) => b.bestHit - a.bestHit || b.totalHits - a.totalHits || b.games - a.games);
-    const top10 = arr.slice(0, 10);
+    const isLatest = title === '最新一期';
+    let top10;
+    if (isLatest) {
+        // 最新一期：按 蓝球命中 → 本期命中数 排序
+        arr.sort((a, b) => {
+            const aBlue = a.hitNumbers.includes('蓝✓') ? 1 : 0;
+            const bBlue = b.hitNumbers.includes('蓝✓') ? 1 : 0;
+            return bBlue - aBlue || b.currentHits - a.currentHits;
+        });
+        top10 = arr.slice(0, 10);
+    } else {
+        // 本月/上月/本年：按 总球数 → 累计蓝球 排序
+        arr.sort((a, b) => b.totalHits - a.totalHits || b.blueHits - a.blueHits);
+        top10 = arr.slice(0, 10);
+    }
 
     // 表格
     const table = document.createElement('table');
     table.className = 'ranking-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr>'
-        + '<th>#</th><th>模型</th><th>策略</th>'
-        + '<th>本期命中</th><th>命中号码</th>'
-        + '<th>历史最多</th><th>累计命中</th>'
-        + '<th>期数</th></tr>';
+    if (isLatest) {
+        thead.innerHTML = '<tr>'
+            + '<th>#</th><th>模型</th><th>策略</th>'
+            + '<th>本期命中</th><th>命中红球</th><th>蓝球</th>'
+            + '</tr>';
+    } else {
+        thead.innerHTML = '<tr>'
+            + '<th>#</th><th>模型</th><th>策略</th>'
+            + '<th>历史最多</th><th>累计红球</th><th>累计蓝球</th><th>总球数</th>'
+            + '<th>期数</th></tr>';
+    }
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
     top10.forEach((e, i) => {
         const tr = document.createElement('tr');
-        const bestTag = e.bestHit >= 5 ? 'excellent' : e.bestHit >= 3 ? 'good' : '';
         const rankClass = i === 0 ? ' rank-1' : i === 1 ? ' rank-2' : i === 2 ? ' rank-3' : '';
-        tr.innerHTML =
-            '<td class="rank-num' + rankClass + '">' + (i + 1) + '</td>' +
-            '<td class="rank-model">' + escHtml(e.modelName) + '</td>' +
-            '<td class="rank-strategy">' + escHtml(e.strategy) + '</td>' +
-            '<td class="rank-current">' + e.currentHits + ' 球</td>' +
-            '<td class="rank-hits">' + escHtml(e.hitNumbers) + '</td>' +
-            '<td class="rank-best ' + bestTag + '">' + e.bestHit + ' 球</td>' +
-            '<td class="rank-total">' + e.totalHits + ' 球</td>' +
-            '<td class="rank-games">' + e.games + '</td>';
+        const bestTag = e.bestHit >= 5 ? 'excellent' : e.bestHit >= 3 ? 'good' : '';
+        if (isLatest) {
+            const redHits = e.hitNumbers.split('蓝✓')[0].replace('红:', '').trim() || '—';
+            const blueHit = e.hitNumbers.includes('蓝✓') ? '✓' : '—';
+            tr.innerHTML =
+                '<td class="rank-num' + rankClass + '">' + (i + 1) + '</td>' +
+                '<td class="rank-model">' + escHtml(e.modelName) + '</td>' +
+                '<td class="rank-strategy">' + escHtml(e.strategy) + '</td>' +
+                '<td class="rank-current">' + e.currentHits + ' 球</td>' +
+                '<td class="rank-hits">' + escHtml(redHits) + '</td>' +
+                '<td class="rank-blue">' + blueHit + '</td>';
+        } else {
+            tr.innerHTML =
+                '<td class="rank-num' + rankClass + '">' + (i + 1) + '</td>' +
+                '<td class="rank-model">' + escHtml(e.modelName) + '</td>' +
+                '<td class="rank-strategy">' + escHtml(e.strategy) + '</td>' +
+                '<td class="rank-best ' + bestTag + '">' + e.bestHit + ' 球</td>' +
+                '<td class="rank-total">' + e.redTotal + ' 球</td>' +
+                '<td class="rank-blue">' + e.blueHits + ' 球</td>' +
+                '<td class="rank-total">' + e.totalHits + ' 球</td>' +
+                '<td class="rank-games">' + e.games + '</td>';
+        }
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);
