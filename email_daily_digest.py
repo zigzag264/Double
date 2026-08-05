@@ -14,7 +14,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone
 
-from email_content_builder import build_email_content, load_data, validate_data
+from email_content_builder import build_html_digest, load_data, validate_data
 
 # ==================== 配置（全部环境变量）====================
 
@@ -42,12 +42,12 @@ if DRY_RUN:
 # ==================== 邮件构建 ====================
 
 def build_message(subject, body):
-    """构建 MIME 纯文本邮件"""
+    """构建 MIME HTML 邮件"""
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = SMTP_USER
     msg["To"] = RECIPIENT
-    msg.attach(MIMEText(body, "plain", "utf-8"))
+    msg.attach(MIMEText(body, "html", "utf-8"))
     return msg
 
 
@@ -106,9 +106,9 @@ def main():
     # 3. 组装内容
     print("\n📝 组装邮件内容...")
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    body = build_email_content(data, warnings, generated_at=now)
+    body = build_html_digest(data, warnings, generated_at=now)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    subject = f"AI 预测 · {today}"
+    subject = f"[双色球] 每日汇总 · {today}"
     print("  ✓ 内容组装完成")
 
     # 4. 发送

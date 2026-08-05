@@ -1,210 +1,250 @@
 # -*- coding: utf-8 -*-
 """
-每日邮件内容组装模块
+邮件内容组装模块 — HTML 统一格式
+供 email_daily_digest.py 和 email_push_notify.py 共用。
 
 纯函数，无网络 IO：
   1. load_data()        — 读取 3 个 JSON 数据文件
   2. validate_data()    — 校验数据完整性，返回 (errors, warnings)
-  3. build_email_content() — 渲染纯文本邮件正文
+  3. build_html_digest() — 渲染 HTML 邮件正文（每日汇总）
 """
 
 import os
 import json
+import re
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-HISTORY_FILE           = os.path.join(BASE_DIR, "data", "lottery_history.json")
-PREDICTIONS_FILE       = os.path.join(BASE_DIR, "data", "ai_predictions.json")
-HIT_HISTORY_FILE       = os.path.join(BASE_DIR, "data", "predictions_history.json")
-
-_SEPARATOR = "━" * 34
+HISTORY_FILE     = os.path.join(BASE_DIR, "data", "lottery_history.json")
+PREDICTIONS_FILE = os.path.join(BASE_DIR, "data", "ai_predictions.json")
+HIT_HISTORY_FILE = os.path.join(BASE_DIR, "data", "predictions_history.json")
 
 
 def _load(path):
-    """加载单个 JSON 文件"""
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def load_data():
-    """
-    加载全部 3 个数据源，各自独立异常隔离。
-
-    某个文件损坏只影响对应字段，不影响其他两个数据源。
-    """
-    result = {
-        "lottery_history": None,
-        "ai_predictions": None,
-        "hit_history": None,
-    }
-
+    """加载全部 3 个数据源，各自独立异常隔离。"""
+    result = {"lottery_history": None, "ai_predictions": None, "hit_history": None}
     try:
         result["lottery_history"] = _load(HISTORY_FILE)
         print(f"  ✓ 双色球历史加载成功 ({len(result['lottery_history'].get('data', []))} 期)")
     except Exception as e:
         print(f"  ✗ 双色球历史加载失败: {e}")
-
     try:
         result["ai_predictions"] = _load(PREDICTIONS_FILE)
         print(f"  ✓ 双色球AI预测加载成功 ({len(result['ai_predictions'].get('models', []))} 个模型)")
     except Exception as e:
         print(f"  ✗ 双色球AI预测加载失败: {e}")
-
     try:
         result["hit_history"] = _load(HIT_HISTORY_FILE)
         recs = result["hit_history"].get("predictions_history", []) if result["hit_history"] else []
         print(f"  ✓ 双色球命中历史加载成功 ({len(recs)} 期记录)")
     except Exception as e:
         print(f"  ✗ 双色球命中历史加载失败: {e}")
-
     return result
 
 
 def validate_data(data):
-    """
-    校验数据完整性。
-
-    Returns:
-        (errors, warnings): errors 非空则不发送邮件，warnings 仅提示
-    """
-    errors = []
-    warnings = []
-
-    # 开奖历史 — 必须存在且不为空
+    """校验数据完整性。返回 (errors, warnings)"""
+    errors, warnings = [], []
     lh = data.get("lottery_history")
     if lh is None:
         errors.append("开奖历史文件加载失败")
     elif not lh.get("data"):
         errors.append("开奖历史数据为空")
-
-    # AI 预测 — 允许缺失（仅 warning）
     pred = data.get("ai_predictions")
     if pred is None:
         warnings.append("AI 预测文件加载失败，预测栏将显示为空")
     elif not pred.get("models"):
-        warnings.append("暂无可用 AI 预测数据（可能尚未到预测日）")
-
-    # 命中历史 — 允许缺失（仅 warning）
+        warnings.append("暂无可用 AI 预测数据")
     hist = data.get("hit_history")
     if hist is None:
-        warnings.append("双色球命中历史文件加载失败，命中栏将显示为空")
+        warnings.append("命中历史文件加载失败，命中栏将显示为空")
     elif not hist.get("predictions_history"):
-        warnings.append("暂无双色球命中历史记录")
-
+        warnings.append("暂无命中历史记录")
     return errors, warnings
 
 
-def build_email_content(data, warnings, generated_at):
+# ==================== 共用 HTML 构建 ====================
+
+_SECTION = '<h2 style="font-size:16px;color:#1e293b;border-left:4px solid #3b82f6;padding-left:12px;margin:24px 0 12px">{}</h2>'
+
+
+def _ball(num, color):
+    bg = "#ef4444" if color == "red" else "#3b82f6"
+    return f'<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;background:{bg};color:#fff;font-size:13px;font-weight:700;margin:0 2px">{num}</span>'
+
+
+def _build_latest_draw_html(latest, nd):
+    """最新开奖 + 下期预告 HTML"""
+    if not latest:
+        return '<p style="color:#94a3b8;font-size:13px">(暂无数据)</p>'
+    reds = "".join(_ball(b, "red") for b in latest.get("red_balls", []))
+    blue = _ball(latest.get("blue_ball", ""), "blue")
+    html = f'''
+    <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:8px;overflow:hidden">
+      <tr><td style="padding:12px 16px">
+        <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:8px">
+          第{latest.get("period","")}期 · {latest.get("date","")}
+        </div>
+        <div style="margin-bottom:6px">{reds}</div>
+        <div>{blue}</div>
+      </td></tr>
+    </table>'''
+    if nd:
+        html += f'''
+    <table style="width:100%;border-collapse:collapse;background:#eff6ff;border-radius:8px;overflow:hidden;margin-top:8px">
+      <tr><td style="padding:10px 16px">
+        <span style="font-size:13px;color:#64748b">下期预告</span>
+        <span style="font-size:15px;font-weight:700;color:#1e293b;margin-left:8px">{nd.get("next_period","")}</span>
+        <span style="font-size:13px;color:#475569;margin-left:8px">{nd.get("next_date_display","")} {nd.get("weekday","")} {nd.get("draw_time","21:15")}</span>
+      </td></tr>
+    </table>'''
+    return html
+
+
+def _build_predictions_html(pred):
+    """AI 全部预测 HTML"""
+    if not pred or not pred.get("models"):
+        return '<p style="color:#94a3b8;font-size:13px">(暂无预测数据)</p>'
+    cards = ""
+    for m in pred["models"]:
+        groups = ""
+        for g in m.get("predictions", []):
+            reds = "".join(_ball(b, "red") for b in g.get("red_balls", []))
+            blue = _ball(g.get("blue_ball", ""), "blue")
+            desc = g.get("description", "")
+            desc_html = f'<div style="font-size:11px;color:#94a3b8;margin-top:4px">{desc}</div>' if desc else ""
+            groups += f'''
+            <div style="padding:8px 12px;border-bottom:1px solid #f1f5f9">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:11px;font-weight:700;color:#3b82f6;background:#eff6ff;padding:2px 8px;border-radius:4px">G{g["group_id"]}</span>
+                <span style="font-size:13px;font-weight:600;color:#1e293b">{g["strategy"]}</span>
+              </div>
+              <div style="margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">{reds}<span style="color:#94a3b8;margin:0 4px">|</span>{blue}</div>
+              {desc_html}
+            </div>'''
+        cards += f'''
+        <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:12px">
+          <div style="background:linear-gradient(135deg,#1e293b,#334155);padding:10px 14px">
+            <span style="font-size:14px;font-weight:700;color:#fff">{m["model_name"]}</span>
+          </div>
+          {groups}
+        </div>'''
+    return f'''
+    <div style="font-size:13px;color:#64748b;margin-bottom:12px">
+      目标期号: {pred.get("target_period","")} · 预测日期: {pred.get("prediction_date","")} · 模型数: {len(pred["models"])}
+    </div>
+    {cards}'''
+
+
+def _build_ranking_html(hist, limit=10):
+    """命中排行 HTML（取 Top N）"""
+    records = hist.get("predictions_history", []) if hist else []
+    if not records:
+        return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
+
+    latest_record = records[0]
+    stats = {}
+    for rec in records:
+        is_latest = (rec is latest_record)
+        for m in rec.get("models", []):
+            for pred in m.get("predictions", []):
+                hr = pred.get("hit_result")
+                if not hr:
+                    continue
+                key = f"{m['model_name']}|{pred.get('strategy','—')}"
+                if key not in stats:
+                    stats[key] = {"model": m["model_name"], "strategy": pred.get("strategy","—"),
+                                   "total": 0, "best": 0, "games": 0, "current": 0, "hits": ""}
+                t = hr.get("total_hits", 0)
+                stats[key]["total"] += t
+                stats[key]["games"] += 1
+                if t > stats[key]["best"]:
+                    stats[key]["best"] = t
+                if is_latest:
+                    stats[key]["current"] = t
+                    rh = hr.get("red_hits", [])
+                    bh = hr.get("blue_hit", False)
+                    parts = []
+                    if rh:
+                        parts.append("红:" + " ".join(rh))
+                    if bh:
+                        parts.append("蓝✓")
+                    stats[key]["hits"] = " ".join(parts) if parts else "—"
+
+    sorted_stats = sorted(stats.values(), key=lambda x: (x["current"], x["best"], x["total"]), reverse=True)[:limit]
+    if not sorted_stats:
+        return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
+
+    rows = ""
+    for i, r in enumerate(sorted_stats):
+        medal = {0: "🥇", 1: "🥈", 2: "🥉"}.get(i, f"{i+1}")
+        bg = "#fefce8" if i == 0 else "#f8fafc" if i % 2 == 0 else "#ffffff"
+        rows += f'''
+        <tr style="background:{bg}">
+          <td style="padding:8px 10px;text-align:center;font-weight:700;font-size:14px">{medal}</td>
+          <td style="padding:8px 10px;font-weight:600;color:#1e293b;font-size:13px">{r["model"]}</td>
+          <td style="padding:8px 10px;color:#475569;font-size:12px">{r["strategy"]}</td>
+          <td style="padding:8px 10px;text-align:center;font-weight:700;color:#ef4444;font-size:14px">{r["current"]}球</td>
+          <td style="padding:8px 10px;color:#2563eb;font-size:12px;font-family:monospace">{r["hits"]}</td>
+          <td style="padding:8px 10px;text-align:center;color:#475569;font-size:13px">{r["total"]}球</td>
+          <td style="padding:8px 10px;text-align:center;color:#475569;font-size:13px">{r["games"]}期</td>
+        </tr>'''
+    return f'''
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-size:14px">
+      <thead><tr style="background:#f1f5f9">
+        <th style="padding:8px 10px;text-align:center;color:#64748b;font-size:12px">#</th>
+        <th style="padding:8px 10px;text-align:left;color:#64748b;font-size:12px">模型</th>
+        <th style="padding:8px 10px;text-align:left;color:#64748b;font-size:12px">策略</th>
+        <th style="padding:8px 10px;text-align:center;color:#64748b;font-size:12px">本期命中</th>
+        <th style="padding:8px 10px;text-align:left;color:#64748b;font-size:12px">命中号码</th>
+        <th style="padding:8px 10px;text-align:center;color:#64748b;font-size:12px">累计</th>
+        <th style="padding:8px 10px;text-align:center;color:#64748b;font-size:12px">期数</th>
+      </tr></thead>
+      <tbody>{rows}</tbody>
+    </table>'''
+
+
+def build_html_digest(data, warnings, generated_at):
     """
-    渲染纯文本邮件正文。
-
-    Args:
-        data: load_data() 返回的数据 dict
-        warnings: validate_data() 返回的警告列表
-        generated_at: 生成时间字符串 (UTC)
-
-    Returns:
-        纯文本邮件正文
+    构建每日汇总 HTML 邮件正文。
     """
     lh = data.get("lottery_history") or {}
     pred = data.get("ai_predictions") or {}
     hist = data.get("hit_history") or {}
+    latest = lh.get("data", [{}])[0] if lh.get("data") else {}
+    nd = lh.get("next_draw", {})
 
-    lines = []
-    sep = _SEPARATOR
-
-    # ===== 头部 =====
-    lines.append(sep)
-    lines.append("  双色球 AI 预测 · 每日汇总")
-    lines.append(f"  生成时间: {generated_at}")
-    lines.append(sep)
-    lines.append("")
-
-    # ===== 【一、最新开奖】 =====
-    lines.append("【一、最新开奖】")
-    if lh and lh.get("data"):
-        latest = lh["data"][0]
-        lines.append(f"  期号  : {latest['period']}")
-        lines.append(f"  日期  : {latest.get('date', '—')}")
-        lines.append(f"  红球  : {' '.join(latest['red_balls'])}")
-        lines.append(f"  蓝球  : {latest['blue_ball']}")
-    else:
-        lines.append("  (暂无开奖数据)")
-    lines.append("")
-
-    # ===== 【二、下期预告】 =====
-    lines.append("【二、下期预告】")
-    nxt = lh.get("next_draw", {}) if lh else {}
-    if nxt:
-        next_period = nxt.get("next_period", "—")
-        next_display = nxt.get("next_date_display", "")
-        weekday = nxt.get("weekday", "")
-        draw_time = nxt.get("draw_time", "21:15")
-        lines.append(f"  期号  : {next_period}")
-        lines.append(f"  开奖  : {next_display} {weekday} {draw_time}")
-    else:
-        lines.append("  (暂无下期信息)")
-    lines.append("")
-
-    # ===== 【三、AI 模型预测】 =====
-    lines.append("【三、AI 模型预测】")
-    if pred.get("models"):
-        lines.append(f"  目标期 : {pred.get('target_period', '—')}  "
-                      f"预测日期: {pred.get('prediction_date', '—')}")
-        for m in pred["models"]:
-            lines.append("")
-            lines.append(f"  ── {m['model_name']} ──")
-            for g in m.get("predictions", []):
-                rb = " ".join(g.get("red_balls", []))
-                line = f"    [{g['group_id']}] {g.get('strategy', '')}   "
-                line += f"红:{rb}  蓝:{g.get('blue_ball', '')}"
-                lines.append(line)
-                desc = g.get("description")
-                if desc:
-                    lines.append(f"        {desc}")
-    else:
-        lines.append("  (本期暂无 AI 预测，请在预测日后查看)")
-    lines.append("")
-
-    # ===== 【四、近期命中情况 (最近 3 期已开奖)】 =====
-    lines.append("【四、近期命中情况 (最近 3 期已开奖)】")
-    recs = hist.get("predictions_history", [])[:3]
-    if recs:
-        for rec in recs:
-            ar = rec.get("actual_result", {})
-            target = rec.get("target_period", "?")
-            date = ar.get("date", "?")
-            lines.append(f"  期号 {target} ({date}):")
-            reds = " ".join(ar.get("red_balls", []))
-            blue = ar.get("blue_ball", "")
-            lines.append(f"    开奖: {reds} + {blue}")
-            for m in rec.get("models", []):
-                best = m.get("best_group", 0)
-                bhc = m.get("best_hit_count", 0)
-                bp = next((p for p in m["predictions"]
-                           if p.get("group_id") == best), None)
-                hr = bp.get("hit_result", {}) if bp else {}
-                blue_txt = "是" if hr.get("blue_hit") else "否"
-                rhc = hr.get("red_hit_count", 0)
-                lines.append(
-                    f"    {m.get('model_name', '?'):<12s} 最佳组[{best}] "
-                    f"命中 红{rhc} 蓝{blue_txt} = {bhc}球"
-                )
-            lines.append("")
-    else:
-        lines.append("  (暂无命中记录)")
-        lines.append("")
-
-    # ===== 【系统提示】 =====
+    # 警告
+    warn_html = ""
     if warnings:
-        lines.append("【系统提示】")
-        for w in warnings:
-            lines.append(f"  ⚠️ {w}")
-        lines.append("")
+        items = "".join(f'<li style="font-size:12px;color:#d97706;padding:2px 0">⚠️ {w}</li>' for w in warnings)
+        warn_html = f'<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:16px"><ul style="margin:0;padding-left:20px">{items}</ul></div>'
 
-    # ===== 免责声明 =====
-    lines.append(sep)
-    lines.append("  本邮件由自动系统生成，彩票预测仅供娱乐参考，不构成投资建议。")
-    lines.append("  双色球为随机事件，任何预测均无法保证命中。")
-    lines.append(sep)
-
-    return "\n".join(lines)
+    html = f'''
+    <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#ffffff;padding:0;color:#1e293b">
+      <div style="background:linear-gradient(135deg,#1e293b,#3b82f6);padding:28px 24px;text-align:center;border-radius:12px 12px 0 0">
+        <div style="font-size:28px;margin-bottom:4px">🎯</div>
+        <h1 style="color:#ffffff;font-size:20px;font-weight:800;margin:0;letter-spacing:-0.5px">双色球 AI 预测</h1>
+        <p style="color:#93c5fd;font-size:13px;margin:4px 0 0">每日汇总 · {generated_at}</p>
+      </div>
+      <div style="padding:20px 24px">
+        {warn_html}
+        {_SECTION.format("🏆 最新开奖")}
+        {_build_latest_draw_html(latest, nd)}
+        {_SECTION.format("📊 命中排行 Top 10")}
+        {_build_ranking_html(hist)}
+        {_SECTION.format("🔮 AI 全部预测")}
+        {_build_predictions_html(pred)}
+      </div>
+      <div style="background:#f8fafc;padding:16px 24px;text-align:center;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">
+        <p style="font-size:12px;color:#94a3b8;margin:0">
+          本邮件由自动系统生成 · 彩票预测仅供娱乐参考，不构成投资建议<br>
+          <a href="https://github.com/zhens/double-color-ball" style="color:#3b82f6;text-decoration:none">double-color-ball</a>
+        </p>
+      </div>
+    </div>'''
+    return html

@@ -35,12 +35,11 @@ const Components = {
      * @returns {string} CSS 类名
      */
     getModelHeaderClass(modelName) {
-        if (modelName.includes('SenseNova')) return 'model-header-sensenova';
         if (modelName.includes('DeepSeek')) return 'model-header-deepseek';
-        if (modelName.includes('Claude')) return 'model-header-claude';
-        if (modelName.includes('Gemini')) return 'model-header-gemini';
-        if (modelName.includes('GPT')) return 'model-header-gpt';
-        return 'model-header-gpt';
+        if (modelName.includes('Qwen')) return 'model-header-qwen';
+        if (modelName.includes('Tongyi')) return 'model-header-tongyi';
+        if (modelName.includes('Kimi')) return 'model-header-kimi';
+        return 'model-header-deepseek';
     },
 
     /**

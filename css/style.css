@@ -22,6 +22,9 @@
     --gray-800: #1e293b;
     --gray-900: #0f172a;
 
+    /* Accent */
+    --accent:  #3b82f6;
+
     /* Lottery balls (intrinsic game colors) */
     --red-500: #ef4444;
     --red-600: #dc2626;
@@ -332,10 +335,10 @@ body::before {
 /* ==================== Hero Banner ==================== */
 .hero-banner {
     position: relative;
-    background: var(--bg);
+    background: linear-gradient(135deg, var(--bg), var(--blue-50));
     border: 1px solid var(--border);
     border-radius: 1rem;
-    padding: 1.5rem;
+    padding: 2rem;
     margin-bottom: 1.5rem;
     overflow: hidden;
 }
@@ -347,7 +350,26 @@ body::before {
     left: 0;
     width: 100%;
     height: 4px;
+    background: linear-gradient(90deg, var(--blue-600), var(--blue-400));
+}
+
+.hero-banner-blur-1,
+.hero-banner-blur-2 {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.15;
+    pointer-events: none;
+}
+.hero-banner-blur-1 {
+    width: 300px; height: 300px;
+    background: var(--blue-400);
+    top: -100px; right: -100px;
+}
+.hero-banner-blur-2 {
+    width: 200px; height: 200px;
     background: var(--blue-600);
+    bottom: -50px; left: -50px;
 }
 
 .hero-banner-content {
@@ -492,10 +514,16 @@ body::before {
 }
 
 .info-card-content .highlight-red,
-.info-card-content .highlight-blue {
+.info-card-content .highlight-blue,
+.info-card-content .highlight-purple,
+.info-card-content .highlight-green {
     font-weight: 700;
-    color: var(--blue-600);
+    padding: 0 2px;
 }
+.info-card-content .highlight-red { color: #ef4444; }
+.info-card-content .highlight-blue { color: #3b82f6; }
+.info-card-content .highlight-purple { color: #8b5cf6; }
+.info-card-content .highlight-green { color: #10b981; }
 
 /* ==================== Model Cards Grid ==================== */
 .models-grid {
@@ -536,6 +564,30 @@ body::before {
     color: var(--blue-700);
 }
 
+.model-header-deepseek { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; }
+.model-header-deepseek .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
+.model-header-deepseek .model-name-wrapper h3 { color: #fff; }
+.model-header-deepseek .model-id { color: rgba(255,255,255,0.7); }
+.model-header-deepseek .model-id-dot { background: #60a5fa; }
+
+.model-header-qwen { background: linear-gradient(135deg, #1e1b4b, #7c3aed); color: #fff; }
+.model-header-qwen .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
+.model-header-qwen .model-name-wrapper h3 { color: #fff; }
+.model-header-qwen .model-id { color: rgba(255,255,255,0.7); }
+.model-header-qwen .model-id-dot { background: #a78bfa; }
+
+.model-header-tongyi { background: linear-gradient(135deg, #164e63, #0891b2); color: #fff; }
+.model-header-tongyi .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
+.model-header-tongyi .model-name-wrapper h3 { color: #fff; }
+.model-header-tongyi .model-id { color: rgba(255,255,255,0.7); }
+.model-header-tongyi .model-id-dot { background: #22d3ee; }
+
+.model-header-kimi { background: linear-gradient(135deg, #14532d, #16a34a); color: #fff; }
+.model-header-kimi .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
+.model-header-kimi .model-name-wrapper h3 { color: #fff; }
+.model-header-kimi .model-id { color: rgba(255,255,255,0.7); }
+.model-header-kimi .model-id-dot { background: #4ade80; }
+
 .model-card-header-left {
     display: flex;
     align-items: center;
@@ -553,6 +605,10 @@ body::before {
 .model-icon-box svg {
     width: 20px;
     height: 20px;
+}
+
+.model-name-wrapper {
+    min-width: 0;
 }
 
 .model-name-wrapper h3 {
@@ -589,6 +645,37 @@ body::before {
 
 .model-card-content {
     padding: 0.5rem 1.25rem 1rem;
+}
+
+.model-card-ticket-icon {
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+}
+.model-card-ticket-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.model-hit-connector {
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: 50%;
+    width: 2px;
+    background: var(--border);
+}
+
+.ranking-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--gray-500);
+    font-size: 0.875rem;
+}
+
+.rank-total,
+.rank-games {
+    text-align: center;
 }
 
 .strategy-group {
@@ -774,6 +861,37 @@ body::before {
 /* ==================== History View ==================== */
 .history-section {
     margin-bottom: 2rem;
+}
+
+.history-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.history-section-title {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--gray-700);
+}
+
+.history-section-badge {
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    background: var(--gray-100);
+    color: var(--gray-500);
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid var(--border);
+}
+
+.section-subtitle {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin-bottom: 1.5rem;
 }
 
 .accuracy-card {
@@ -1107,8 +1225,13 @@ body::before {
     transition: background-color 0.2s;
 }
 
+.history-table tbody tr:nth-child(even) {
+    background: var(--gray-50);
+}
+
 .history-table tbody tr:hover {
-    background: var(--bg-soft);
+    background: var(--blue-50);
+    transition: background-color 0.15s;
 }
 
 .history-table td {
@@ -1158,57 +1281,6 @@ body::before {
 .history-toggle svg {
     width: 18px;
     height: 18px;
-}
-
-/* ==================== Chart Container ==================== */
-.chart-container {
-    background: var(--card);
-    border-radius: 0.75rem;
-    border: 1px solid var(--border);
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
-}
-
-.chart-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.chart-icon {
-    color: var(--blue-600);
-}
-
-.chart-icon svg {
-    width: 20px;
-    height: 20px;
-}
-
-.chart-title-wrapper h3 {
-    font-weight: 700;
-    color: var(--fg);
-    font-size: 1rem;
-}
-
-.chart-description {
-    font-size: 0.75rem;
-    color: var(--gray-500);
-}
-
-.chart-canvas {
-    height: 300px;
-    width: 100%;
-}
-
-/* ==================== Footer ==================== */
-.footer {
-    position: relative;
-    z-index: 10;
-    background: var(--bg);
-    border-top: 1px solid var(--border);
-    padding: 2rem 0;
-    margin-bottom: 64px;
 }
 
 @media (min-width: 768px) {
@@ -1671,8 +1743,28 @@ body::before {
     text-align: center;
 }
 
+.ranking-table tbody tr:nth-child(even) {
+    background: var(--gray-50);
+}
+
 .ranking-table tbody tr:hover {
-    background: var(--bg-soft);
+    background: var(--blue-50);
+}
+
+.ranking-table tbody tr.digest-rank-1,
+.ranking-table tbody tr td.rank-1-row {
+    background: #fefce8;
+}
+
+.ranking-table tbody tr td.rank-num.rank-1 {
+    color: #f59e0b;
+    font-size: 1.1em;
+}
+.ranking-table tbody tr td.rank-num.rank-2 {
+    color: #6b7280;
+}
+.ranking-table tbody tr td.rank-num.rank-3 {
+    color: #b45309;
 }
 
 .rank-num {

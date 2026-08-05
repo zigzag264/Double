@@ -313,9 +313,9 @@ def validate_prediction(prediction: Dict[str, Any]) -> bool:
                 print(f"    ⚠️  缺少字段: {field}")
                 return False
 
-        # 检查预测组数量
-        if len(prediction["predictions"]) != 5:
-            print(f"    ⚠️  预测组数量不正确: {len(prediction['predictions'])}")
+        # 检查预测组数量（应4组，不含冷号策略）
+        if len(prediction["predictions"]) != 4:
+            print(f"    ⚠️  预测组数量不正确: {len(prediction['predictions'])}（应为4组）")
             return False
 
         # 检查每组预测

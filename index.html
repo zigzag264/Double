@@ -43,7 +43,13 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
                             </svg>
-                            图表分析
+                            历史分析
+                        </button>
+                        <button class="nav-item" data-tab="ranking">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                            模型排行
                         </button>
                     </div>
                 </div>
@@ -63,7 +69,13 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
                     </svg>
-                    <span>图表分析</span>
+                    <span>历史分析</span>
+                </button>
+                <button class="mobile-nav-item" data-tab="ranking">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <span>模型排行</span>
                 </button>
             </div>
         </div>
@@ -115,12 +127,12 @@
                 <div class="info-card">
                     <div class="info-card-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+                            <path d="M12 2a4 4 0 0 1 4 4c0 2-2 3-2 5v2h-4v-2c0-2-2-3-2-5a4 4 0 0 1 4-4Z"/><path d="M9 18h6"/><path d="M10 22h4"/>
                         </svg>
                     </div>
                     <div class="info-card-content">
                         <h3 class="info-card-title">本期 AI 策略说明</h3>
-                        <p>本期预测汇集了 SenseNova 6.7、DeepSeek V4 等两大前沿大模型的策略。所有模型均基于近 30 期历史数据进行加权分析，重点融合了<span class="highlight-red">热号追随</span>及周期理论，旨在捕捉号码的均值回归与趋势延续。</p>
+                        <p>5 大前沿 AI 模型基于近 30 期历史数据，采用 <span class="highlight-red">热号追随</span>、<span class="highlight-blue">平衡策略</span>、<span class="highlight-purple">周期理论</span>、<span class="highlight-green">综合决策</span> 4 种策略进行加权分析，捕捉号码的均值回归与趋势延续。</p>
                     </div>
                 </div>
 
@@ -135,59 +147,7 @@
                     <span>AI 预测结果仅供参考，不代表最终开奖结果</span>
                 </div>
 
-                <!-- 历史回溯 -->
-                <div class="section-header" style="margin-top: 2rem;">
-                    <div class="section-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
-                        </svg>
-                    </div>
-                    <h2 class="section-title">历史数据回溯</h2>
                 </div>
-
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <div class="chart-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
-                            </svg>
-                        </div>
-                        <div class="chart-title-wrapper">
-                            <h3>命中排行 Top 5</h3>
-                            <p class="chart-description">按模型 / 策略 / 命中数排名（本期 · 本月 · 上月 · 本年）</p>
-                        </div>
-                    </div>
-                    <div class="ranking-container" id="rankingContainer"></div>
-                </div>
-
-                <div class="history-section">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-                        <h3 style="font-weight: 700; color: var(--slate-700); font-size: 1.125rem;">详细命中记录</h3>
-                        <span style="font-size: 10px; font-weight: 700; padding: 0.25rem 0.75rem; background: var(--slate-100); color: var(--slate-500); border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid var(--slate-200);">
-                            Verified Data
-                        </span>
-                    </div>
-                    <div id="accuracyCardsContainer"></div>
-                </div>
-
-                <div class="history-section">
-                    <h3 style="font-weight: 700; color: var(--slate-700); font-size: 1.125rem; margin-bottom: 1rem;">历史开奖号码一览</h3>
-                    <div class="history-table-container">
-                        <div class="history-table-scroll">
-                            <table class="history-table">
-                                <thead>
-                                    <tr>
-                                        <th>期号</th>
-                                        <th>开奖日期</th>
-                                        <th>开奖号码</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="historyTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Tab: Analysis -->
             <div class="tab-content" data-tab="analysis">
@@ -199,7 +159,7 @@
                     </div>
                     <h2 class="section-title">数据趋势分析</h2>
                 </div>
-                <p style="color: var(--slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">基于最近历史开奖数据分析</p>
+                <p class="section-subtitle">基于最近历史开奖数据分析</p>
 
                 <!-- Prize Rules Card -->
                 <div class="prize-rules-card">
@@ -300,99 +260,48 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Charts Grid -->
-                <div class="analysis-charts-grid">
-                    <!-- Red Ball Frequency Chart -->
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
-                                </svg>
-                            </div>
-                            <div class="chart-title-wrapper">
-                                <h3>红球热度分布</h3>
-                                <p class="chart-description">各号码出现频次统计</p>
-                            </div>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="frequencyChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Blue Ball Frequency Chart -->
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>
-                                </svg>
-                            </div>
-                            <div class="chart-title-wrapper">
-                                <h3>蓝球出现频率</h3>
-                                <p class="chart-description">蓝球号码分布情况</p>
-                            </div>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="blueFrequencyChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Odd-Even Ratio Chart -->
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
-                                </svg>
-                            </div>
-                            <div class="chart-title-wrapper">
-                                <h3>奇偶比例分布</h3>
-                                <p class="chart-description">红球奇偶比统计</p>
-                            </div>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="oddEvenChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Sum Trend Chart -->
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 3v18h18"/><polyline points="22 6 12 16 2 12"/>
-                                </svg>
-                            </div>
-                            <div class="chart-title-wrapper">
-                                <h3>红球和值走势</h3>
-                                <p class="chart-description">近期红球总和变化趋势</p>
-                            </div>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="sumTrendChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Zone Distribution Chart -->
-                    <div class="chart-container full-width">
-                        <div class="chart-header">
-                            <div class="chart-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect width="8" height="4" x="2" y="2" rx="1"/><rect width="8" height="4" x="2" y="10" rx="1"/><rect width="8" height="4" x="2" y="18" rx="1"/><rect width="8" height="4" x="14" y="2" rx="1"/><rect width="8" height="4" x="14" y="10" rx="1"/><rect width="8" height="4" x="14" y="18" rx="1"/>
-                                </svg>
-                            </div>
-                            <div class="chart-title-wrapper">
-                                <h3>区间分布统计</h3>
-                                <p class="chart-description">红球号码按区间（01-11、12-22、23-33）分布情况</p>
-                            </div>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="zoneDistributionChart"></canvas>
+            <!-- 历史开奖号码一览 -->
+                <div class="history-section">
+                    <h3 class="history-section-title">历史开奖号码一览</h3>
+                    <div class="history-table-container">
+                        <div class="history-table-scroll">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>期号</th>
+                                        <th>开奖日期</th>
+                                        <th>开奖号码</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
+
+                <!-- 详细命中记录 -->
+                <div class="history-section" style="margin-top: 1.5rem;">
+                    <div class="history-section-header">
+                        <h3 class="history-section-title">详细命中记录</h3>
+                        <span class="history-section-badge">Verified Data</span>
+                    </div>
+                    <div id="accuracyCardsContainer"></div>
+                </div>
+            </div>
+
+            <!-- Tab: Model Ranking -->
+            <div class="tab-content" data-tab="ranking">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                    </div>
+                    <h2 class="section-title">模型命中排行</h2>
+                </div>
+                <p class="section-subtitle">按模型 / 策略 / 命中数排名（最新一期 · 本月 · 上月 · 本年）</p>
+
+                <div class="ranking-container" id="rankingContainer"></div>
             </div>
         </main>
 
@@ -406,9 +315,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js removed -->
     <script src="js/data-loader.js?v=20251124c"></script>
     <script src="js/components.js?v=20251124c"></script>
-    <script src="js/app.js?v=20251124c"></script>
+    <script src="js/app.js?v=20260805a"></script>
 </body>
 </html>
