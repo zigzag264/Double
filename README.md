@@ -35,7 +35,7 @@ double/
 ├── doc/
 │   ├── AI需求文档.md             # 原始需求文档
 │   ├── prompt.md                 # Prompt v1.0（5 种基础策略）
-│   └── prompt2.0.md              # Prompt v2.0（增强型 5 策略，主用）
+│   └── prompt2.0.md              # Prompt v2.0（ 5 策略，主用）
 ├── .github/workflows/
 │   ├── update-lottery-data.yml      # 爬虫：每天 UTC 14:00
 │   ├── generate-ai-prediction.yml   # AI 预测：每周一三五 UTC 00:00
@@ -111,7 +111,7 @@ python3 generate_ai_prediction.py
 | 模型 A | 国产前沿大模型 |
 | 模型 B | 国际前沿大模型 |
 
-> 每个模型生成 5 组预测，分别采用增强型热号追随、冷号逆向、平衡策略、周期理论、综合决策 5 种策略。详见 `doc/prompt2.0.md`。
+> 每个模型生成 5 组预测，分别采用热号追随、平衡策略、周期理论、综合决策 5 种策略。详见 `doc/prompt2.0.md`。
 
 ## 🎯 命中排行说明
 
@@ -189,7 +189,7 @@ vercel --prod
 | [AI_Prediction_Analysis_Report.md](./AI_Prediction_Analysis_Report.md) | 历史预测命中率分析报告 |
 | [DATA_UPDATE_GUIDE.md](./DATA_UPDATE_GUIDE.md) | 数据更新操作指南 |
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Vercel 部署指南 |
-| [doc/prompt2.0.md](./doc/prompt2.0.md) | AI 预测 Prompt 模板（增强型 5 策略） |
+| [doc/prompt2.0.md](./doc/prompt2.0.md) | AI 预测 Prompt 模板（ 5 策略） |
 
 ## ⚠️ 免责声明
 

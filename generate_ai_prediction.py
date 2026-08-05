@@ -63,14 +63,6 @@ MODELS = [
         "max_retries": 2,
     },
     {
-        "id": "qwen3-32b",
-        "name": "Qwen 3 32B",
-        "model_id": "qwen3-32b",
-        "supports_streaming": True,
-        "timeout": 180,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
     {
         "id": "tongyi-xiaomi-analysis-pro",
         "name": "Tongyi Analysis Pro",

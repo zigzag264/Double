@@ -108,7 +108,7 @@
         },
         {
           "group_id": 2,
-          "strategy": "冷号逆向者",
+          "strategy": "热号追随者",
           "red_balls": ["03", "05", "12", "14", "29", "30"],
           "blue_ball": "02",
           "description": "选择近期出现频率最低的号码"
