@@ -137,13 +137,9 @@ function createDrawnStatusBanner(actualResult) {
 
 // 渲染历史标签页
 function renderHistoryTab() {
-    // 渲染命中排行表
     renderHitRankings();
-
-    // 渲染准确度卡片
     renderAccuracyCards();
-
-    }
+}
 
 // 命中排行：按时间窗口分组、按 模型+策略 命中优劣 取 Top5
 function renderHitRankings() {
@@ -162,10 +158,7 @@ function renderHitRankings() {
     today.setHours(0, 0, 0, 0);
     const thisYearStart = new Date(today.getFullYear(), 0, 1);
     const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
     const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     // 取最新一期的开奖日期（用作"最新一期"窗口）
     const latestDate = records[0]?.actual_result?.date || null;
@@ -323,7 +316,7 @@ function renderHistoryTable() {
 
     const allRows = appData.lotteryHistory.data;
     const total = allRows.length;
-    const shown = Math.min(20, total);
+    const shown = Math.min(3, total);
 
     for (let i = 0; i < shown; i++) {
         tbodyEl.appendChild(Components.createHistoryTableRow(allRows[i]));
@@ -363,8 +356,6 @@ function renderHistoryTable() {
         }
     });
 }
-
-// 渲染频率图表 (分析标签页)
 
 // 渲染统计卡片
 function renderStatisticsCards() {
@@ -419,16 +410,6 @@ function renderStatisticsCards() {
     const avgSumEl = document.getElementById('statAvgSum');
     if (avgSumEl) avgSumEl.textContent = avgSum;
 }
-
-// 渲染蓝球频率图表
-
-// 渲染奇偶比图表
-
-// 渲染和值走势图表
-
-// 渲染区间分布图表
-
-// 渲染所有分析图表
 
 // 设置事件监听
 function setupEventListeners() {

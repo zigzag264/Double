@@ -1633,21 +1633,6 @@ body::before {
 }
 
 /* Analysis Charts Grid */
-.analysis-charts-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-}
-
-@media (min-width: 768px) {
-    .analysis-charts-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .analysis-charts-grid .chart-container.full-width {
-        grid-column: 1 / -1;
-    }
-}
-
 /* ==================== Responsive Design ==================== */
 @media (min-width: 640px) {
     .strategy-header {
@@ -1751,11 +1736,6 @@ body::before {
     background: var(--blue-50);
 }
 
-.ranking-table tbody tr.digest-rank-1,
-.ranking-table tbody tr td.rank-1-row {
-    background: #fefce8;
-}
-
 .ranking-table tbody tr td.rank-num.rank-1 {
     color: #f59e0b;
     font-size: 1.1em;
@@ -1777,7 +1757,6 @@ body::before {
 .rank-num.rank-2 { color: #6b7280; }
 .rank-num.rank-3 { color: #b45309; }
 
-.tr-row-1 { background: linear-gradient(90deg, rgba(245,158,11,0.08), transparent); }
 
 .rank-model {
     font-weight: 600;
