@@ -10,7 +10,7 @@
       "predictions": [
         {
           "group_id": 1,
-          "strategy": "增强型热号追随者",
+          "strategy": "热号追随者",
           "red_balls": [
             "06",
             "07",
@@ -24,7 +24,7 @@
         },
         {
           "group_id": 2,
-          "strategy": "增强型冷号逆向者",
+          "strategy": "冷号逆向者",
           "red_balls": [
             "03",
             "09",
@@ -38,7 +38,7 @@
         },
         {
           "group_id": 3,
-          "strategy": "增强型平衡策略师",
+          "strategy": "平衡策略师",
           "red_balls": [
             "04",
             "10",
@@ -52,7 +52,7 @@
         },
         {
           "group_id": 4,
-          "strategy": "增强型周期理论家",
+          "strategy": "周期理论家",
           "red_balls": [
             "06",
             "11",
@@ -66,7 +66,7 @@
         },
         {
           "group_id": 5,
-          "strategy": "增强型综合决策者",
+          "strategy": "综合决策者",
           "red_balls": [
             "06",
             "07",
@@ -88,7 +88,7 @@
       "predictions": [
         {
           "group_id": 1,
-          "strategy": "增强型热号追随者",
+          "strategy": "热号追随者",
           "red_balls": [
             "05",
             "06",
@@ -102,7 +102,7 @@
         },
         {
           "group_id": 2,
-          "strategy": "增强型冷号逆向者",
+          "strategy": "冷号逆向者",
           "red_balls": [
             "03",
             "08",
@@ -116,7 +116,7 @@
         },
         {
           "group_id": 3,
-          "strategy": "增强型平衡策略师",
+          "strategy": "平衡策略师",
           "red_balls": [
             "04",
             "11",
@@ -130,7 +130,7 @@
         },
         {
           "group_id": 4,
-          "strategy": "增强型周期理论家",
+          "strategy": "周期理论家",
           "red_balls": [
             "06",
             "11",
@@ -144,7 +144,7 @@
         },
         {
           "group_id": 5,
-          "strategy": "增强型综合决策者",
+          "strategy": "综合决策者",
           "red_balls": [
             "05",
             "11",
@@ -166,7 +166,7 @@
       "predictions": [
         {
           "group_id": 1,
-          "strategy": "增强型热号追随者",
+          "strategy": "热号追随者",
           "red_balls": [
             "05",
             "06",
@@ -180,7 +180,7 @@
         },
         {
           "group_id": 2,
-          "strategy": "增强型冷号逆向者",
+          "strategy": "冷号逆向者",
           "red_balls": [
             "03",
             "08",
@@ -194,7 +194,7 @@
         },
         {
           "group_id": 3,
-          "strategy": "增强型平衡策略师",
+          "strategy": "平衡策略师",
           "red_balls": [
             "07",
             "09",
@@ -208,7 +208,7 @@
         },
         {
           "group_id": 4,
-          "strategy": "增强型周期理论家",
+          "strategy": "周期理论家",
           "red_balls": [
             "06",
             "11",
@@ -222,7 +222,7 @@
         },
         {
           "group_id": 5,
-          "strategy": "增强型综合决策者",
+          "strategy": "综合决策者",
           "red_balls": [
             "06",
             "13",
@@ -244,7 +244,7 @@
       "predictions": [
         {
           "group_id": 1,
-          "strategy": "增强型热号追随者",
+          "strategy": "热号追随者",
           "red_balls": [
             "05",
             "10",
@@ -258,7 +258,7 @@
         },
         {
           "group_id": 2,
-          "strategy": "增强型冷号逆向者",
+          "strategy": "冷号逆向者",
           "red_balls": [
             "01",
             "12",
@@ -272,7 +272,7 @@
         },
         {
           "group_id": 3,
-          "strategy": "增强型平衡策略师",
+          "strategy": "平衡策略师",
           "red_balls": [
             "06",
             "11",
@@ -286,7 +286,7 @@
         },
         {
           "group_id": 4,
-          "strategy": "增强型周期理论家",
+          "strategy": "周期理论家",
           "red_balls": [
             "09",
             "16",
@@ -300,7 +300,7 @@
         },
         {
           "group_id": 5,
-          "strategy": "增强型综合决策者",
+          "strategy": "综合决策者",
           "red_balls": [
             "09",
             "12",
@@ -322,7 +322,7 @@
       "predictions": [
         {
           "group_id": 1,
-          "strategy": "增强型热号追随者",
+          "strategy": "热号追随者",
           "red_balls": [
             "05",
             "06",
@@ -336,7 +336,7 @@
         },
         {
           "group_id": 2,
-          "strategy": "增强型冷号逆向者",
+          "strategy": "冷号逆向者",
           "red_balls": [
             "01",
             "03",
@@ -350,7 +350,7 @@
         },
         {
           "group_id": 3,
-          "strategy": "增强型平衡策略师",
+          "strategy": "平衡策略师",
           "red_balls": [
             "05",
             "09",
@@ -364,7 +364,7 @@
         },
         {
           "group_id": 4,
-          "strategy": "增强型周期理论家",
+          "strategy": "周期理论家",
           "red_balls": [
             "06",
             "10",
@@ -378,7 +378,7 @@
         },
         {
           "group_id": 5,
-          "strategy": "增强型综合决策者",
+          "strategy": "综合决策者",
           "red_balls": [
             "05",
             "06",
@@ -400,7 +400,7 @@
       "predictions": [
         {
           "group_id": 1,
-          "strategy": "增强型热号追随者",
+          "strategy": "热号追随者",
           "red_balls": [
             "06",
             "10",
@@ -414,7 +414,7 @@
         },
         {
           "group_id": 2,
-          "strategy": "增强型冷号逆向者",
+          "strategy": "冷号逆向者",
           "red_balls": [
             "03",
             "08",
@@ -428,7 +428,7 @@
         },
         {
           "group_id": 3,
-          "strategy": "增强型平衡策略师",
+          "strategy": "平衡策略师",
           "red_balls": [
             "05",
             "09",
@@ -442,7 +442,7 @@
         },
         {
           "group_id": 4,
-          "strategy": "增强型周期理论家",
+          "strategy": "周期理论家",
           "red_balls": [
             "07",
             "11",
@@ -456,7 +456,7 @@
         },
         {
           "group_id": 5,
-          "strategy": "增强型综合决策者",
+          "strategy": "综合决策者",
           "red_balls": [
             "05",
             "09",
