@@ -345,6 +345,7 @@ def validate_prediction(prediction: Dict[str, Any]) -> bool:
             return False
 
         # 检查每组预测
+        seen_groups = set()
         for group in prediction["predictions"]:
             # 检查红球
             if len(group["red_balls"]) != 6:
@@ -357,9 +358,32 @@ def validate_prediction(prediction: Dict[str, Any]) -> bool:
                 print(f"    ⚠️  红球未排序: {group['red_balls']}")
                 return False
 
-            # 检查蓝球
+            # 检查红球范围（01-33）
+            for b in group["red_balls"]:
+                if not (b.isdigit() and 1 <= int(b) <= 33):
+                    print(f"    ⚠️  红球超出范围: {b}")
+                    return False
+
+            # 检查蓝球是否为空
             if not group["blue_ball"]:
                 print(f"    ⚠️  蓝球为空")
+                return False
+
+            # 检查蓝球范围（01-16）
+            if not group["blue_ball"].isdigit() or not (1 <= int(group["blue_ball"]) <= 16):
+                print(f"    ⚠️  蓝球超出范围: {group['blue_ball']}")
+                return False
+
+            # 检查重复组（红蓝完全相同）
+            group_key = (tuple(group["red_balls"]), group["blue_ball"])
+            if group_key in seen_groups:
+                print(f"    ⚠️  存在完全重复的预测组: {group['red_balls']} + {group['blue_ball']}")
+                return False
+            seen_groups.add(group_key)
+
+            # 检查红球数组内是否有重复号码
+            if len(set(group["red_balls"])) != 6:
+                print(f"    ⚠️  红球存在重复号码: {group['red_balls']}")
                 return False
 
         return True
@@ -444,6 +468,8 @@ def generate_predictions() -> Dict[str, Any]:
                 detail = "调用失败或解析失败"
                 print(f"  ✗ {model_name}: {detail}\n")
             elif validate_prediction(prediction):
+                # 后处理：去重 + 防复读修复
+                prediction = post_process_prediction(prediction, lottery_data.get("data", []))
                 all_predictions.append(prediction)
                 status = "✅ 成功"
                 detail = "验证通过"
@@ -500,6 +526,160 @@ def calculate_hit_result(prediction_group: Dict[str, Any], actual_result: Dict[s
         "blue_hit": blue_hit,
         "total_hits": len(red_hits) + (1 if blue_hit else 0)
     }
+
+def _red_hits_between(group_reds: list, draw_reds: list) -> int:
+    """计算两组红球的重合数"""
+    return len(set(group_reds) & set(draw_reds))
+
+
+def _repair_group(group: Dict[str, Any], recent_draws: list) -> Dict[str, Any]:
+    """
+    修复与近期开奖过于相似的预测组。
+    将重合过多的红球替换为同区间内近期出现较少的号码。
+    """
+    # 找出最近3期开奖
+    last3 = [d for d in recent_draws[:3] if isinstance(d, dict) and "red_balls" in d]
+    if not last3:
+        return group
+
+    new_reds = list(group["red_balls"])
+    new_blue = group["blue_ball"]
+
+    # 检查红球：与任何一期重合 ≥5 则修复
+    for draw in last3:
+        hits = _red_hits_between(new_reds, draw["red_balls"])
+        if hits >= 5:
+            # 找出重合的号码
+            overlap = [b for b in new_reds if b in draw["red_balls"]]
+            # 替换 1-2 个重合号码
+            replacements_needed = min(hits - 4, 2)  # 降到 4 重合以下
+            for _ in range(replacements_needed):
+                if not overlap:
+                    break
+                to_replace = overlap.pop(0)
+                # 确定该号码所在的区间
+                n = int(to_replace)
+                if n <= 11:
+                    candidates = [f"{i:02d}" for i in range(1, 12)]
+                elif n <= 22:
+                    candidates = [f"{i:02d}" for i in range(12, 23)]
+                else:
+                    candidates = [f"{i:02d}" for i in range(23, 34)]
+
+                # 排除当前组已有的号码
+                candidates = [c for c in candidates if c not in new_reds]
+                # 排除近期开奖中该区间出现过的号码（避免换汤不换药）
+                for d in last3:
+                    candidates = [c for c in candidates if c not in d["red_balls"]]
+
+                if candidates:
+                    # 选区间内数值最接近的号码（保持风格相似但不重复）
+                    candidates.sort(key=lambda c: abs(int(c) - n))
+                    new_reds.remove(to_replace)
+                    new_reds.append(candidates[0])
+
+            new_reds.sort()
+
+    # 检查蓝球：与最近3期任何一期蓝球相同则换一个
+    if new_blue and any(new_blue == d.get("blue_ball", "") for d in last3):
+        all_blue = [f"{i:02d}" for i in range(1, 17)]
+        # 排除该模型其他组已用的蓝球（调用时传入的 group 可能不全，但先简单排除近期出现过的）
+        used = {d.get("blue_ball", "") for d in last3}
+        available = [b for b in all_blue if b not in used and b != new_blue]
+        if available:
+            # 选数值最接近的
+            target = int(new_blue)
+            available.sort(key=lambda b: abs(int(b) - target))
+            new_blue = available[0]
+
+    return {
+        "group_id": group["group_id"],
+        "strategy": group["strategy"],
+        "red_balls": new_reds,
+        "blue_ball": new_blue,
+        "description": group.get("description", "")
+    }
+
+
+def post_process_prediction(prediction: Dict[str, Any], history_data: list) -> Dict[str, Any]:
+    """
+    对模型预测进行后处理：
+    1. 去重：移除红蓝完全相同的重复组
+    2. 防复读：修复与近期开奖太相似的组
+    3. 补齐：确保总是 4 组
+    """
+    recent_draws = [d for d in history_data if isinstance(d, dict) and "red_balls" in d and "blue_ball" in d]
+
+    # 1. 去重
+    seen = set()
+    unique_groups = []
+    for g in prediction["predictions"]:
+        key = (tuple(g["red_balls"]), g["blue_ball"])
+        if key not in seen:
+            seen.add(key)
+            unique_groups.append(g)
+        else:
+            print(f"    ⚠️  发现重复组 (策略: {g['strategy']})，已移除")
+
+    # 2. 防复读修复
+    repaired = []
+    for g in unique_groups:
+        # 检查是否与最近3期过于相似
+        needs_repair = False
+        for draw in recent_draws[:3]:
+            if _red_hits_between(g["red_balls"], draw["red_balls"]) >= 5:
+                needs_repair = True
+                print(f"    ⚠️  策略「{g['strategy']}」与 {draw.get('period', '?')} 期红球重合 ≥5，执行修复")
+                break
+        if needs_repair:
+            repaired.append(_repair_group(g, recent_draws))
+        else:
+            repaired.append(g)
+
+    # 3. 补齐到 4 组（如果去重后不足）
+    while len(repaired) < 4:
+        # 以最后一组为蓝本生成变体
+        template = repaired[-1] if repaired else unique_groups[0]
+        variant = {
+            "group_id": len(repaired) + 1,
+            "strategy": template["strategy"],
+            "red_balls": list(template["red_balls"]),
+            "blue_ball": template["blue_ball"],
+        }
+        # 交换红球中的两个不同区间号码
+        reds = list(variant["red_balls"])
+        # 找一个可替换的号码
+        all_reds = [f"{i:02d}" for i in range(1, 34)]
+        available = [r for r in all_reds if r not in reds]
+        if available:
+            # 替换第 (len(repaired) % 6) 个位置
+            idx = len(repaired) % 6
+            old = reds[idx]
+            # 找同区间可用的
+            n = int(old)
+            if n <= 11:
+                pool = [r for r in available if 1 <= int(r) <= 11]
+            elif n <= 22:
+                pool = [r for r in available if 12 <= int(r) <= 22]
+            else:
+                pool = [r for r in available if 23 <= int(r) <= 33]
+            if pool:
+                pool.sort(key=lambda r: abs(int(r) - n))
+                reds[idx] = pool[0]
+                reds.sort()
+        variant["red_balls"] = reds
+        variant["blue_ball"] = template["blue_ball"]
+        variant["description"] = template.get("description", "")
+        repaired.append(variant)
+        print(f"    ⚠️  补齐第 {len(repaired)} 组预测")
+
+    # 重新编号 group_id
+    for i, g in enumerate(repaired):
+        g["group_id"] = i + 1
+
+    prediction["predictions"] = repaired
+    return prediction
+
 
 def archive_old_prediction(lottery_data: Dict[str, Any]):
     """将旧预测归档到历史记录（如果已开奖）"""
