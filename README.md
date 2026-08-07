@@ -141,9 +141,7 @@ python3 generate_ai_prediction.py
 |------|----|------|
 | DeepSeek V3 | `deepseek-v3` | 通用推理 |
 | DeepSeek V3.2 Exp | `deepseek-v3.2-exp` | 实验版推理 |
-| DeepSeek V4 Flash | `deepseek-v4-flash-0731` | 高速推理 |
 | Qwen 3.5 122B | `qwen3.5-122b-a10b` | 千问大参数 |
-| Qwen 3.8 Max | `qwen3.8-max` | 千问旗舰版 |
 | Qwen 3.7 Flash | `qwen3.7-flash` | 千问高速版 |
 | Tongyi Analysis Pro | `tongyi-xiaomi-analysis-pro` | 通义分析版 |
 | Kimi K2 | `Moonshot-Kimi-K2-Instruct` | Moonshot K2 |
