@@ -701,7 +701,19 @@ def archive_old_prediction(lottery_data: Dict[str, Any]):
         # 检查该期号是否已开奖
         latest_period = lottery_data.get("data", [{}])[0].get("period")
         if not latest_period or int(old_target_period) > int(latest_period):
-            print(f"  ℹ️  旧预测期号 {old_target_period} 尚未开奖，无需归档\n")
+            # 兜底检测：若预测日期已过去较久仍未见开奖，多半是爬虫未更新数据
+            try:
+                pred_date = datetime.strptime(old_predictions.get("prediction_date", ""), "%Y-%m-%d")
+                days_passed = (datetime.now() - pred_date).days
+            except Exception:
+                days_passed = 0
+
+            if days_passed >= 3:
+                print(f"  ⚠️  旧预测期号 {old_target_period} 的预测日期已过去 {days_passed} 天仍未见开奖数据！")
+                print(f"  ⚠️  最新期号仅到 {latest_period}，请先运行爬虫更新开奖数据 (fetch_history/fetch_lottery_history.py)")
+                print(f"  ⚠️  否则该期预测将无法自动归档\n")
+            else:
+                print(f"  ℹ️  旧预测期号 {old_target_period} 尚未开奖，无需归档\n")
             return
 
         print(f"  📦 旧预测期号 {old_target_period} 已开奖，开始归档...")
