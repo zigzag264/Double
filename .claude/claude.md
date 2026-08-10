@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示多个大模型（SenseNova 6.7 Flash-Lite、DeepSeek V4 Flash）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 4 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
@@ -35,7 +35,12 @@ double/
 │   ├── lottery_history.json          # 历史开奖数据 + 下期开奖信息
 │   ├── lottery_data.json             # （历史文件，爬虫原始数据副本）
 │   ├── ai_predictions.json           # 当前 AI 预测（未开奖期号）
-│   └── predictions_history.json      # 历史预测对比（已开奖期号）
+│   ├── predictions_history.json      # 历史预测对比（已开奖期号）
+│   ├── token_usage.json              # 各模型每次调用的 token 用量统计
+│   └── archive/                      # 备份归档（git 忽略）
+│       ├── ai_predictions_backup_*.json
+│       ├── predictions_history_backup_*.json
+│       └── fetch/lottery_data_backup_*.json
 ├── fetch_history/                    # 数据爬取脚本
 │   ├── fetch_lottery_history.py      # 爬虫脚本（同步到 data/lottery_history.json）
 │   └── lottery_data.json             # 爬虫原始数据
@@ -235,8 +240,10 @@ python3 -m http.server 8000
 **模型配置**（内置）:
 ```python
 MODELS = [
-    {"id": "sensenova-6.7-flash-lite", "name": "SenseNova 6.7 Flash-Lite", "model_id": "SenseNova6.7Flash"},
-    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "DeepSeekV4"}
+    {"id": "deepseek-v3", "name": "DeepSeek V3", "model_id": "deepseek-v3"},
+    {"id": "deepseek-v3.2-exp", "name": "DeepSeek V3.2 Exp", "model_id": "deepseek-v3.2-exp"},
+    {"id": "tongyi-xiaomi-analysis-pro", "name": "Tongyi Analysis Pro", "model_id": "tongyi-xiaomi-analysis-pro"},
+    {"id": "Moonshot-Kimi-K2-Instruct", "name": "Kimi K2", "model_id": "Moonshot-Kimi-K2-Instruct"},
 ]
 ```
 

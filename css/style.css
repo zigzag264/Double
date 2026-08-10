@@ -1816,3 +1816,32 @@ body::before {
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
+
+/* ==================== Token 用量表 ==================== */
+.token-table-wrap {
+    overflow-x: auto;
+    padding: 0 16px 16px;
+}
+
+.token-table th {
+    white-space: nowrap;
+}
+
+.token-table td {
+    text-align: center;
+}
+
+.token-table td.token-model {
+    font-weight: 600;
+    color: var(--fg);
+    text-align: left;
+}
+
+.token-table td.token-total {
+    font-weight: 700;
+    color: var(--blue-500);
+}
+
+.token-table thead th:first-child {
+    text-align: left;
+}

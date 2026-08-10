@@ -62,21 +62,42 @@ const DataLoader = {
     },
 
     /**
+     * 加载 token 用量数据
+     * @returns {Promise<Object>} token 用量数据对象
+     */
+    async loadTokenUsage() {
+        try {
+            const response = await fetch('./data/token_usage.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log('Token 用量数据加载成功', data);
+            return data;
+        } catch (error) {
+            console.warn('加载 token 用量数据失败，此为可选数据:', error);
+            return { records: [] };
+        }
+    },
+
+    /**
      * 加载所有数据
      * @returns {Promise<Object>} 包含所有数据的对象
      */
     async loadAllData() {
         try {
-            const [lotteryData, predictionData, predictionsHistoryData] = await Promise.all([
+            const [lotteryData, predictionData, predictionsHistoryData, tokenUsageData] = await Promise.all([
                 this.loadLotteryHistory(),
                 this.loadPredictions(),
-                this.loadPredictionsHistory()
+                this.loadPredictionsHistory(),
+                this.loadTokenUsage()
             ]);
 
             return {
                 lottery: lotteryData,
                 predictions: predictionData,
-                predictionsHistory: predictionsHistoryData
+                predictionsHistory: predictionsHistoryData,
+                tokenUsage: tokenUsageData
             };
         } catch (error) {
             console.error('加载数据失败:', error);

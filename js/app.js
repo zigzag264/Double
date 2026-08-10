@@ -6,7 +6,8 @@
 let appData = {
     lotteryHistory: null,
     aiPredictions: null,
-    predictionsHistory: null
+    predictionsHistory: null,
+    tokenUsage: { records: [] }
 };
 
 // 初始化应用
@@ -34,15 +35,17 @@ async function initApp() {
 // 加载所有数据
 async function loadAllData() {
     try {
-        const [lotteryHistory, aiPredictions, predictionsHistory] = await Promise.all([
+        const [lotteryHistory, aiPredictions, predictionsHistory, tokenUsage] = await Promise.all([
             DataLoader.loadLotteryHistory(),
             DataLoader.loadPredictions(),
-            DataLoader.loadPredictionsHistory()
+            DataLoader.loadPredictionsHistory(),
+            DataLoader.loadTokenUsage()
         ]);
 
         appData.lotteryHistory = lotteryHistory;
         appData.aiPredictions = aiPredictions;
         appData.predictionsHistory = predictionsHistory;
+        appData.tokenUsage = tokenUsage;
     } catch (error) {
         console.error('数据加载失败:', error);
         throw error;
@@ -138,7 +141,83 @@ function createDrawnStatusBanner(actualResult) {
 // 渲染历史标签页
 function renderHistoryTab() {
     renderHitRankings();
+    renderTokenUsage();
     renderAccuracyCards();
+}
+
+// 渲染模型 Token 用量排行表
+function renderTokenUsage() {
+    const container = document.getElementById('tokenUsageContainer');
+    if (!container) return;
+
+    const records = (appData.tokenUsage && appData.tokenUsage.records) || [];
+    if (!records.length) {
+        container.innerHTML = '<div class="ranking-empty"><p>暂无 Token 用量数据</p></div>';
+        return;
+    }
+
+    // 按模型聚合
+    const stats = {};
+    records.forEach(r => {
+        const key = r.model_id || r.model_name;
+        const entry = stats[key] || {
+            modelName: r.model_name,
+            modelId: r.model_id,
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            elapsed: 0,
+            calls: 0,
+        };
+        entry.promptTokens += r.prompt_tokens || 0;
+        entry.completionTokens += r.completion_tokens || 0;
+        entry.totalTokens += r.total_tokens || 0;
+        entry.elapsed += r.elapsed_seconds || 0;
+        entry.calls += 1;
+        stats[key] = entry;
+    });
+
+    const arr = Object.values(stats).sort((a, b) => b.totalTokens - a.totalTokens);
+
+    const fmt = (n) => n.toLocaleString('zh-CN');
+
+    let rows = arr.map(m => `
+        <tr>
+            <td class="token-model">${m.modelName}</td>
+            <td>${fmt(m.promptTokens)}</td>
+            <td>${fmt(m.completionTokens)}</td>
+            <td class="token-total">${fmt(m.totalTokens)}</td>
+            <td>${m.elapsed.toFixed(1)}s</td>
+            <td>${m.calls}</td>
+            <td>${fmt(Math.round(m.totalTokens / m.calls))}</td>
+        </tr>
+    `).join('');
+
+    const totalElapsed = arr.reduce((s, m) => s + m.elapsed, 0);
+
+    container.innerHTML = `
+        <div class="ranking-panel">
+            <div class="ranking-header">
+                <span class="ranking-title">Token 用量排行</span>
+                <span class="ranking-sub">累计 ${records.length} 次调用 · 总耗时 ${totalElapsed.toFixed(1)}s</span>
+            </div>
+            <div class="token-table-wrap">
+                <table class="ranking-table token-table">
+                    <thead>
+                        <tr>
+                            <th>模型</th>
+                            <th>总Prompt输入</th>
+                            <th>总输出</th>
+                            <th>总每次总计</th>
+                            <th>总耗时</th>
+                            <th>调用次数</th>
+                            <th>平均token</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        </div>`;
 }
 
 // 命中排行：按时间窗口分组、按 模型+策略 命中优劣 取 Top5

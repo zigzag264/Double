@@ -36,9 +36,36 @@ if not BASE_URL:
 # 每模型可单独配置：streaming 支持、超时、温度、重试次数
 MODELS = [
     {
-        "id": "qwen3.7-max",
-        "name": "Qwen 3.7 Max",
-        "model_id": "qwen3.7-max",
+        "id": "deepseek-v3",
+        "name": "DeepSeek V3",
+        "model_id": "deepseek-v3",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "deepseek-v3.2-exp",
+        "name": "DeepSeek V3.2 Exp",
+        "model_id": "deepseek-v3.2-exp",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "tongyi-xiaomi-analysis-pro",
+        "name": "Tongyi Analysis Pro",
+        "model_id": "tongyi-xiaomi-analysis-pro",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "Moonshot-Kimi-K2-Instruct",
+        "name": "Kimi K2",
+        "model_id": "Moonshot-Kimi-K2-Instruct",
         "supports_streaming": True,
         "timeout": 240,
         "temperature": 0.8,
@@ -51,6 +78,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOTTERY_HISTORY_FILE = os.path.join(SCRIPT_DIR, "data", "lottery_history.json")
 AI_PREDICTIONS_FILE = os.path.join(SCRIPT_DIR, "data", "ai_predictions.json")
 PREDICTIONS_HISTORY_FILE = os.path.join(SCRIPT_DIR, "data", "predictions_history.json")
+TOKEN_USAGE_FILE = os.path.join(SCRIPT_DIR, "data", "token_usage.json")
 PROMPT_FILE = os.path.join(SCRIPT_DIR, "doc", "prompt2.0.md")
 
 # ==================== 工具函数 ====================
@@ -136,29 +164,39 @@ def _build_messages(prompt: str) -> list:
     ]
 
 
-def _call_with_streaming(client: OpenAI, model_config: dict, prompt: str) -> str:
-    """流式模式调用，返回完整响应文本"""
+def _call_with_streaming(client: OpenAI, model_config: dict, prompt: str):
+    """流式模式调用，返回 (完整响应文本, token用量dict)"""
     timeout = model_config.get("timeout", 120)
     response_text = ""
+    usage = {}
 
     stream = client.chat.completions.create(
         model=model_config["id"],
         messages=_build_messages(prompt),
         temperature=model_config.get("temperature", 0.8),
         stream=True,
+        stream_options={"include_usage": True},
         timeout=timeout + 60,  # 流式较慢，额外加 60s
     )
 
     for chunk in stream:
-        delta = chunk.choices[0].delta
-        if delta.content:
-            response_text += delta.content
+        if getattr(chunk, "usage", None):
+            usage = {
+                "prompt_tokens": chunk.usage.prompt_tokens,
+                "completion_tokens": chunk.usage.completion_tokens,
+                "total_tokens": chunk.usage.total_tokens,
+            }
+            continue
+        if chunk.choices:
+            delta = chunk.choices[0].delta
+            if delta.content:
+                response_text += delta.content
 
-    return response_text.strip()
+    return response_text.strip(), usage
 
 
-def _call_without_streaming(client: OpenAI, model_config: dict, prompt: str) -> str:
-    """非流式模式调用，返回完整响应文本"""
+def _call_without_streaming(client: OpenAI, model_config: dict, prompt: str):
+    """非流式模式调用，返回 (完整响应文本, token用量dict)"""
     timeout = model_config.get("timeout", 120)
 
     response = client.chat.completions.create(
@@ -169,7 +207,15 @@ def _call_without_streaming(client: OpenAI, model_config: dict, prompt: str) -> 
         timeout=timeout,
     )
 
-    return response.choices[0].message.content.strip()
+    usage = {}
+    if getattr(response, "usage", None):
+        usage = {
+            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.completion_tokens,
+            "total_tokens": response.usage.total_tokens,
+        }
+
+    return response.choices[0].message.content.strip(), usage
 
 
 def _is_retryable_error(e: Exception) -> bool:
@@ -180,6 +226,16 @@ def _is_retryable_error(e: Exception) -> bool:
 def _is_skip_error(e: Exception) -> bool:
     """判断错误是否应跳过（不重试）"""
     return isinstance(e, (AuthenticationError, NotFoundError, BadRequestError))
+
+
+def _format_usage(usage: dict) -> str:
+    """格式化 token 用量显示"""
+    if not usage:
+        return "token: N/A"
+    p = usage.get("prompt_tokens", 0)
+    c = usage.get("completion_tokens", 0)
+    t = usage.get("total_tokens", 0)
+    return f"token: ↑{p:,} ↓{c:,} ∑{t:,}"
 
 
 def _parse_prediction(response_text: str, model_name: str) -> Dict[str, Any]:
@@ -211,15 +267,15 @@ def call_ai_model(client: OpenAI, model_config: dict, prompt: str) -> Optional[D
         for attempt in range(max_retries + 1):
             try:
                 t0 = time_module.time()
-                response_text = _call_with_streaming(client, model_config, prompt)
+                response_text, usage = _call_with_streaming(client, model_config, prompt)
                 elapsed = time_module.time() - t0
                 prediction = _parse_prediction(response_text, model_name)
-                print(f"    ✅ 流式成功 | 耗时: {elapsed:.1f}s | 响应: {len(response_text)} 字符")
-                return prediction
+                print(f"    ✅ 流式成功 | 耗时: {elapsed:.1f}s | 响应: {len(response_text)} 字符 | {_format_usage(usage)}")
+                return prediction, usage
 
             except json.JSONDecodeError:
                 # JSON 解析失败不可重试
-                return None
+                return None, usage
             except Exception as e:
                 if _is_skip_error(e):
                     print(f"    ❌ 流式调用失败 (不可恢复): {type(e).__name__}")
@@ -242,14 +298,14 @@ def call_ai_model(client: OpenAI, model_config: dict, prompt: str) -> Optional[D
     for attempt in range(max_retries + 1):
         try:
             t0 = time_module.time()
-            response_text = _call_without_streaming(client, model_config, prompt)
+            response_text, usage = _call_without_streaming(client, model_config, prompt)
             elapsed = time_module.time() - t0
             prediction = _parse_prediction(response_text, model_name)
-            print(f"    ✅ 非流式成功 | 耗时: {elapsed:.1f}s | 响应: {len(response_text)} 字符")
-            return prediction
+            print(f"    ✅ 非流式成功 | 耗时: {elapsed:.1f}s | 响应: {len(response_text)} 字符 | {_format_usage(usage)}")
+            return prediction, usage
 
         except json.JSONDecodeError:
-            return None
+            return None, usage
         except Exception as e:
             if _is_skip_error(e):
                 print(f"    ❌ 非流式调用失败 (不可恢复): {type(e).__name__}")
@@ -329,6 +385,35 @@ def validate_prediction(prediction: Dict[str, Any]) -> bool:
         print(f"    ⚠️  验证出错: {str(e)}")
         return False
 
+def save_token_usage(diagnostics: list, target_period: str, prediction_date: str):
+    """将本次各模型的 token 用量追加到 data/token_usage.json"""
+    try:
+        records = []
+        if os.path.exists(TOKEN_USAGE_FILE):
+            with open(TOKEN_USAGE_FILE, 'r', encoding='utf-8') as f:
+                records = json.load(f).get("records", [])
+
+        for d in diagnostics:
+            usage = d.get("usage") or {}
+            records.append({
+                "date": prediction_date,
+                "target_period": target_period,
+                "model_id": d.get("model_id", ""),
+                "model_name": d.get("name", ""),
+                "prompt_tokens": usage.get("prompt_tokens", 0),
+                "completion_tokens": usage.get("completion_tokens", 0),
+                "total_tokens": usage.get("total_tokens", 0),
+                "elapsed_seconds": round(d.get("elapsed", 0), 1),
+                "success": d.get("status") == "✅ 成功",
+            })
+
+        with open(TOKEN_USAGE_FILE, 'w', encoding='utf-8') as f:
+            json.dump({"records": records}, f, ensure_ascii=False, indent=2)
+        print(f"  📊 已记录 {len(diagnostics)} 条 token 用量到 token_usage.json")
+    except Exception as e:
+        print(f"  ⚠️  保存 token 用量失败: {str(e)}")
+
+
 def generate_predictions() -> Dict[str, Any]:
     """生成所有模型的预测"""
     print("\n" + "="*50)
@@ -386,6 +471,7 @@ def generate_predictions() -> Dict[str, Any]:
         t_start = time_module.time()
         status = "❌ 失败"
         detail = ""
+        usage = {}
 
         try:
             # 构建 prompt
@@ -399,7 +485,7 @@ def generate_predictions() -> Dict[str, Any]:
             )
 
             # 调用模型
-            prediction = call_ai_model(client, model_config, prompt)
+            prediction, usage = call_ai_model(client, model_config, prompt)
 
             if prediction is None:
                 detail = "调用失败或解析失败"
@@ -426,6 +512,7 @@ def generate_predictions() -> Dict[str, Any]:
             "status": "✅ 成功" if status == "✅ 成功" else "❌ 失败",
             "detail": detail if detail else "成功",
             "elapsed": elapsed,
+            "usage": usage,
         })
 
     # 打印诊断汇总表
@@ -434,9 +521,13 @@ def generate_predictions() -> Dict[str, Any]:
     print("=" * 60)
     for d in diagnostics:
         elapsed_str = f"{d['elapsed']:.1f}s" if d['elapsed'] < 60 else f"{d['elapsed']/60:.1f}min"
-        print(f"  {d['status']} | {d['name']:<8s} | {elapsed_str:>7s} | {d['detail']}")
+        token_str = _format_usage(d.get("usage", {}))
+        print(f"  {d['status']} | {d['name']:<8s} | {elapsed_str:>7s} | {token_str} | {d['detail']}")
     print("=" * 60)
     print(f"  总计: {sum(1 for d in diagnostics if d['status'] == '✅ 成功')}/{len(diagnostics)} 个模型成功\n")
+
+    # 记录 token 用量（无论是否全部成功）
+    save_token_usage(diagnostics, target_period, prediction_date)
 
     # 构建最终输出
     if not all_predictions:
@@ -748,9 +839,11 @@ def save_predictions(predictions: Dict[str, Any]):
     try:
         print("💾 保存预测数据...")
 
-        # 创建备份
+        # 创建备份（写入 archive 目录）
         if os.path.exists(AI_PREDICTIONS_FILE):
-            backup_file = AI_PREDICTIONS_FILE.replace(".json", f"_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+            archive_dir = os.path.join(os.path.dirname(AI_PREDICTIONS_FILE), "archive")
+            os.makedirs(archive_dir, exist_ok=True)
+            backup_file = os.path.join(archive_dir, f"ai_predictions_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
             with open(AI_PREDICTIONS_FILE, 'r', encoding='utf-8') as f:
                 backup_data = json.load(f)
             with open(backup_file, 'w', encoding='utf-8') as f:
