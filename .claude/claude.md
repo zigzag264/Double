@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 6 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2、Sensenova 6.7 Flash Lite、DeepSeek V4 Flash）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 5 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2、DeepSeek V4 Flash）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
@@ -244,7 +244,6 @@ MODELS = [
     {"id": "deepseek-v3.2-exp", "name": "DeepSeek V3.2 Exp", "model_id": "deepseek-v3.2-exp"},
     {"id": "tongyi-xiaomi-analysis-pro", "name": "Tongyi Analysis Pro", "model_id": "tongyi-xiaomi-analysis-pro"},
     {"id": "Moonshot-Kimi-K2-Instruct", "name": "Kimi K2", "model_id": "Moonshot-Kimi-K2-Instruct"},
-    {"id": "sensenova-6.7-flash-lite", "name": "Sensenova 6.7 Flash Lite", "model_id": "sensenova-6.7-flash-lite"},
     {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "deepseek-v4-flash"},
 ]
 ```
@@ -346,7 +345,7 @@ Vercel 自动重新部署
 |------|------|--------|
 | `AI_API_KEY` | AI 模型调用凭证（默认，DeepSeek/Tongyi/Kimi） | `generate_ai_prediction.py` |
 | `AI_BASE_URL` | AI API 端点（默认 aihubmix.com） | `generate_ai_prediction.py` |
-| `SENSENOVA_API_KEY` | Sensenova 凭证（sensenova-6.7-flash-lite / deepseek-v4-flash） | `generate_ai_prediction.py` |
+| `SENSENOVA_API_KEY` | Sensenova 凭证（deepseek-v4-flash） | `generate_ai_prediction.py` |
 | `SENSENOVA_BASE_URL` | Sensenova API 端点（默认 `https://token.sensenova.cn/v1`） | `generate_ai_prediction.py` |
 | `SMTP_SERVER` | SMTP 服务器（默认 smtp.qq.com） | `email_daily_digest.py` |
 | `SMTP_PORT` | SMTP 端口（默认 465） | `email_daily_digest.py` |

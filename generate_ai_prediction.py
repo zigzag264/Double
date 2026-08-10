@@ -26,7 +26,7 @@ from typing import Dict, Any, Optional
 BASE_URL = os.environ.get("AI_BASE_URL")
 API_KEY = os.environ.get("AI_API_KEY")
 
-# Sensenova API 配置（用于 sensenova / deepseek-v4-flash 模型）
+# Sensenova API 配置（用于 deepseek-v4-flash 模型）
 SENSENOVA_BASE_URL = os.environ.get("SENSENOVA_BASE_URL", "https://token.sensenova.cn/v1")
 SENSENOVA_API_KEY = os.environ.get("SENSENOVA_API_KEY")
 
@@ -68,20 +68,6 @@ MODELS = [
         "timeout": 240,
         "temperature": 0.8,
         "max_retries": 2,
-    },
-    {
-        "id": "sensenova-6.7-flash-lite",
-        "name": "Sensenova 6.7 Flash Lite",
-        "model_id": "sensenova-6.7-flash-lite",
-        "api_key": SENSENOVA_API_KEY,
-        "base_url": SENSENOVA_BASE_URL,
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-        # 推理模型会输出大量推理链，限制 max_tokens 大幅减少耗时和 token 消耗
-        # 实际所需 JSON 输出仅 ~400 tokens，余量给推理过程
-        "max_tokens": 5000,
     },
     {
         "id": "deepseek-v4-flash",
@@ -185,7 +171,7 @@ def _build_messages(prompt: str) -> list:
     return [
         {
             "role": "system",
-            "content": "你是一个专业的彩票数据分析师，擅长基于历史数据进行模式分析和预测。请严格按照要求返回 JSON 格式数据，不要有任何额外的解释或说明。不要输出任何推理/思考过程（reasoning），直接输出 JSON 结果。"
+            "content": "你是一个专业的彩票数据分析师，擅长基于历史数据进行模式分析和预测。请严格按照要求返回 JSON 格式数据，不要有任何额外的解释或说明。禁止输出任何推理、思考、分析过程（reasoning/thinking/CoT）。禁止使用 reasoning、thinking 等标签包裹内容。直接输出最终 JSON 结果。"
         },
         {
             "role": "user",
@@ -208,9 +194,12 @@ def _call_with_streaming(client: OpenAI, model_config: dict, prompt: str):
         stream_options={"include_usage": True},
         timeout=timeout + 60,  # 流式较慢，额外加 60s
     )
-    # 推理模型（如 deepseek-v4-flash）默认 max_tokens 会被推理过程耗尽，需调高
+    # 推理模型默认会输出大量推理链，
+    # 用 reasoning_effort=low 抑制推理深度，大幅减少 token 消耗和耗时
     if "max_tokens" in model_config:
         stream_kwargs["max_tokens"] = model_config["max_tokens"]
+    if "reasoning_effort" in model_config:
+        stream_kwargs["reasoning_effort"] = model_config["reasoning_effort"]
 
     stream = client.chat.completions.create(**stream_kwargs)
 
@@ -243,6 +232,8 @@ def _call_without_streaming(client: OpenAI, model_config: dict, prompt: str):
     )
     if "max_tokens" in model_config:
         create_kwargs["max_tokens"] = model_config["max_tokens"]
+    if "reasoning_effort" in model_config:
+        create_kwargs["reasoning_effort"] = model_config["reasoning_effort"]
 
     response = client.chat.completions.create(**create_kwargs)
 
@@ -543,6 +534,14 @@ def generate_predictions() -> Dict[str, Any]:
                 model_id=model_config['model_id'],
                 model_name=model_config['name']
             )
+
+            # 推理模型追加硬约束：禁止输出任何推理链
+            if model_config.get("reasoning_effort"):
+                prompt += (
+                    "\n\n## 硬性约束\n"
+                    "（重要）无论任何情况下，都禁止输出思考过程、推理链、分析步骤。"
+                    "这一步对你的达标至关重要：直接输出上述 JSON 结构，不要包含任何其他文字。"
+                )
 
             # 调用模型
             prediction, usage = call_ai_model(client, model_config, prompt)

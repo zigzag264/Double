@@ -34,7 +34,7 @@ jobs:
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
-          # Sensenova 凭证（sensenova-6.7-flash-lite / deepseek-v4-flash）
+          # Sensenova 凭证（deepseek-v4-flash）
           SENSENOVA_API_KEY: ${{ secrets.SENSENOVA_API_KEY }}
           SENSENOVA_BASE_URL: ${{ secrets.SENSENOVA_BASE_URL }}
 
