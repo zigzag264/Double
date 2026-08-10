@@ -79,6 +79,9 @@ MODELS = [
         "timeout": 240,
         "temperature": 0.8,
         "max_retries": 2,
+        # 推理模型会输出大量推理链，限制 max_tokens 大幅减少耗时和 token 消耗
+        # 实际所需 JSON 输出仅 ~400 tokens，余量给推理过程
+        "max_tokens": 5000,
     },
     {
         "id": "deepseek-v4-flash",
