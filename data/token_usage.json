@@ -1,0 +1,290 @@
+{
+  "records": [
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 5015,
+      "completion_tokens": 471,
+      "total_tokens": 5486,
+      "elapsed_seconds": 10.4,
+      "success": false
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 5022,
+      "completion_tokens": 474,
+      "total_tokens": 5496,
+      "elapsed_seconds": 11.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 5764,
+      "completion_tokens": 522,
+      "total_tokens": 6286,
+      "elapsed_seconds": 9.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 4971,
+      "completion_tokens": 387,
+      "total_tokens": 5358,
+      "elapsed_seconds": 12.6,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 5015,
+      "completion_tokens": 472,
+      "total_tokens": 5487,
+      "elapsed_seconds": 11.9,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 5022,
+      "completion_tokens": 471,
+      "total_tokens": 5493,
+      "elapsed_seconds": 9.9,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 5764,
+      "completion_tokens": 522,
+      "total_tokens": 6286,
+      "elapsed_seconds": 11.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 4971,
+      "completion_tokens": 379,
+      "total_tokens": 5350,
+      "elapsed_seconds": 12.5,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 5015,
+      "completion_tokens": 472,
+      "total_tokens": 5487,
+      "elapsed_seconds": 12.1,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 5022,
+      "completion_tokens": 472,
+      "total_tokens": 5494,
+      "elapsed_seconds": 14.1,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 5764,
+      "completion_tokens": 522,
+      "total_tokens": 6286,
+      "elapsed_seconds": 11.3,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 4971,
+      "completion_tokens": 398,
+      "total_tokens": 5369,
+      "elapsed_seconds": 13.8,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "sensenova-6.7-flash-lite",
+      "model_name": "Sensenova 6.7 Flash Lite",
+      "prompt_tokens": 49094,
+      "completion_tokens": 44506,
+      "total_tokens": 93600,
+      "elapsed_seconds": 347.7,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v4-flash",
+      "model_name": "DeepSeek V4 Flash",
+      "prompt_tokens": 5019,
+      "completion_tokens": 8193,
+      "total_tokens": 13212,
+      "elapsed_seconds": 94.5,
+      "success": false
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_seconds": 0,
+      "success": false
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_seconds": 0,
+      "success": false
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_seconds": 0,
+      "success": false
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_seconds": 0,
+      "success": false
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "sensenova-6.7-flash-lite",
+      "model_name": "Sensenova 6.7 Flash Lite",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_seconds": 0,
+      "success": false
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v4-flash",
+      "model_name": "DeepSeek V4 Flash",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_seconds": 0,
+      "success": false
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 5015,
+      "completion_tokens": 471,
+      "total_tokens": 5486,
+      "elapsed_seconds": 13.0,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 5022,
+      "completion_tokens": 472,
+      "total_tokens": 5494,
+      "elapsed_seconds": 13.0,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 5764,
+      "completion_tokens": 522,
+      "total_tokens": 6286,
+      "elapsed_seconds": 12.1,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 4971,
+      "completion_tokens": 389,
+      "total_tokens": 5360,
+      "elapsed_seconds": 15.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "sensenova-6.7-flash-lite",
+      "model_name": "Sensenova 6.7 Flash Lite",
+      "prompt_tokens": 49094,
+      "completion_tokens": 44331,
+      "total_tokens": 93425,
+      "elapsed_seconds": 346.0,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v4-flash",
+      "model_name": "DeepSeek V4 Flash",
+      "prompt_tokens": 5019,
+      "completion_tokens": 8193,
+      "total_tokens": 13212,
+      "elapsed_seconds": 79.3,
+      "success": false
+    }
+  ]
+}

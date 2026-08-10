@@ -90,6 +90,8 @@ MODELS = [
         "timeout": 240,
         "temperature": 0.8,
         "max_retries": 2,
+        # 推理模型：默认 max_tokens(8192) 会被推理过程耗尽导致 content 为空，需调高
+        "max_tokens": 32000,
     },
 ]
 
@@ -180,7 +182,7 @@ def _build_messages(prompt: str) -> list:
     return [
         {
             "role": "system",
-            "content": "你是一个专业的彩票数据分析师，擅长基于历史数据进行模式分析和预测。请严格按照要求返回 JSON 格式数据，不要有任何额外的解释或说明。"
+            "content": "你是一个专业的彩票数据分析师，擅长基于历史数据进行模式分析和预测。请严格按照要求返回 JSON 格式数据，不要有任何额外的解释或说明。不要输出任何推理/思考过程（reasoning），直接输出 JSON 结果。"
         },
         {
             "role": "user",
@@ -195,7 +197,7 @@ def _call_with_streaming(client: OpenAI, model_config: dict, prompt: str):
     response_text = ""
     usage = {}
 
-    stream = client.chat.completions.create(
+    stream_kwargs = dict(
         model=model_config["id"],
         messages=_build_messages(prompt),
         temperature=model_config.get("temperature", 0.8),
@@ -203,6 +205,11 @@ def _call_with_streaming(client: OpenAI, model_config: dict, prompt: str):
         stream_options={"include_usage": True},
         timeout=timeout + 60,  # 流式较慢，额外加 60s
     )
+    # 推理模型（如 deepseek-v4-flash）默认 max_tokens 会被推理过程耗尽，需调高
+    if "max_tokens" in model_config:
+        stream_kwargs["max_tokens"] = model_config["max_tokens"]
+
+    stream = client.chat.completions.create(**stream_kwargs)
 
     for chunk in stream:
         if getattr(chunk, "usage", None):
@@ -224,13 +231,17 @@ def _call_without_streaming(client: OpenAI, model_config: dict, prompt: str):
     """非流式模式调用，返回 (完整响应文本, token用量dict)"""
     timeout = model_config.get("timeout", 120)
 
-    response = client.chat.completions.create(
+    create_kwargs = dict(
         model=model_config["id"],
         messages=_build_messages(prompt),
         temperature=model_config.get("temperature", 0.8),
         stream=False,
         timeout=timeout,
     )
+    if "max_tokens" in model_config:
+        create_kwargs["max_tokens"] = model_config["max_tokens"]
+
+    response = client.chat.completions.create(**create_kwargs)
 
     usage = {}
     if getattr(response, "usage", None):
