@@ -26,10 +26,6 @@ from typing import Dict, Any, Optional
 BASE_URL = os.environ.get("AI_BASE_URL")
 API_KEY = os.environ.get("AI_API_KEY")
 
-# Sensenova API 配置（用于 deepseek-v4-flash 模型）
-SENSENOVA_BASE_URL = os.environ.get("SENSENOVA_BASE_URL", "https://token.sensenova.cn/v1")
-SENSENOVA_API_KEY = os.environ.get("SENSENOVA_API_KEY")
-
 # 模型配置列表（每个模型可单独配置 api_key / base_url，留空则用默认凭证）
 # 每模型可单独配置：streaming 支持、超时、温度、重试次数
 MODELS = [
@@ -68,19 +64,6 @@ MODELS = [
         "timeout": 240,
         "temperature": 0.8,
         "max_retries": 2,
-    },
-    {
-        "id": "deepseek-v4-flash",
-        "name": "DeepSeek V4 Flash",
-        "model_id": "deepseek-v4-flash",
-        "api_key": SENSENOVA_API_KEY,
-        "base_url": SENSENOVA_BASE_URL,
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-        # 推理模型：默认 max_tokens(8192) 会被推理过程耗尽导致 content 为空，需调高
-        "max_tokens": 32000,
     },
 ]
 

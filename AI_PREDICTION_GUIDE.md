@@ -103,7 +103,7 @@ python3 generate_ai_prediction.py
           "blue_ball": "13",
           "description": "选择最近高频号码，排除上一期号码"
         }
-        // ... 共 5 组预测
+        // ... 共 4 组预测
       ]
     }
     // ... 共 4 个模型
@@ -113,7 +113,7 @@ python3 generate_ai_prediction.py
 
 ## 预测策略说明
 
-每个 AI 模型会生成 5 组预测，分别采用不同策略：
+每个 AI 模型会生成 4 组预测，分别采用不同策略：
 
 1. **热号追随者** - 选择最近 30 期高频号码（排除上一期）
 2. **平衡策略师** - 多维度平衡（奇偶/大小/和值/连号）
@@ -125,7 +125,7 @@ python3 generate_ai_prediction.py
 脚本会自动验证生成的预测数据：
 
 - ✓ 必需字段完整性（prediction_date, target_period, model_id, model_name, predictions）
-- ✓ 预测组数量正确（5 组）
+- ✓ 预测组数量正确（4 组）
 - ✓ 红球数量正确（6 个）
 - ✓ 红球号码已排序
 - ✓ 蓝球不为空

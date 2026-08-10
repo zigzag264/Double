@@ -34,9 +34,6 @@ jobs:
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
-          # Sensenova 凭证（deepseek-v4-flash）
-          SENSENOVA_API_KEY: ${{ secrets.SENSENOVA_API_KEY }}
-          SENSENOVA_BASE_URL: ${{ secrets.SENSENOVA_BASE_URL }}
 
       - name: Check for changes
         id: check_changes
@@ -48,7 +45,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/ai_predictions.json data/predictions_history.json
+          git add data/ai_predictions.json data/predictions_history.json data/token_usage.json
           git commit -m "chore: generate AI predictions $(date +'%Y-%m-%d %H:%M:%S')"
           git push
 

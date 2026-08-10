@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 5 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2、DeepSeek V4 Flash）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 4 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
@@ -82,7 +82,7 @@ double/
 
 | Tab | 内容 |
 |-----|------|
-| **最新预测** | Hero Banner（下期期号/日期/倒计时）、策略说明、4 个模型卡片（各 5 组预测）、免责声明 |
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、策略说明、4 个模型卡片（各 4 组预测）、免责声明 |
 | **图表分析** | 中奖规则卡片、4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、5 张 Chart.js 图表 |
 | **历史回溯** | AI 命中表现折线图、详细命中记录卡片、历史开奖号码表格 |
 
@@ -233,8 +233,8 @@ python3 -m http.server 8000
 1. 加载 Prompt 模板（`doc/prompt2.0.md`）
 2. 加载历史数据（`data/lottery_history.json`，取最近 30 期）
 3. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
-4. 逐个调用 6 个 AI 模型生成预测
-5. 验证数据格式（5 组、6 红球已排序、蓝球非空）
+4. 逐个调用 4 个 AI 模型生成预测
+5. 验证数据格式（4 组、6 红球已排序、蓝球非空）
 6. 创建备份并保存
 
 **模型配置**（内置）:
@@ -244,7 +244,6 @@ MODELS = [
     {"id": "deepseek-v3.2-exp", "name": "DeepSeek V3.2 Exp", "model_id": "deepseek-v3.2-exp"},
     {"id": "tongyi-xiaomi-analysis-pro", "name": "Tongyi Analysis Pro", "model_id": "tongyi-xiaomi-analysis-pro"},
     {"id": "Moonshot-Kimi-K2-Instruct", "name": "Kimi K2", "model_id": "Moonshot-Kimi-K2-Instruct"},
-    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "deepseek-v4-flash"},
 ]
 ```
 
@@ -293,7 +292,7 @@ EMAIL_DRY_RUN=true
 
 ## AI 预测策略（Prompt v2.0）
 
-Prompt 模板位于 `doc/prompt2.0.md`，每个 AI 模型生成 5 组预测：
+Prompt 模板位于 `doc/prompt2.0.md`，每个 AI 模型生成 4 组预测：
 
 | 策略 | 核心逻辑 |
 |------|---------|
@@ -343,10 +342,8 @@ Vercel 自动重新部署
 
 | 变量 | 用途 | 使用方 |
 |------|------|--------|
-| `AI_API_KEY` | AI 模型调用凭证（默认，DeepSeek/Tongyi/Kimi） | `generate_ai_prediction.py` |
+| `AI_API_KEY` | AI 模型调用凭证（DeepSeek/Tongyi/Kimi） | `generate_ai_prediction.py` |
 | `AI_BASE_URL` | AI API 端点（默认 aihubmix.com） | `generate_ai_prediction.py` |
-| `SENSENOVA_API_KEY` | Sensenova 凭证（deepseek-v4-flash） | `generate_ai_prediction.py` |
-| `SENSENOVA_BASE_URL` | Sensenova API 端点（默认 `https://token.sensenova.cn/v1`） | `generate_ai_prediction.py` |
 | `SMTP_SERVER` | SMTP 服务器（默认 smtp.qq.com） | `email_daily_digest.py` |
 | `SMTP_PORT` | SMTP 端口（默认 465） | `email_daily_digest.py` |
 | `SMTP_USER` | 邮箱地址 | `email_daily_digest.py` |

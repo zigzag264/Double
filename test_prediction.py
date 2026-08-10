@@ -34,7 +34,7 @@ def test_prediction_file():
             predictions = model.get("predictions", [])
             
             # 检查预测组数量
-            assert len(predictions) == 5, f"{model_name} 预测组数量不正确: {len(predictions)}"
+            assert len(predictions) == 4, f"{model_name} 预测组数量不正确: {len(predictions)}"
             
             # 检查每组预测
             for pred in predictions:
@@ -48,7 +48,7 @@ def test_prediction_file():
                 # 蓝球检查
                 assert blue_ball, f"{model_name} 蓝球为空"
             
-            print(f"   ✓ {model_name}: 5 组预测，格式正确")
+            print(f"   ✓ {model_name}: 4 组预测，格式正确")
         
         print("\n" + "=" * 50)
         print("✅ 所有测试通过！")
