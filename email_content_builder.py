@@ -105,10 +105,23 @@ def _build_latest_draw_html(latest, nd):
     return html
 
 
-def _build_predictions_html(pred):
-    """AI 全部预测 HTML"""
+def _build_predictions_html(pred, latest_period="", next_period=""):
+    """AI 全部预测 HTML（含过期检测）"""
     if not pred or not pred.get("models"):
         return '<p style="color:#94a3b8;font-size:13px">(暂无预测数据)</p>'
+
+    target = pred.get("target_period", "")
+    # 检测预测是否已过期（目标期号 ≤ 最新开奖期号）
+    stale = bool(target and latest_period) and int(target) <= int(latest_period)
+    if stale:
+        warn = f'''
+        <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e">
+          ⚠️ 当前 AI 预测目标为<b>第{target}期</b>，该期已开奖（最新开奖为第{latest_period}期），预测已过期。<br>
+          下一期未开奖：<b>第{next_period}期</b>，待 AI 预测更新后将自动显示。
+        </div>'''
+    else:
+        warn = ""
+
     cards = ""
     for m in pred["models"]:
         groups = ""
@@ -134,6 +147,7 @@ def _build_predictions_html(pred):
           {groups}
         </div>'''
     return f'''
+    {warn}
     <div style="font-size:13px;color:#64748b;margin-bottom:12px">
       目标期号: {pred.get("target_period","")} · 预测日期: {pred.get("prediction_date","")} · 模型数: {len(pred["models"])}
     </div>
@@ -256,6 +270,8 @@ def build_html_digest(data, warnings, generated_at):
     hist = data.get("hit_history") or {}
     latest = lh.get("data", [{}])[0] if lh.get("data") else {}
     nd = lh.get("next_draw", {})
+    latest_period = latest.get("period", "")
+    next_period = nd.get("next_period", "")
 
     # 警告
     warn_html = ""
@@ -277,7 +293,7 @@ def build_html_digest(data, warnings, generated_at):
         {_SECTION.format("📊 命中排行 Top 10")}
         {_build_ranking_html(hist)}
         {_SECTION.format("🔮 AI 全部预测")}
-        {_build_predictions_html(pred)}
+        {_build_predictions_html(pred, latest_period, next_period)}
       </div>
       <div style="background:#f8fafc;padding:16px 24px;text-align:center;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">
         <p style="font-size:12px;color:#94a3b8;margin:0">

@@ -32,60 +32,15 @@ if not BASE_URL:
     print("❌ 请设置环境变量 AI_BASE_URL")
     sys.exit(1)
 
-# 模型配置列表（8 个模型共用同一套 API 凭证）
+# 模型配置列表（共用同一套 API 凭证）
 # 每模型可单独配置：streaming 支持、超时、温度、重试次数
 MODELS = [
     {
-        "id": "deepseek-v3",
-        "name": "DeepSeek V3",
-        "model_id": "deepseek-v3",
-        "supports_streaming": True,
-        "timeout": 180,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
-        "id": "deepseek-v3.2-exp",
-        "name": "DeepSeek V3.2 Exp",
-        "model_id": "deepseek-v3.2-exp",
-        "supports_streaming": True,
-        "timeout": 180,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
-        "id": "qwen3.5-122b-a10b",
-        "name": "Qwen 3.5 122B",
-        "model_id": "qwen3.5-122b-a10b",
+        "id": "qwen3.7-max",
+        "name": "Qwen 3.7 Max",
+        "model_id": "qwen3.7-max",
         "supports_streaming": True,
         "timeout": 240,
-        "temperature": 0.7,
-        "max_retries": 2,
-    },
-    {
-        "id": "tongyi-xiaomi-analysis-pro",
-        "name": "Tongyi Analysis Pro",
-        "model_id": "tongyi-xiaomi-analysis-pro",
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
-        "id": "Moonshot-Kimi-K2-Instruct",
-        "name": "Kimi K2",
-        "model_id": "Moonshot-Kimi-K2-Instruct",
-        "supports_streaming": True,
-        "timeout": 180,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
-        "id": "qwen3.7-flash",
-        "name": "Qwen 3.7 Flash",
-        "model_id": "qwen3.7-flash",
-        "supports_streaming": True,
-        "timeout": 180,
         "temperature": 0.8,
         "max_retries": 2,
     },
@@ -394,7 +349,7 @@ def generate_predictions() -> Dict[str, Any]:
     lottery_data = load_lottery_history()
 
     # 归档旧预测（如果已开奖）
-    archive_old_prediction(lottery_data)
+    archived = archive_old_prediction(lottery_data)
 
     # 获取下期信息
     next_draw = lottery_data.get("next_draw", {})
@@ -486,6 +441,10 @@ def generate_predictions() -> Dict[str, Any]:
     # 构建最终输出
     if not all_predictions:
         print("❌ 没有成功生成任何预测")
+        if archived:
+            # 旧预测已归档但新预测失败，清空文件避免脏数据进入邮件推送
+            print("  ℹ️  旧预测已被归档，正在清空 ai_predictions.json...")
+            _clear_predictions_file()
         return None
 
     result = {
@@ -663,13 +622,13 @@ def post_process_prediction(prediction: Dict[str, Any], history_data: list) -> D
     return prediction
 
 
-def archive_old_prediction(lottery_data: Dict[str, Any]):
-    """将旧预测归档到历史记录（如果已开奖）"""
+def archive_old_prediction(lottery_data: Dict[str, Any]) -> bool:
+    """将旧预测归档到历史记录（如果已开奖）。返回是否成功归档。"""
     try:
         # 检查是否存在旧预测文件
         if not os.path.exists(AI_PREDICTIONS_FILE):
             print("  ℹ️  没有旧预测需要归档\n")
-            return
+            return False
 
         # 读取旧预测
         with open(AI_PREDICTIONS_FILE, 'r', encoding='utf-8') as f:
@@ -678,7 +637,7 @@ def archive_old_prediction(lottery_data: Dict[str, Any]):
         old_target_period = old_predictions.get("target_period")
         if not old_target_period:
             print("  ⚠️  旧预测文件格式异常，跳过归档\n")
-            return
+            return False
 
         # 检查该期号是否已开奖
         latest_period = lottery_data.get("data", [{}])[0].get("period")
@@ -696,7 +655,7 @@ def archive_old_prediction(lottery_data: Dict[str, Any]):
                 print(f"  ⚠️  否则该期预测将无法自动归档\n")
             else:
                 print(f"  ℹ️  旧预测期号 {old_target_period} 尚未开奖，无需归档\n")
-            return
+            return False
 
         print(f"  📦 旧预测期号 {old_target_period} 已开奖，开始归档...")
 
@@ -709,7 +668,7 @@ def archive_old_prediction(lottery_data: Dict[str, Any]):
 
         if not actual_result:
             print(f"  ⚠️  找不到期号 {old_target_period} 的开奖结果，跳过归档\n")
-            return
+            return False
 
         # 读取历史记录文件
         history_data = {"predictions_history": []}
@@ -723,7 +682,7 @@ def archive_old_prediction(lottery_data: Dict[str, Any]):
 
         if existing_record:
             print(f"  ℹ️  期号 {old_target_period} 已存在于历史记录中\n")
-            return
+            return False
 
         # 为每个模型计算命中结果
         models_with_hits = []
@@ -763,10 +722,26 @@ def archive_old_prediction(lottery_data: Dict[str, Any]):
 
         print(f"  ✅ 已将期号 {old_target_period} 的预测归档到历史记录")
         print(f"  📊 归档模型数: {len(models_with_hits)}\n")
+        return True
 
     except Exception as e:
         print(f"  ⚠️  归档旧预测时出错: {str(e)}")
         print(f"  继续生成新预测...\n")
+        return False
+
+def _clear_predictions_file():
+    """清空当前 AI 预测文件（写入空结构），避免邮件推送展示过期货。"""
+    empty = {
+        "prediction_date": "",
+        "target_period": "",
+        "models": []
+    }
+    try:
+        with open(AI_PREDICTIONS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(empty, f, ensure_ascii=False, indent=2)
+        print(f"  ✓ 已清空 {os.path.basename(AI_PREDICTIONS_FILE)}")
+    except Exception as e:
+        print(f"  ⚠️  清空预测文件失败: {e}")
 
 def save_predictions(predictions: Dict[str, Any]):
     """保存预测数据到文件"""
