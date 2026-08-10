@@ -141,6 +141,7 @@ function createDrawnStatusBanner(actualResult) {
 // 渲染历史标签页
 function renderHistoryTab() {
     renderHitRankings();
+    renderGroupedRankings();
     renderTokenUsage();
     renderAccuracyCards();
 }
@@ -379,6 +380,108 @@ function buildRankingPanel(title, sub, records, dateFilter) {
                 '<td class="rank-total">' + e.totalHits + ' 球</td>' +
                 '<td class="rank-games">' + e.games + '</td>';
         }
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    panel.appendChild(table);
+
+    return panel;
+}
+
+// 策略 / 模型 分组统计（新增，不替换原有排行）
+function renderGroupedRankings() {
+    const container = document.getElementById('groupedRankingContainer');
+    if (!container || !appData.predictionsHistory) return;
+    container.innerHTML = '';
+
+    const records = appData.predictionsHistory.predictions_history || [];
+    if (!records.length) {
+        container.innerHTML = '<div class="ranking-empty"><p>暂无命中回溯数据</p></div>';
+        return;
+    }
+
+    // 收集所有 模型+策略 的命中汇总
+    const stats = {};   // key = 分组键
+    records.forEach(rec => {
+        (rec.models || []).forEach(model => {
+            (model.predictions || []).forEach(pred => {
+                const hr = pred.hit_result;
+                if (!hr) return;
+                const modelKey = model.model_name || '—';
+                const stratKey = pred.strategy || '—';
+                [[modelKey, 'model'], [stratKey, 'strategy']].forEach(([name, type]) => {
+                    const key = type + '|' + name;
+                    const entry = stats[key] || {
+                        type: type,
+                        name: name,
+                        maxHits: 0,
+                        redTotal: 0,
+                        blueHits: 0,
+                        totalHits: 0,
+                        games: 0,
+                    };
+                    entry.redTotal += hr.red_hit_count || 0;
+                    entry.blueHits += hr.blue_hit || 0;
+                    entry.totalHits += hr.total_hits || 0;
+                    entry.games += 1;
+                    if ((hr.total_hits || 0) > entry.maxHits) entry.maxHits = hr.total_hits || 0;
+                    stats[key] = entry;
+                });
+            });
+        });
+    });
+
+    // 按 总球数 降序排序
+    const arr = Object.values(stats).sort((a, b) => b.totalHits - a.totalHits || b.blueHits - a.blueHits);
+
+    const strategyPanel = buildGroupedPanel('策略分组', '按 4 种策略统计命中（全部历史）', arr.filter(e => e.type === 'strategy'));
+    const modelPanel = buildGroupedPanel('模型分组', '按 AI 模型统计命中（全部历史）', arr.filter(e => e.type === 'model'));
+
+    if (strategyPanel) container.appendChild(strategyPanel);
+    if (modelPanel) container.appendChild(modelPanel);
+}
+
+// 构建分组统计面板
+function buildGroupedPanel(title, sub, entries) {
+    const panel = document.createElement('div');
+    panel.className = 'ranking-panel';
+
+    const header = document.createElement('div');
+    header.className = 'ranking-header';
+    header.innerHTML = '<span class="ranking-title">' + title + '</span>'
+        + '<span class="ranking-sub">' + sub + '</span>';
+    panel.appendChild(header);
+
+    if (!entries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'ranking-empty';
+        empty.innerHTML = '<p>暂无命中数据</p>';
+        panel.appendChild(empty);
+        return panel;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'ranking-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr>'
+        + '<th>#</th><th>名称</th>'
+        + '<th>历史最大单期球数</th><th>历史总红数</th><th>历史总蓝球</th><th>总球数</th>'
+        + '<th>期数</th></tr>';
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    entries.forEach((e, i) => {
+        const tr = document.createElement('tr');
+        const rankClass = i === 0 ? ' rank-1' : i === 1 ? ' rank-2' : i === 2 ? ' rank-3' : '';
+        const bestTag = e.maxHits >= 5 ? 'excellent' : e.maxHits >= 3 ? 'good' : '';
+        tr.innerHTML =
+            '<td class="rank-num' + rankClass + '">' + (i + 1) + '</td>' +
+            '<td class="rank-model">' + escHtml(e.name) + '</td>' +
+            '<td class="rank-best ' + bestTag + '">' + e.maxHits + ' 球</td>' +
+            '<td class="rank-total">' + e.redTotal + ' 球</td>' +
+            '<td class="rank-blue">' + e.blueHits + ' 球</td>' +
+            '<td class="rank-total">' + e.totalHits + ' 球</td>' +
+            '<td class="rank-games">' + e.games + ' 期</td>';
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);

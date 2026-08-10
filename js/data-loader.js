@@ -4,13 +4,17 @@
  */
 
 const DataLoader = {
+    _cacheBust() {
+        return '?v=' + Date.now();
+    },
+
     /**
      * 加载历史开奖数据
      * @returns {Promise<Object>} 历史数据对象
      */
     async loadLotteryHistory() {
         try {
-            const response = await fetch('./data/lottery_history.json');
+            const response = await fetch('./data/lottery_history.json' + this._cacheBust());
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -29,7 +33,7 @@ const DataLoader = {
      */
     async loadPredictions() {
         try {
-            const response = await fetch('./data/ai_predictions.json');
+            const response = await fetch('./data/ai_predictions.json' + this._cacheBust());
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -48,7 +52,7 @@ const DataLoader = {
      */
     async loadPredictionsHistory() {
         try {
-            const response = await fetch('./data/predictions_history.json');
+            const response = await fetch('./data/predictions_history.json' + this._cacheBust());
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -67,7 +71,7 @@ const DataLoader = {
      */
     async loadTokenUsage() {
         try {
-            const response = await fetch('./data/token_usage.json');
+            const response = await fetch('./data/token_usage.json' + this._cacheBust());
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

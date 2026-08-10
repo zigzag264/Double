@@ -22,17 +22,15 @@ from openai import (
 from typing import Dict, Any, Optional
 
 # ==================== 配置区 ====================
-# API 配置（通过环境变量设置）
+# 默认 API 配置（通过环境变量设置，用于多数模型）
 BASE_URL = os.environ.get("AI_BASE_URL")
 API_KEY = os.environ.get("AI_API_KEY")
-if not API_KEY:
-    print("❌ 请设置环境变量 AI_API_KEY")
-    sys.exit(1)
-if not BASE_URL:
-    print("❌ 请设置环境变量 AI_BASE_URL")
-    sys.exit(1)
 
-# 模型配置列表（共用同一套 API 凭证）
+# Sensenova API 配置（用于 sensenova / deepseek-v4-flash 模型）
+SENSENOVA_BASE_URL = os.environ.get("SENSENOVA_BASE_URL", "https://token.sensenova.cn/v1")
+SENSENOVA_API_KEY = os.environ.get("SENSENOVA_API_KEY")
+
+# 模型配置列表（每个模型可单独配置 api_key / base_url，留空则用默认凭证）
 # 每模型可单独配置：streaming 支持、超时、温度、重试次数
 MODELS = [
     {
@@ -66,6 +64,28 @@ MODELS = [
         "id": "Moonshot-Kimi-K2-Instruct",
         "name": "Kimi K2",
         "model_id": "Moonshot-Kimi-K2-Instruct",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "sensenova-6.7-flash-lite",
+        "name": "Sensenova 6.7 Flash Lite",
+        "model_id": "sensenova-6.7-flash-lite",
+        "api_key": SENSENOVA_API_KEY,
+        "base_url": SENSENOVA_BASE_URL,
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+    },
+    {
+        "id": "deepseek-v4-flash",
+        "name": "DeepSeek V4 Flash",
+        "model_id": "deepseek-v4-flash",
+        "api_key": SENSENOVA_API_KEY,
+        "base_url": SENSENOVA_BASE_URL,
         "supports_streaming": True,
         "timeout": 240,
         "temperature": 0.8,
@@ -127,9 +147,14 @@ def get_next_draw_date() -> str:
     # 理论上不会到这里
     return today.strftime("%Y-%m-%d")
 
-def get_openai_client(default_timeout: int = 120) -> OpenAI:
-    """获取 OpenAI 客户端"""
-    return OpenAI(api_key=API_KEY, base_url=BASE_URL, timeout=default_timeout, max_retries=0)
+def get_openai_client(api_key: str = None, base_url: str = None, default_timeout: int = 120) -> OpenAI:
+    """获取 OpenAI 客户端（支持自定义凭证）"""
+    return OpenAI(
+        api_key=api_key or API_KEY,
+        base_url=base_url or BASE_URL,
+        timeout=default_timeout,
+        max_retries=0
+    )
 
 def extract_json_from_response(response_text: str) -> str:
     """从 AI 响应中提取 JSON 内容"""
@@ -261,6 +286,7 @@ def call_ai_model(client: OpenAI, model_config: dict, prompt: str) -> Optional[D
     """
     model_name = model_config["name"]
     max_retries = model_config.get("max_retries", 2)
+    usage = {}
 
     # ---- 尝试流式调用 ----
     if model_config.get("supports_streaming", True):
@@ -310,7 +336,7 @@ def call_ai_model(client: OpenAI, model_config: dict, prompt: str) -> Optional[D
             if _is_skip_error(e):
                 print(f"    ❌ 非流式调用失败 (不可恢复): {type(e).__name__}")
                 print(f"       {e}")
-                return None
+                return None, usage
             if attempt < max_retries:
                 wait = 2 ** attempt
                 print(f"    ⚠️ 非流式调用失败 (第{attempt+1}次): {type(e).__name__}")
@@ -320,7 +346,7 @@ def call_ai_model(client: OpenAI, model_config: dict, prompt: str) -> Optional[D
             else:
                 print(f"    ❌ 非流式调用失败 ({max_retries+1}次均失败): {type(e).__name__}")
                 print(f"       {e}")
-                return None
+                return None, usage
 
 def validate_prediction(prediction: Dict[str, Any]) -> bool:
     """验证预测数据格式"""
@@ -457,9 +483,6 @@ def generate_predictions() -> Dict[str, Any]:
     prediction_date = get_next_draw_date()
     print(f"📅 预测日期: {prediction_date}\n")
 
-    # 初始化 OpenAI 客户端
-    client = get_openai_client(default_timeout=120)
-
     # 存储所有模型的预测和诊断信息
     all_predictions = []
     diagnostics = []  # 每个模型一条诊断记录
@@ -468,6 +491,29 @@ def generate_predictions() -> Dict[str, Any]:
     print("🔮 开始生成预测...\n")
     for model_config in MODELS:
         model_name = model_config["name"]
+        model_api_key = model_config.get("api_key")
+        model_base_url = model_config.get("base_url")
+        # 每个模型使用自己的客户端（支持不同凭证）
+        resolved_api_key = model_api_key or os.environ.get("AI_API_KEY")
+        resolved_base_url = model_base_url or os.environ.get("AI_BASE_URL")
+        if not resolved_api_key or not resolved_base_url:
+            print(f"  ⚠️  {model_name}: 缺少 API 凭证，跳过\n")
+            diagnostics.append({
+                "name": model_name,
+                "model_id": model_config["model_id"],
+                "status": "❌ 失败",
+                "detail": "缺少 API 凭证",
+                "elapsed": 0,
+                "usage": {},
+            })
+            continue
+
+        client = get_openai_client(
+            api_key=resolved_api_key,
+            base_url=resolved_base_url,
+            default_timeout=model_config.get("timeout", 120)
+        )
+
         t_start = time_module.time()
         status = "❌ 失败"
         detail = ""
@@ -490,16 +536,17 @@ def generate_predictions() -> Dict[str, Any]:
             if prediction is None:
                 detail = "调用失败或解析失败"
                 print(f"  ✗ {model_name}: {detail}\n")
-            elif validate_prediction(prediction):
-                # 后处理：去重 + 防复读修复
-                prediction = post_process_prediction(prediction, lottery_data.get("data", []))
-                all_predictions.append(prediction)
-                status = "✅ 成功"
-                detail = "验证通过"
-                print(f"  ✓ {model_name}: 验证通过\n")
             else:
-                detail = "验证失败（格式不正确）"
-                print(f"  ✗ {model_name}: {detail}\n")
+                # 先进行后处理（去重 + 防复读 + 补齐4组），再验证
+                prediction = post_process_prediction(prediction, lottery_data.get("data", []))
+                if validate_prediction(prediction):
+                    all_predictions.append(prediction)
+                    status = "✅ 成功"
+                    detail = "验证通过"
+                    print(f"  ✓ {model_name}: 验证通过\n")
+                else:
+                    detail = "验证失败（格式不正确）"
+                    print(f"  ✗ {model_name}: {detail}\n")
 
         except Exception as e:
             detail = f"{type(e).__name__}: {str(e)}"
