@@ -72,7 +72,7 @@ python3 generate_ai_prediction.py
   ✅ DeepSeek R1 预测成功
   ✓ 验证通过
 
-✅ 成功生成 4/4 个模型的预测
+✅ 成功生成 5/5 个模型的预测
 
 💾 保存预测数据...
   ✓ 已创建备份: ai_predictions_backup_20251027_152701.json
@@ -106,7 +106,7 @@ python3 generate_ai_prediction.py
         // ... 共 4 组预测
       ]
     }
-    // ... 共 4 个模型
+    // ... 共 5 个模型
   ]
 }
 ```
@@ -134,8 +134,8 @@ python3 generate_ai_prediction.py
 
 ### 1. API 调用限制
 
-- 脚本会依次调用 4 个模型，请确保 API 有足够的调用配额
-- 每次调用的 timeout 设置为 180 秒（3 分钟）
+- 脚本会依次调用 5 个模型，请确保 API 有足够的调用配额
+- 每次调用的 timeout 设置为 240 秒（4 分钟）
 - 如果某个模型调用失败，会跳过该模型继续执行
 
 ### 2. 数据备份
@@ -159,9 +159,22 @@ MODELS = [
     {
         "id": "模型 API ID",           # API 调用时使用的模型 ID
         "name": "显示名称",            # 前端显示的模型名称
-        "model_id": "数据标识"         # JSON 中的 model_id 字段
+        "model_id": "数据标识",        # JSON 中的 model_id 字段
+        "supports_streaming": True,    # 是否支持流式（默认 True）
+        "timeout": 240,                # 超时时间（秒）
+        "temperature": 0.8,            # 生成温度
+        "max_retries": 2,              # 失败重试次数
     }
 ]
+```
+
+对于推理模型（如 Qwen 3.7 Flash），可额外配置：
+```python
+{
+    # ... 基础字段同上 ...
+    "reasoning_effort": "low",        # 抑制推理深度，减少 token 消耗
+    "max_tokens": 4096,               # 输出上限（含推理链）
+}
 ```
 
 ## 与现有工作流集成

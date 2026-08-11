@@ -76,14 +76,11 @@ double/
 │   └── prompt2.0.md                  # v2.0（4 策略，★ 当前使用）
 ├── generate_ai_prediction.py         # ★ AI 预测生成主入口
 ├── email_content_builder.py          # 邮件内容组装（纯函数模块）
+├── email_smtp_utils.py               # SMTP 邮件发送工具（共享模块）
 ├── email_daily_digest.py             # 每日邮件推送
 ├── email_push_notify.py              # Push 触发邮件推送
 ├── test_prediction.py                # 预测数据格式验证
-├── add_gpt5_prediction.py            # 历史预测手动回填
-├── test_single_model.py              # 单模型 API 调试
-├── diagnose.js                       # 前端命中逻辑模拟
 ├── vercel.json                       # Vercel 部署配置
-├── deploy.sh                         # Vercel CLI 部署辅助
 ├── start_server.sh / .bat            # 本地开发服务器
 ├── .github/workflows/                # 4 个 GitHub Actions 工作流
 │   ├── update-lottery-data.yml
@@ -183,7 +180,7 @@ token_usage.json
 │  writes: data/ai_predictions.json             │
 │          data/predictions_history.json        │
 │          data/token_usage.json                │
-│  calls: OpenAI API × 4 个模型                  │
+│  calls: OpenAI API × 5 个模型                  │
 └──────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────┐
@@ -199,7 +196,14 @@ token_usage.json
 │email_daily_ │  │email_push_   │
 │digest.py    │  │notify.py     │
 │(schedule)   │  │(on push)     │
-└─────────────┘  └──────────────┘
+└──────┬──────┘  └───────┬──────┘
+       │                 │
+       └──────┬──────────┘
+              ▼
+┌──────────────────────────────┐
+│      email_smtp_utils.py     │
+│  (共享 SMTP 配置/校验/发送)   │
+└──────────────────────────────┘
 
 ┌──────────────────────────────────────────────┐
 │              fetch_lottery_history.py         │
@@ -220,7 +224,7 @@ main()
   │
   ├── 1. 加载配置
   │     ├── 读取环境变量 AI_API_KEY, AI_BASE_URL
-  │     ├── 定义 MODELS 列表（4 个模型）
+  │     ├── 定义 MODELS 列表（5 个模型）
   │     └── 加载 doc/prompt2.0.md 模板
   │
   ├── 2. 加载历史数据
@@ -234,7 +238,7 @@ main()
   │     ├── 标记 best_group / best_hit_count
   │     └── 追加到 predictions_history.json
   │
-  ├── 4. 生成新预测（循环 4 个模型）
+  ├── 4. 生成新预测（循环 5 个模型）
   │     ├── 构建 prompt（模板 + 历史数据）
   │     ├── 调用 AI API（streaming + 重试）
   │     ├── 解析 JSON 响应
@@ -254,14 +258,16 @@ main()
 
 ```python
 MODELS = [
-    {"id": "deepseek-v3",        "name": "DeepSeek V3"},
-    {"id": "deepseek-v3.2-exp",  "name": "DeepSeek V3.2 Exp"},
+    {"id": "deepseek-v3",               "name": "DeepSeek V3"},
+    {"id": "deepseek-v3.2-exp",         "name": "DeepSeek V3.2 Exp"},
     {"id": "tongyi-xiaomi-analysis-pro", "name": "Tongyi Analysis Pro"},
     {"id": "Moonshot-Kimi-K2-Instruct",  "name": "Kimi K2"},
+    {"id": "qwen3.7-flash-2026-07-15",  "name": "Qwen 3.7 Flash (07-15)"},
 ]
 ```
 
 每个模型配置：`supports_streaming=True`, `timeout=240`, `temperature=0.8`, `max_retries=2`。
+推理模型（Qwen 3.7 Flash）额外配置：`reasoning_effort="low"`, `max_tokens=4096`。
 
 ---
 
@@ -300,7 +306,7 @@ DOMContentLoaded
         │         ])
         │
         ├── renderHeroBanner()      ← 最新预测 Tab 顶部
-        ├── renderModelsGrid()      ← 4 个模型卡片
+        ├── renderModelsGrid()      ← 5 个模型卡片
         │
         ├── renderHistoryTab()      ← 分析 Tab（懒渲染）
         │     ├── renderStatisticsCards()
@@ -329,7 +335,7 @@ index.html
     │   ├── [data-tab=prediction]   ← Tab 1: 最新预测
     │   │   ├── .hero-banner        ← 期号/日期/倒计时
     │   │   ├── .info-card          ← 策略说明
-    │   │   ├── #modelsGrid         ← ★ 4 个模型卡片（动态渲染）
+    │   │   ├── #modelsGrid         ← ★ 5 个模型卡片（动态渲染）
     │   │   │   └── .model-card
     │   │   │       ├── .model-header      ← 模型名称 + 图标
     │   │   │       ├── .strategies-container ← 4 组策略预测

@@ -11,7 +11,6 @@
 
 import os
 import json
-import re
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE     = os.path.join(BASE_DIR, "data", "lottery_history.json")
@@ -239,7 +238,6 @@ def _build_ranking_html(hist, limit=10):
           <td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["best"]}球</td>
           <td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["total"]}球</td>
           <td style="padding:6px 8px;text-align:center;color:#3b82f6;font-weight:600;font-size:12px">{r["blueTotal"]}球</td>
-          <td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["total"]}球</td>
           <td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["games"]}期</td>
         </tr>'''
     table2 = f'''
@@ -252,7 +250,6 @@ def _build_ranking_html(hist, limit=10):
         <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">历史最多</th>
         <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">累计红球</th>
         <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">累计蓝球</th>
-        <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">总球数</th>
         <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">期数</th>
       </tr></thead>
       <tbody>{rows2}</tbody>

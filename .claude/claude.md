@@ -58,12 +58,10 @@ double/
 ├── .gitignore                        # Git 忽略规则
 ├── generate_ai_prediction.py         # AI 预测自动生成脚本（主入口）
 ├── email_content_builder.py          # 邮件内容组装模块（纯函数）
+├── email_smtp_utils.py               # SMTP 邮件发送工具（共享模块）
 ├── email_daily_digest.py             # 每日邮件推送主入口
-├── add_gpt5_prediction.py            # 辅助脚本：手动添加历史预测
+├── email_push_notify.py              # Push 触发邮件通知
 ├── test_prediction.py                # 预测文件格式测试脚本
-├── test_single_model.py              # 单模型 API 调用测试脚本
-├── diagnose.js                       # 前端命中逻辑调试脚本
-├── deploy.sh                         # Vercel 部署辅助脚本
 ├── vercel.json                       # Vercel 部署配置
 ├── start_server.sh / .bat            # 本地开发服务器
 ├── AI_PREDICTION_GUIDE.md            # AI 预测自动生成指南
@@ -283,11 +281,8 @@ EMAIL_DRY_RUN=true
 
 | 脚本 | 用途 |
 |------|------|
-| `add_gpt5_prediction.py` | 手动添加某期预测到历史并计算命中 |
 | `test_prediction.py` | 验证 `ai_predictions.json` 格式 |
-| `test_single_model.py` | 单模型 API 调用调试（输出 prompt/response 到 `/tmp/`） |
-| `diagnose.js` | 前端命中对比逻辑模拟 |
-| `deploy.sh` | Vercel CLI 部署辅助 |
+| `email_smtp_utils.py` | SMTP 配置/校验/发送共享模块（两个邮件脚本共用） |
 
 ---
 

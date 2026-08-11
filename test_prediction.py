@@ -3,7 +3,6 @@
 """测试 AI 预测脚本功能"""
 
 import json
-import os
 
 def test_prediction_file():
     """测试预测文件格式"""

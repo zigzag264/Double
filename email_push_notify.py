@@ -5,33 +5,12 @@ Push 触发邮件通知脚本
 与 email_content_builder.py 共用相同的 HTML 格式。
 """
 
-import os
 import sys
-import smtplib
 import subprocess
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone, timedelta
 
 from email_content_builder import build_html_digest, load_data, validate_data
-
-# ==================== 配置 ====================
-
-SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.qq.com")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
-SMTP_USER = os.environ.get("SMTP_USER")
-SMTP_PASS = os.environ.get("SMTP_PASSWORD")
-RECIPIENT = os.environ.get("EMAIL_RECIPIENT")
-DRY_RUN = os.environ.get("EMAIL_DRY_RUN", "").lower() == "true"
-
-REQUIRED = [SMTP_USER, SMTP_PASS, RECIPIENT]
-if not all(REQUIRED):
-    if DRY_RUN:
-        print("ℹ️  Dry-run 模式：缺少邮件凭证，仅打印邮件内容\n")
-    else:
-        print("❌ 缺少邮件凭证，请设置 SMTP_USER / SMTP_PASSWORD / EMAIL_RECIPIENT")
-        sys.exit(1)
-
+from email_smtp_utils import load_config, validate_config, send_email
 
 # ==================== 数据获取 ====================
 
@@ -70,31 +49,18 @@ def build_html():
 # ==================== 发送 ====================
 
 def send():
+    cfg = load_config()
+    validate_config(cfg, allow_dry_run=True)
+
+    if cfg["dry_run"]:
+        print("ℹ️  Dry-run 模式：邮件将打印到控制台，不会实际发送\n")
+
     html = build_html()
     BJ_TIME = datetime.now(timezone(timedelta(hours=8)))
     subject = f"[双色球] 项目更新 · {BJ_TIME.strftime('%m-%d %H:%M')}"
 
-    if DRY_RUN:
-        print("=" * 60)
-        print(f"[DRY-RUN] 收件人: {RECIPIENT}")
-        print(f"[DRY-RUN] 主题: {subject}")
-        print("=" * 60)
-        print(html)
-        print("=" * 60)
-        print("ℹ️  Dry-run 模式，邮件未实际发送")
-        return
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = SMTP_USER
-    msg["To"] = RECIPIENT
-    msg.attach(MIMEText(html, "html", "utf-8"))
-
     try:
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=15) as server:
-            server.login(SMTP_USER, SMTP_PASS)
-            server.sendmail(SMTP_USER, [RECIPIENT], msg.as_string())
-        print("✅ 推送通知邮件发送成功")
+        send_email(subject, html, cfg, success_msg="✅ 推送通知邮件发送成功")
     except Exception as e:
         print(f"❌ 邮件发送失败: {e}")
         sys.exit(1)
