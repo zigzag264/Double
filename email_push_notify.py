@@ -8,15 +8,12 @@ Push 触发邮件通知脚本
 import os
 import sys
 import smtplib
-import json
 import subprocess
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone
 
-from email_content_builder import (
-    _SECTION, _build_latest_draw_html, _build_predictions_html, _build_ranking_html
-)
+from email_content_builder import build_html_digest, load_data, validate_data
 
 # ==================== 配置 ====================
 
@@ -36,10 +33,6 @@ if not all(REQUIRED):
         sys.exit(1)
 
 
-def _data_path(name):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", name)
-
-
 # ==================== 数据获取 ====================
 
 def get_git_info():
@@ -54,64 +47,23 @@ def get_git_info():
     return author, msg, [f for f in files if f], stat
 
 
-def load_json(path):
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
 # ==================== HTML 构建 ====================
 
 def build_html():
     author, commit_msg, files, stat = get_git_info()
-    latest = load_json(_data_path("lottery_history.json"))
-    pred = load_json(_data_path("ai_predictions.json"))
-    hist = load_json(_data_path("predictions_history.json"))
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    lh = latest or {}
-    draw_data = lh.get("data", [{}])[0] if lh.get("data") else {}
-    nd = lh.get("next_draw", {})
+    # 使用统一的数据加载（与每日定时推送一致）
+    data = load_data()
+    errors, warnings = validate_data(data)
 
-    # 提交信息 HTML
-    files_html = ""
-    if files and files[0]:
-        items = "".join(f'<li style="font-size:13px;color:#475569;padding:2px 0">{f}</li>' for f in files)
-        files_html = f'<ul style="margin:8px 0 0;padding-left:20px">{items}</ul>'
+    commit_info = {
+        "author": author,
+        "message": commit_msg,
+        "files": [f for f in files if f],
+    }
 
-    html = f'''
-    <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#ffffff;padding:0;color:#1e293b">
-      <div style="background:linear-gradient(135deg,#1e293b,#3b82f6);padding:28px 24px;text-align:center;border-radius:12px 12px 0 0">
-        <div style="font-size:28px;margin-bottom:4px">🎯</div>
-        <h1 style="color:#ffffff;font-size:20px;font-weight:800;margin:0;letter-spacing:-0.5px">双色球 AI 预测</h1>
-        <p style="color:#93c5fd;font-size:13px;margin:4px 0 0">项目更新通知 · {now}</p>
-      </div>
-      <div style="padding:20px 24px">
-        {_SECTION.format("📦 提交信息")}
-        <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:8px;overflow:hidden">
-          <tr><td style="padding:12px 16px">
-            <div style="font-size:13px;color:#475569;margin-bottom:4px"><span style="color:#94a3b8">作者</span> {author}</div>
-            <div style="font-size:14px;font-weight:600;color:#1e293b">{commit_msg}</div>
-            {files_html}
-          </td></tr>
-        </table>
-        {_SECTION.format("🏆 最新开奖")}
-        {_build_latest_draw_html(draw_data, nd)}
-        {_SECTION.format("📊 命中排行 Top 10")}
-        {_build_ranking_html(hist)}
-        {_SECTION.format("🔮 AI 全部预测")}
-        {_build_predictions_html(pred)}
-      </div>
-      <div style="background:#f8fafc;padding:16px 24px;text-align:center;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">
-        <p style="font-size:12px;color:#94a3b8;margin:0">
-          本邮件由 GitHub Actions 自动推送 ·
-          <a href="https://github.com/zhens/double-color-ball" style="color:#3b82f6;text-decoration:none">double-color-ball</a>
-        </p>
-      </div>
-    </div>'''
-    return html
+    return build_html_digest(data, warnings, generated_at=now, commit_info=commit_info)
 
 
 # ==================== 发送 ====================

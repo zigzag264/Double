@@ -261,9 +261,15 @@ def _build_ranking_html(hist, limit=10):
     return table1 + table2
 
 
-def build_html_digest(data, warnings, generated_at):
+def build_html_digest(data, warnings, generated_at, commit_info=None):
     """
-    构建每日汇总 HTML 邮件正文。
+    构建 HTML 邮件正文。
+
+    参数:
+        data: load_data() 返回的 3 个数据源
+        warnings: validate_data() 返回的警告列表
+        generated_at: 生成时间字符串
+        commit_info: 可选，push 通知的提交信息 dict，含 author / message / files / stat
     """
     lh = data.get("lottery_history") or {}
     pred = data.get("ai_predictions") or {}
@@ -273,21 +279,53 @@ def build_html_digest(data, warnings, generated_at):
     latest_period = latest.get("period", "")
     next_period = nd.get("next_period", "")
 
+    # 邮件类型（决定 subtitle 和 footer）
+    is_push = commit_info is not None
+    subtitle = "项目更新通知" if is_push else "每日汇总"
+
     # 警告
     warn_html = ""
     if warnings:
         items = "".join(f'<li style="font-size:12px;color:#d97706;padding:2px 0">⚠️ {w}</li>' for w in warnings)
         warn_html = f'<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:16px"><ul style="margin:0;padding-left:20px">{items}</ul></div>'
 
+    # 提交信息（仅 push 通知）
+    commit_html = ""
+    if is_push:
+        author = commit_info.get("author", "unknown")
+        msg = commit_info.get("message", "")
+        files = commit_info.get("files", [])
+        files_html = ""
+        if files:
+            items = "".join(f'<li style="font-size:13px;color:#475569;padding:2px 0">{f}</li>' for f in files)
+            files_html = f'<ul style="margin:8px 0 0;padding-left:20px">{items}</ul>'
+        commit_html = f'''
+        {_SECTION.format("📦 提交信息")}
+        <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:8px;overflow:hidden">
+          <tr><td style="padding:12px 16px">
+            <div style="font-size:13px;color:#475569;margin-bottom:4px"><span style="color:#94a3b8">作者</span> {author}</div>
+            <div style="font-size:14px;font-weight:600;color:#1e293b">{msg}</div>
+            {files_html}
+          </td></tr>
+        </table>'''
+
+    # Footer
+    footer_text = (
+        '本邮件由 GitHub Actions 自动推送'
+        if is_push else
+        '本邮件由自动系统生成 · 彩票预测仅供娱乐参考，不构成投资建议'
+    )
+
     html = f'''
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#ffffff;padding:0;color:#1e293b">
       <div style="background:linear-gradient(135deg,#1e293b,#3b82f6);padding:28px 24px;text-align:center;border-radius:12px 12px 0 0">
         <div style="font-size:28px;margin-bottom:4px">🎯</div>
         <h1 style="color:#ffffff;font-size:20px;font-weight:800;margin:0;letter-spacing:-0.5px">双色球 AI 预测</h1>
-        <p style="color:#93c5fd;font-size:13px;margin:4px 0 0">每日汇总 · {generated_at}</p>
+        <p style="color:#93c5fd;font-size:13px;margin:4px 0 0">{subtitle} · {generated_at}</p>
       </div>
       <div style="padding:20px 24px">
         {warn_html}
+        {commit_html}
         {_SECTION.format("🏆 最新开奖")}
         {_build_latest_draw_html(latest, nd)}
         {_SECTION.format("📊 命中排行 Top 10")}
@@ -297,7 +335,7 @@ def build_html_digest(data, warnings, generated_at):
       </div>
       <div style="background:#f8fafc;padding:16px 24px;text-align:center;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">
         <p style="font-size:12px;color:#94a3b8;margin:0">
-          本邮件由自动系统生成 · 彩票预测仅供娱乐参考，不构成投资建议<br>
+          {footer_text}<br>
           <a href="https://github.com/zhens/double-color-ball" style="color:#3b82f6;text-decoration:none">double-color-ball</a>
         </p>
       </div>
