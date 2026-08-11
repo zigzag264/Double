@@ -12,7 +12,7 @@ import sys
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from email_content_builder import build_html_digest, load_data, validate_data
 
@@ -105,9 +105,10 @@ def main():
 
     # 3. 组装内容
     print("\n📝 组装邮件内容...")
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    BJ_TIME = datetime.now(timezone(timedelta(hours=8)))
+    now = BJ_TIME.strftime("%Y-%m-%d %H:%M")
     body = build_html_digest(data, warnings, generated_at=now)
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = BJ_TIME.strftime("%Y-%m-%d")
     subject = f"[双色球] 每日汇总 · {today}"
     print("  ✓ 内容组装完成")
 

@@ -11,7 +11,7 @@ import smtplib
 import subprocess
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from email_content_builder import build_html_digest, load_data, validate_data
 
@@ -51,7 +51,8 @@ def get_git_info():
 
 def build_html():
     author, commit_msg, files, stat = get_git_info()
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    BJ_TIME = datetime.now(timezone(timedelta(hours=8)))
+    now = BJ_TIME.strftime("%Y-%m-%d %H:%M")
 
     # 使用统一的数据加载（与每日定时推送一致）
     data = load_data()
@@ -70,7 +71,8 @@ def build_html():
 
 def send():
     html = build_html()
-    subject = f"[双色球] 项目更新 · {datetime.now().strftime('%m-%d %H:%M')}"
+    BJ_TIME = datetime.now(timezone(timedelta(hours=8)))
+    subject = f"[双色球] 项目更新 · {BJ_TIME.strftime('%m-%d %H:%M')}"
 
     if DRY_RUN:
         print("=" * 60)
