@@ -65,6 +65,19 @@ MODELS = [
         "temperature": 0.8,
         "max_retries": 2,
     },
+    {
+        "id": "qwen3.7-flash-2026-07-15",
+        "name": "Qwen 3.7 Flash (07-15)",
+        "model_id": "qwen3.7-flash-2026-07-15",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+        # 推理模型：reasoning_effort=low 抑制推理深度，减少 token 消耗和耗时
+        # max_tokens 限制可见输出长度，迫使模型更简洁
+        "reasoning_effort": "low",
+        "max_tokens": 4096,
+    },
 ]
 
 # 文件路径
@@ -179,8 +192,11 @@ def _call_with_streaming(client: OpenAI, model_config: dict, prompt: str):
     )
     # 推理模型默认会输出大量推理链，
     # 用 reasoning_effort=low 抑制推理深度，大幅减少 token 消耗和耗时
+    # 推理模型用 max_completion_tokens 而非 max_tokens 来控制总输出
     if "max_tokens" in model_config:
         stream_kwargs["max_tokens"] = model_config["max_tokens"]
+    if "max_completion_tokens" in model_config:
+        stream_kwargs["max_completion_tokens"] = model_config["max_completion_tokens"]
     if "reasoning_effort" in model_config:
         stream_kwargs["reasoning_effort"] = model_config["reasoning_effort"]
 
@@ -215,6 +231,8 @@ def _call_without_streaming(client: OpenAI, model_config: dict, prompt: str):
     )
     if "max_tokens" in model_config:
         create_kwargs["max_tokens"] = model_config["max_tokens"]
+    if "max_completion_tokens" in model_config:
+        create_kwargs["max_completion_tokens"] = model_config["max_completion_tokens"]
     if "reasoning_effort" in model_config:
         create_kwargs["reasoning_effort"] = model_config["reasoning_effort"]
 

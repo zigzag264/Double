@@ -527,6 +527,226 @@
       "total_tokens": 5415,
       "elapsed_seconds": 14.4,
       "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 5051,
+      "completion_tokens": 474,
+      "total_tokens": 5525,
+      "elapsed_seconds": 12.1,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 5058,
+      "completion_tokens": 473,
+      "total_tokens": 5531,
+      "elapsed_seconds": 14.7,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 5801,
+      "completion_tokens": 558,
+      "total_tokens": 6359,
+      "elapsed_seconds": 11.5,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 5006,
+      "completion_tokens": 408,
+      "total_tokens": 5414,
+      "elapsed_seconds": 15.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "qwen3.7-flash-2026-07-15",
+      "model_name": "Qwen 3.7 Flash (07-15)",
+      "prompt_tokens": 6134,
+      "completion_tokens": 6452,
+      "total_tokens": 12586,
+      "elapsed_seconds": 39.0,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 5051,
+      "completion_tokens": 474,
+      "total_tokens": 5525,
+      "elapsed_seconds": 12.0,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 5058,
+      "completion_tokens": 474,
+      "total_tokens": 5532,
+      "elapsed_seconds": 10.8,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 5801,
+      "completion_tokens": 512,
+      "total_tokens": 6313,
+      "elapsed_seconds": 10.8,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 5006,
+      "completion_tokens": 402,
+      "total_tokens": 5408,
+      "elapsed_seconds": 14.6,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "qwen3.7-flash-2026-07-15",
+      "model_name": "Qwen 3.7 Flash (07-15)",
+      "prompt_tokens": 6176,
+      "completion_tokens": 5655,
+      "total_tokens": 11831,
+      "elapsed_seconds": 32.9,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 5051,
+      "completion_tokens": 472,
+      "total_tokens": 5523,
+      "elapsed_seconds": 10.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 5058,
+      "completion_tokens": 473,
+      "total_tokens": 5531,
+      "elapsed_seconds": 8.8,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 5801,
+      "completion_tokens": 528,
+      "total_tokens": 6329,
+      "elapsed_seconds": 13.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 5006,
+      "completion_tokens": 413,
+      "total_tokens": 5419,
+      "elapsed_seconds": 15.3,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "qwen3.7-flash-2026-07-15",
+      "model_name": "Qwen 3.7 Flash (07-15)",
+      "prompt_tokens": 6176,
+      "completion_tokens": 8763,
+      "total_tokens": 14939,
+      "elapsed_seconds": 51.9,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3",
+      "model_name": "DeepSeek V3",
+      "prompt_tokens": 5051,
+      "completion_tokens": 471,
+      "total_tokens": 5522,
+      "elapsed_seconds": 12.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "deepseek-v3.2-exp",
+      "model_name": "DeepSeek V3.2 Exp",
+      "prompt_tokens": 5058,
+      "completion_tokens": 474,
+      "total_tokens": 5532,
+      "elapsed_seconds": 10.2,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "tongyi-xiaomi-analysis-pro",
+      "model_name": "Tongyi Analysis Pro",
+      "prompt_tokens": 5801,
+      "completion_tokens": 524,
+      "total_tokens": 6325,
+      "elapsed_seconds": 13.4,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "Moonshot-Kimi-K2-Instruct",
+      "model_name": "Kimi K2",
+      "prompt_tokens": 5006,
+      "completion_tokens": 417,
+      "total_tokens": 5423,
+      "elapsed_seconds": 15.9,
+      "success": true
+    },
+    {
+      "date": "2026-08-11",
+      "target_period": "26092",
+      "model_id": "qwen3.7-flash-2026-07-15",
+      "model_name": "Qwen 3.7 Flash (07-15)",
+      "prompt_tokens": 6176,
+      "completion_tokens": 8894,
+      "total_tokens": 15070,
+      "elapsed_seconds": 47.4,
+      "success": true
     }
   ]
 }

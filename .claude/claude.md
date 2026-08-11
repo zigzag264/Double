@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 4 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 5 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
@@ -82,7 +82,7 @@ double/
 
 | Tab | 内容 |
 |-----|------|
-| **最新预测** | Hero Banner（下期期号/日期/倒计时）、策略说明、4 个模型卡片（各 4 组预测）、免责声明 |
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、策略说明、5 个模型卡片（各 4 组预测）、免责声明 |
 | **图表分析** | 中奖规则卡片、4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、5 张 Chart.js 图表 |
 | **历史回溯** | AI 命中表现折线图、详细命中记录卡片、历史开奖号码表格 |
 
@@ -233,7 +233,7 @@ python3 -m http.server 8000
 1. 加载 Prompt 模板（`doc/prompt2.0.md`）
 2. 加载历史数据（`data/lottery_history.json`，取最近 30 期）
 3. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
-4. 逐个调用 4 个 AI 模型生成预测
+4. 逐个调用 5 个 AI 模型生成预测
 5. 验证数据格式（4 组、6 红球已排序、蓝球非空）
 6. 创建备份并保存
 
@@ -244,6 +244,7 @@ MODELS = [
     {"id": "deepseek-v3.2-exp", "name": "DeepSeek V3.2 Exp", "model_id": "deepseek-v3.2-exp"},
     {"id": "tongyi-xiaomi-analysis-pro", "name": "Tongyi Analysis Pro", "model_id": "tongyi-xiaomi-analysis-pro"},
     {"id": "Moonshot-Kimi-K2-Instruct", "name": "Kimi K2", "model_id": "Moonshot-Kimi-K2-Instruct"},
+    {"id": "qwen3.7-flash-2026-07-15", "name": "Qwen 3.7 Flash (07-15)", "model_id": "qwen3.7-flash-2026-07-15"},
 ]
 ```
 
