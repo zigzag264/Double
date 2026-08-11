@@ -148,7 +148,7 @@ python3 generate_ai_prediction.py
 
 - Prompt 模板位于脚本中的 `PROMPT_TEMPLATE` 常量
 - 可根据需要修改策略说明和要求
-- 参考文档：`doc/prompt.md`
+- 参考文档：`doc/prompt2.0.md`（当前主用）
 
 ### 4. 模型配置
 
@@ -275,7 +275,7 @@ jobs:
 ## 相关文件
 
 - `generate_ai_prediction.py` - 主脚本
-- `doc/prompt.md` - Prompt 模板文档
+- `doc/prompt2.0.md` - Prompt 模板文档（v2.0）
 - `data/lottery_history.json` - 历史开奖数据（输入）
 - `data/ai_predictions.json` - AI 预测数据（输出）
 

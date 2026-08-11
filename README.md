@@ -58,7 +58,7 @@ double/
 ├── js/
 │   ├── data-loader.js               # 加载 4 个 JSON 数据源
 │   ├── components.js                # UI 组件（号码球、卡片、命中对比）
-│   └── app.js                       # 编排层 + Chart.js 5 类图表
+│   └── app.js                       # 编排层（Tab 渲染、排行统计）
 ├── data/                            # ★ 核心数据（版本控制）
 │   ├── lottery_history.json         # 152 期历史开奖 + 下期信息
 │   ├── ai_predictions.json          # 当前 AI 预测（5 模型 × 4 组）
@@ -69,8 +69,7 @@ double/
 │   ├── fetch_lottery_history.py     # 500.com 爬虫（BeautifulSoup）
 │   └── lottery_data.json            # 爬虫原始数据
 ├── doc/                             # Prompt 模板
-│   ├── prompt2.0.md                 # Prompt v2.0（4 策略，★主用）
-│   └── prompt.md                    # Prompt v1.0（5 策略，旧版）
+│   └── prompt2.0.md                 # Prompt v2.0（4 策略，★主用）
 ├── .github/workflows/               # 4 个自动化工作流
 ├── generate_ai_prediction.py        # ★ AI 预测生成主入口
 ├── email_content_builder.py         # 邮件 HTML 构建（纯函数模块）
@@ -83,8 +82,6 @@ double/
 ├── .env.example                     # 环境变量模板
 ├── AI_PREDICTION_GUIDE.md           # AI 预测生成指南
 ├── AI_Prediction_Analysis_Report.md # 历史预测分析报告
-├── DATA_UPDATE_GUIDE.md             # 数据更新操作指南
-├── DEPLOYMENT.md                    # 部署指南
 └── README.md                        # 本文件
 ```
 
@@ -269,7 +266,7 @@ vercel login
 vercel --prod
 ```
 
-从 GitHub 导入后每次 push 自动部署。详细指南见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
+从 GitHub 导入后每次 push 自动部署。
 
 ---
 
@@ -278,7 +275,7 @@ vercel --prod
 | 层 | 技术 |
 |----|------|
 | **前端** | HTML5, CSS3 (CSS Variables, Grid, Flexbox), Vanilla JS (ES6+) |
-| **图表** | Chart.js 4.4.0 (CDN) — 5 类图表 |
+| **图表** | 统计卡片 + 排行表格 |
 | **AI 调用** | OpenAI API 兼容格式 |
 | **爬虫** | Python requests + BeautifulSoup4 |
 | **自动化** | GitHub Actions (4 个工作流) |
@@ -293,10 +290,7 @@ vercel --prod
 |------|------|
 | [AI_PREDICTION_GUIDE.md](./AI_PREDICTION_GUIDE.md) | AI 预测自动生成详细指南 |
 | [AI_Prediction_Analysis_Report.md](./AI_Prediction_Analysis_Report.md) | 历史预测命中率分析报告 |
-| [DATA_UPDATE_GUIDE.md](./DATA_UPDATE_GUIDE.md) | 数据更新操作指南 |
-| [DEPLOYMENT.md](./DEPLOYMENT.md) | Vercel 部署指南 |
 | [doc/prompt2.0.md](./doc/prompt2.0.md) | Prompt 模板 v2.0（4 策略，主用） |
-| [doc/prompt.md](./doc/prompt.md) | Prompt 模板 v1.0（5 策略，旧版） |
 
 ---
 

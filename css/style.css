@@ -460,6 +460,72 @@ body::before {
     margin-top: 0.5rem;
 }
 
+/* ==================== Hero Update Area ==================== */
+.hero-update-area {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.update-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border: none;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.update-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.update-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    background: linear-gradient(135deg, var(--blue-600), var(--blue-700));
+}
+
+.update-btn:active {
+    transform: translateY(0);
+}
+
+.update-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.update-btn.loading svg {
+    animation: update-spin 1s linear infinite;
+}
+
+@keyframes update-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.update-status {
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+    line-height: 1.5;
+    max-width: 100%;
+}
+
+.update-status.success { color: #16a34a; }
+.update-status.error   { color: var(--red-600); }
+.update-status.loading { color: var(--blue-600); }
+
 @media (min-width: 768px) {
     .hero-banner-content {
         padding: 0.5rem 0;

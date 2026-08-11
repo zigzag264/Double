@@ -2,12 +2,12 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 5 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)）对双色球开奖号码的预测，并提供图表分析、历史预测命中率对比、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 5 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash）对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
-- 📊 数据趋势图表分析（Chart.js 5 类图表）
-- 🎯 历史预测命中率回溯
+- 📊 数据趋势分析（统计卡片 + 历史开奖表格）
+- 🏆 模型命中率排行与分组统计
 - ⏰ 自动更新开奖数据（GitHub Actions）
 - 📧 每日邮件汇总推送
 - 🎨 深色/浅色主题切换、响应式设计
@@ -28,12 +28,11 @@ double/
 ├── css/
 │   └── style.css                     # 样式（深色/浅色 CSS 变量）
 ├── js/
-│   ├── app.js                        # 主应用逻辑 + 图表渲染（Chart.js）
+│   ├── app.js                        # 主应用逻辑
 │   ├── components.js                 # UI 组件（号码球、卡片、对比）
 │   └── data-loader.js                # 数据加载模块（fetch JSON）
 ├── data/                             # 前端数据文件
 │   ├── lottery_history.json          # 历史开奖数据 + 下期开奖信息
-│   ├── lottery_data.json             # （历史文件，爬虫原始数据副本）
 │   ├── ai_predictions.json           # 当前 AI 预测（未开奖期号）
 │   ├── predictions_history.json      # 历史预测对比（已开奖期号）
 │   ├── token_usage.json              # 各模型每次调用的 token 用量统计
@@ -44,14 +43,13 @@ double/
 ├── fetch_history/                    # 数据爬取脚本
 │   ├── fetch_lottery_history.py      # 爬虫脚本（同步到 data/lottery_history.json）
 │   └── lottery_data.json             # 爬虫原始数据
-├── doc/                              # 文档与 Prompt 模板
-│   ├── AI需求文档.md                 # 原始需求文档
-│   ├── prompt.md                     # Prompt 模板 v1.0（5 种基础策略）
-│   └── prompt2.0.md                  # Prompt 模板 v2.0（ 5 策略，★主用）
+├── doc/
+│   └── prompt2.0.md                  # Prompt 模板 v2.0（★主用）
 ├── .github/workflows/
 │   ├── update-lottery-data.yml       # 爬虫工作流：每天 UTC 14:00（北京 22:00）
 │   ├── generate-ai-prediction.yml    # AI 预测工作流：每周一三五 UTC 00:00
-│   └── email-daily-digest.yml        # 邮件推送工作流：每天 UTC 00:30
+│   ├── email-daily-digest.yml        # 邮件推送工作流：每天 UTC 00:30
+│   └── push-notify.yml               # Push 事件邮件通知
 ├── .env.example                      # 环境变量模板
 ├── .env                              # 本地环境变量（git 忽略）
 ├── .vercelignore                     # Vercel 构建忽略
@@ -66,8 +64,6 @@ double/
 ├── start_server.sh / .bat            # 本地开发服务器
 ├── AI_PREDICTION_GUIDE.md            # AI 预测自动生成指南
 ├── AI_Prediction_Analysis_Report.md  # 历史预测分析报告
-├── DATA_UPDATE_GUIDE.md              # 数据更新指南
-├── DEPLOYMENT.md                     # Vercel 部署指南
 ├── LICENSE                           # 许可证
 └── README.md                         # 项目说明
 ```
@@ -80,20 +76,9 @@ double/
 
 | Tab | 内容 |
 |-----|------|
-| **最新预测** | Hero Banner（下期期号/日期/倒计时）、策略说明、5 个模型卡片（各 4 组预测）、免责声明 |
-| **图表分析** | 中奖规则卡片、4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、5 张 Chart.js 图表 |
-| **历史回溯** | AI 命中表现折线图、详细命中记录卡片、历史开奖号码表格 |
-
-### 图表（Chart.js 4.4.0，CDN 引入）
-
-位于 `app.js`，在"图表分析"和"历史回溯"Tab 中渲染：
-
-1. **红球热度分布**（柱状图）— 01-33 各号码出现频次
-2. **蓝球出现频率**（柱状图）— 01-16 各号码出现频次
-3. **奇偶比例分布**（环形图）— 红球奇偶比（0:6 ~ 6:0）
-4. **红球和值走势**（折线图）— 最近 30 期和值 + 平均线
-5. **区间分布统计**（柱状图）— 01-11 / 12-22 / 23-33 分布
-6. **AI 命中表现趋势**（折线图）— 各模型每期最佳命中数
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、5 个模型卡片（各 4 组预测）、免责声明 |
+| **历史分析** | 中奖规则卡片、4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格 |
+| **模型排行** | 模型命中率排行（Top5）、策略分组统计、Token 用量排行 |
 
 ### 页面组件（`components.js`）
 
@@ -149,6 +134,8 @@ python3 -m http.server 8000
 }
 ```
 
+> ⚠️ `data` 数组为**降序**排列（最新期在前，`data[0]` 为最新）。
+
 ### 2. `data/ai_predictions.json`
 
 ```json
@@ -199,7 +186,7 @@ python3 -m http.server 8000
 
 ---
 
-## GitHub Actions 自动化（3 个工作流）
+## GitHub Actions 自动化（4 个工作流）
 
 ### 1. `update-lottery-data.yml` — 爬取开奖数据
 - **触发**: 每天 UTC 14:00（北京时间 22:00）+ 手动
@@ -211,13 +198,19 @@ python3 -m http.server 8000
 - **触发**: 每周一三五 UTC 00:00（北京时间 08:00）+ 手动
 - **执行**: `python3 generate_ai_prediction.py`
 - **Secrets**: `AI_API_KEY`, `AI_BASE_URL`
-- **推送**: `data/ai_predictions.json`, `data/predictions_history.json`（归档）
+- **推送**: `data/ai_predictions.json`, `data/predictions_history.json`, `data/token_usage.json`
 
 ### 3. `email-daily-digest.yml` — 每日邮件推送
 - **触发**: 每天 UTC 00:30（北京时间 08:30）+ 手动
 - **执行**: `python3 email_daily_digest.py`
 - **Secrets**: `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_RECIPIENT`
 - **注意**: 在 AI 预测生成之后运行，确保邮件含最新预测
+
+### 4. `push-notify.yml` — Push 事件邮件通知
+- **触发**: push 到 master 分支 + 手动
+- **执行**: `python3 email_push_notify.py`
+- **Secrets**: 同 email-daily-digest
+- **功能**: 发送项目更新摘要（含 commit 信息、变更文件）
 
 > ⚠️ 工作流需启用写入权限：Settings > Actions > General > Workflow permissions → **Read and write permissions**
 
@@ -233,7 +226,7 @@ python3 -m http.server 8000
 3. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
 4. 逐个调用 5 个 AI 模型生成预测
 5. 验证数据格式（4 组、6 红球已排序、蓝球非空）
-6. 创建备份并保存
+6. 记录 token 用量到 `token_usage.json`，创建备份并保存
 
 **模型配置**（内置）:
 ```python
@@ -255,17 +248,17 @@ pip install openai
 python3 generate_ai_prediction.py
 ```
 
-### `email_daily_digest.py` / `email_content_builder.py` — 每日邮件
+### `email_daily_digest.py` / `email_push_notify.py` — 邮件推送
+
+两个脚本共用 `email_smtp_utils.py`（SMTP 配置/校验/发送）和 `email_content_builder.py`（内容组装）：
+
+- `email_daily_digest.py` — **每日定时**推送，主题 `[双色球] 每日汇总 · YYYY-MM-DD`
+- `email_push_notify.py` — **Git push** 触发推送，额外包含 commit 信息，主题 `[双色球] 项目更新 · MM-DD HH:MM`
 
 `email_content_builder.py`（纯函数模块）:
 - `load_data()` — 加载 3 个 JSON 数据源（独立异常隔离）
 - `validate_data()` — 返回 `(errors, warnings)`
-- `build_email_content()` — 渲染纯文本邮件正文（4 栏：最新开奖 / 下期预告 / AI 预测 / 命中情况）
-
-`email_daily_digest.py`（主入口）:
-- 读取环境变量（SMTP 配置）
-- 加载 → 校验 → 组装 → 发送
-- 支持 `EMAIL_DRY_RUN=true` 仅打印不发送
+- `build_email_content()` — 渲染邮件正文（最新开奖 / 下期预告 / AI 预测 / 命中情况）
 
 **环境变量**（详见 `.env.example`）:
 ```
@@ -283,6 +276,7 @@ EMAIL_DRY_RUN=true
 |------|------|
 | `test_prediction.py` | 验证 `ai_predictions.json` 格式 |
 | `email_smtp_utils.py` | SMTP 配置/校验/发送共享模块（两个邮件脚本共用） |
+| `fetch_history/fetch_lottery_history.py` | 从 500.com 爬取开奖历史数据 |
 
 ---
 
@@ -296,8 +290,6 @@ Prompt 模板位于 `doc/prompt2.0.md`，每个 AI 模型生成 4 组预测：
 | **平衡策略师** | 历史分布拟合，精细约束（AC 值 8-14，总和 100-120），区间分布 |
 | **周期理论家** | 三周期频率交叉，趋势强度评分，周期转折点识别 |
 | **综合决策者** | 加权投票（热30%+冷25%+平衡20%+周期25%），多样性保证 |
-
-> v1.0 模板在 `doc/prompt.md`（5 种基础策略），当前生成脚本使用 v2.0。
 
 ---
 
@@ -338,14 +330,14 @@ Vercel 自动重新部署
 
 | 变量 | 用途 | 使用方 |
 |------|------|--------|
-| `AI_API_KEY` | AI 模型调用凭证（DeepSeek/Tongyi/Kimi） | `generate_ai_prediction.py` |
+| `AI_API_KEY` | AI 模型调用凭证 | `generate_ai_prediction.py` |
 | `AI_BASE_URL` | AI API 端点（默认 aihubmix.com） | `generate_ai_prediction.py` |
-| `SMTP_SERVER` | SMTP 服务器（默认 smtp.qq.com） | `email_daily_digest.py` |
-| `SMTP_PORT` | SMTP 端口（默认 465） | `email_daily_digest.py` |
-| `SMTP_USER` | 邮箱地址 | `email_daily_digest.py` |
-| `SMTP_PASSWORD` | 邮箱授权码 | `email_daily_digest.py` |
-| `EMAIL_RECIPIENT` | 收件人 | `email_daily_digest.py` |
-| `EMAIL_DRY_RUN` | `true` 仅打印不发送 | `email_daily_digest.py` |
+| `SMTP_SERVER` | SMTP 服务器（默认 smtp.qq.com） | `email_daily_digest.py` / `email_push_notify.py` |
+| `SMTP_PORT` | SMTP 端口（默认 465） | 同上 |
+| `SMTP_USER` | 邮箱地址 | 同上 |
+| `SMTP_PASSWORD` | 邮箱授权码 | 同上 |
+| `EMAIL_RECIPIENT` | 收件人 | 同上 |
+| `EMAIL_DRY_RUN` | `true` 仅打印不发送 | 同上 |
 
 > GitHub Actions secrets 需同步配置同名字段。
 
@@ -365,8 +357,6 @@ vercel --prod      # 生产部署
 
 从 GitHub 导入后每次 push 自动部署。
 
-详细指南见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
-
 ### 本地开发
 
 ```bash
@@ -383,10 +373,9 @@ start_server.bat     # Windows
 ## 技术栈
 
 - **前端**: HTML5, CSS3（CSS Variables, Grid, Flexbox）, Vanilla JS（ES6+）
-- **图表**: Chart.js 4.4.0（CDN）
 - **字体**: Inter（Google Fonts）
 - **Python**: requests + BeautifulSoup4（爬虫）, openai（AI 调用）
-- **自动化**: GitHub Actions（3 个工作流）
+- **自动化**: GitHub Actions（4 个工作流）
 - **部署**: Vercel（自动部署 + CDN）
 - **邮件**: smtplib（SMTP_SSL，QQ 邮箱）
 
@@ -418,6 +407,8 @@ __pycache__/
 .DS_Store
 ```
 
+> ⚠️ `data/archive/**` 目录下的备份文件、`fetch_history/*_backup_*.json` 均被 `*_backup_*.json` 规则覆盖，不会提交到 git。
+
 ---
 
 ## 免责声明
@@ -430,6 +421,4 @@ __pycache__/
 
 - [AI_PREDICTION_GUIDE.md](./AI_PREDICTION_GUIDE.md) — AI 预测自动生成详细指南
 - [AI_Prediction_Analysis_Report.md](./AI_Prediction_Analysis_Report.md) — 历史预测命中率分析报告
-- [DATA_UPDATE_GUIDE.md](./DATA_UPDATE_GUIDE.md) — 数据更新操作指南
-- [DEPLOYMENT.md](./DEPLOYMENT.md) — Vercel 部署指南
 - [README.md](./README.md) — 项目对外说明

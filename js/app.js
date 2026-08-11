@@ -19,7 +19,7 @@ async function initApp() {
         // 渲染UI
         renderHeroBanner();
         renderModelsGrid();
-        renderHistoryTab();
+        renderRankingTab();
 
         // 设置事件监听
         setupEventListeners();
@@ -28,6 +28,8 @@ async function initApp() {
         hideLoadingScreen();
     } catch (error) {
         console.error('初始化失败:', error);
+        // 无论成功失败都隐藏加载屏幕，避免页面卡在加载中
+        hideLoadingScreen();
         alert('数据加载失败，请刷新页面重试');
     }
 }
@@ -139,7 +141,7 @@ function createDrawnStatusBanner(actualResult) {
 }
 
 // 渲染历史标签页
-function renderHistoryTab() {
+function renderRankingTab() {
     renderHitRankings();
     renderGroupedRankings();
     renderTokenUsage();
@@ -526,6 +528,12 @@ function renderHistoryTable() {
     const scrollWrap = table.parentElement;        // .history-table-scroll
     const container = scrollWrap.parentElement;    // .history-table-container
 
+    // 清除之前渲染的隐藏行和 toggle 按钮，避免重复
+    const oldHidden = document.getElementById('historyHiddenRows');
+    if (oldHidden) oldHidden.remove();
+    const oldToggle = document.getElementById('historyToggle');
+    if (oldToggle) oldToggle.remove();
+
     const allRows = appData.lotteryHistory.data;
     const total = allRows.length;
     const shown = Math.min(3, total);
@@ -623,6 +631,62 @@ function renderStatisticsCards() {
     if (avgSumEl) avgSumEl.textContent = avgSum;
 }
 
+// 一键更新数据：爬虫更新开奖 + AI 预测 + 刷新页面
+async function handleUpdateData() {
+    const btn = document.getElementById('updateDataBtn');
+    const statusEl = document.getElementById('updateStatus');
+    const btnText = document.getElementById('updateBtnText');
+    if (!btn || !statusEl) return;
+
+    // 防止重复点击
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.classList.add('loading');
+    statusEl.className = 'update-status loading';
+    statusEl.textContent = '正在更新开奖数据...';
+    if (btnText) btnText.textContent = '更新中...';
+
+    try {
+        const response = await fetch('/api/update', { method: 'POST' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+
+        if (result.success) {
+            // 更新成功 → 用新数据刷新页面
+            if (result.data) {
+                appData.lotteryHistory = result.data.lottery_history || appData.lotteryHistory;
+                appData.aiPredictions = result.data.ai_predictions || appData.aiPredictions;
+                appData.predictionsHistory = result.data.predictions_history || appData.predictionsHistory;
+                appData.tokenUsage = result.data.token_usage || appData.tokenUsage;
+            }
+
+            // 重新渲染所有 Tab
+            renderHeroBanner();
+            renderModelsGrid();
+            renderRankingTab();
+            renderStatisticsCards();
+            renderHistoryTable();
+
+            statusEl.className = 'update-status success';
+            statusEl.textContent = '✅ 更新成功！最新开奖与下期预测已同步';
+        } else {
+            statusEl.className = 'update-status error';
+            // 显示错误摘要（取 message 中 ❌ 开头的行）
+            const data = appData.lotteryHistory?.data || [];
+            const latest = data[0] || {};
+            statusEl.textContent = `❌ 更新失败。开奖数据已更新至 ${latest.period || '未知'} 期，但 AI 预测生成失败（请检查 API 凭证）。`;
+        }
+    } catch (error) {
+        console.error('更新数据失败:', error);
+        statusEl.className = 'update-status error';
+        statusEl.textContent = '❌ 更新失败：无法连接服务器。请确认通过 python server.py 启动服务。';
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        if (btnText) btnText.textContent = '更新数据';
+    }
+}
+
 // 设置事件监听
 function setupEventListeners() {
     // Tab切换 - 桌面端
@@ -636,6 +700,12 @@ function setupEventListeners() {
     mobileNavItems.forEach(item => {
         item.addEventListener('click', () => handleTabSwitch(item.dataset.tab, mobileNavItems));
     });
+
+    // 更新数据按钮
+    const updateBtn = document.getElementById('updateDataBtn');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', handleUpdateData);
+    }
 
     }
 
@@ -670,7 +740,7 @@ function handleTabSwitch(tabName, navItems) {
         }
     });
 
-    // 如果切换到分析Tab，渲染所有图表
+    // 如果切换到历史分析Tab，渲染统计卡片和历史表格
     if (tabName === 'analysis') {
             setTimeout(() => {
                 renderStatisticsCards();
@@ -679,8 +749,9 @@ function handleTabSwitch(tabName, navItems) {
             }, 100);
     }
 
+    // 如果切换到模型排行Tab，完整渲染排行内容
     if (tabName === 'ranking') {
-        setTimeout(() => renderHitRankings(), 50);
+        setTimeout(() => renderRankingTab(), 50);
     }
     }
 
