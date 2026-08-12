@@ -9,6 +9,19 @@
     <link rel="stylesheet" href="css/style.css?v=20251125b">
 </head>
 <body>
+    <!-- 复用图标定义（导航等重复图标） -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+        <symbol id="icon-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+        </symbol>
+        <symbol id="icon-bars" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
+        </symbol>
+        <symbol id="icon-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </symbol>
+    </svg>
+
     <!-- Loading Screen -->
     <div id="loadingScreen" class="loading-screen">
         <div class="loading-spinner"></div>
@@ -34,21 +47,15 @@
                     <!-- Desktop Nav -->
                     <div class="nav-items">
                         <button class="nav-item active" data-tab="prediction">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
-                            </svg>
+                            <svg><use href="#icon-grid"/></svg>
                             最新预测
                         </button>
                         <button class="nav-item" data-tab="analysis">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
-                            </svg>
+                            <svg><use href="#icon-bars"/></svg>
                             历史分析
                         </button>
                         <button class="nav-item" data-tab="ranking">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                            </svg>
+                            <svg><use href="#icon-trophy"/></svg>
                             模型排行
                         </button>
                     </div>
@@ -60,21 +67,15 @@
         <div class="mobile-nav">
             <div class="mobile-nav-content">
                 <button class="mobile-nav-item active" data-tab="prediction">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
-                    </svg>
+                    <svg><use href="#icon-grid"/></svg>
                     <span>最新预测</span>
                 </button>
                 <button class="mobile-nav-item" data-tab="analysis">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
-                    </svg>
+                    <svg><use href="#icon-bars"/></svg>
                     <span>历史分析</span>
                 </button>
                 <button class="mobile-nav-item" data-tab="ranking">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
+                    <svg><use href="#icon-trophy"/></svg>
                     <span>模型排行</span>
                 </button>
             </div>
@@ -141,8 +142,8 @@
                         </svg>
                     </div>
                     <div class="info-card-content">
-                        <h3 class="info-card-title">本期 AI 策略说明</h3>
-                        <p>5 大前沿 AI 模型基于近 30 期历史数据，采用 <span class="highlight-red">热号追随</span>、<span class="highlight-blue">平衡策略</span>、<span class="highlight-purple">周期理论</span>、<span class="highlight-green">综合决策</span> 4 种策略进行加权分析，捕捉号码的均值回归与趋势延续。</p>
+                        <h3 class="info-card-title">本期预测策略说明</h3>
+                        <p>4 大前沿 AI 模型基于近 30 期历史数据，采用 <span class="highlight-red">热号追随</span>、<span class="highlight-blue">平衡策略</span>、<span class="highlight-purple">周期理论</span>、<span class="highlight-green">综合决策</span> 4 种策略加权分析；另以 10 种统计/概率/机器学习模型（马尔可夫链、贝叶斯推断、正态分布、泊松、蒙特卡洛等）交叉验证，捕捉号码的均值回归与趋势延续。</p>
                     </div>
                 </div>
 
@@ -170,58 +171,6 @@
                     <h2 class="section-title">数据趋势分析</h2>
                 </div>
                 <p class="section-subtitle">基于最近历史开奖数据分析</p>
-
-                <!-- Prize Rules Card -->
-                <div class="prize-rules-card">
-                    <div class="prize-rules-header">
-                        <div class="prize-rules-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-                            </svg>
-                        </div>
-                        <h3>双色球中奖规则说明</h3>
-                    </div>
-                    <div class="prize-rules-content">
-                        <div class="prize-rules-grid">
-                            <div class="prize-rule-item">
-                                <div class="prize-level">一等奖</div>
-                                <div class="prize-condition">6+1</div>
-                                <div class="prize-desc">6个红球 + 1个蓝球</div>
-                            </div>
-                            <div class="prize-rule-item">
-                                <div class="prize-level">二等奖</div>
-                                <div class="prize-condition">6+0</div>
-                                <div class="prize-desc">6个红球</div>
-                            </div>
-                            <div class="prize-rule-item">
-                                <div class="prize-level">三等奖</div>
-                                <div class="prize-condition">5+1</div>
-                                <div class="prize-desc">5个红球 + 1个蓝球</div>
-                            </div>
-                            <div class="prize-rule-item">
-                                <div class="prize-level">四等奖</div>
-                                <div class="prize-condition">5+0 / 4+1</div>
-                                <div class="prize-desc">5个红球 或 4红+1蓝</div>
-                            </div>
-                            <div class="prize-rule-item">
-                                <div class="prize-level">五等奖</div>
-                                <div class="prize-condition">4+0 / 3+1</div>
-                                <div class="prize-desc">4个红球 或 3红+1蓝</div>
-                            </div>
-                            <div class="prize-rule-item">
-                                <div class="prize-level">六等奖</div>
-                                <div class="prize-condition">2+1 / 1+1 / 0+1</div>
-                                <div class="prize-desc">有蓝球即中奖（5元）</div>
-                            </div>
-                        </div>
-                        <div class="prize-rules-note">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-                            </svg>
-                            <span>红球从 01-33 中选择 6 个号码，蓝球从 01-16 中选择 1 个号码。每周二、四、日晚 21:15 开奖。</span>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Statistics Cards -->
                 <div class="stats-cards-grid">
@@ -289,8 +238,8 @@
                     </div>
                 </div>
 
-                <!-- 详细命中记录 -->
-                <div class="history-section" style="margin-top: 1.5rem;">
+                <!-- 命中记录（紧凑摘要） -->
+                <div class="history-section">
                     <div class="history-section-header">
                         <h3 class="history-section-title">详细命中记录</h3>
                         <span class="history-section-badge">Verified Data</span>
@@ -301,30 +250,26 @@
 
             <!-- Tab: Model Ranking -->
             <div class="tab-content" data-tab="ranking">
-                <div class="section-header">
+                <div class="section-header ranking-section">
                     <div class="section-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                        </svg>
+                        <svg><use href="#icon-trophy"/></svg>
                     </div>
                     <h2 class="section-title">命中排行</h2>
                 </div>
-                <p class="section-subtitle">按策略 / 模型分组统计命中（历史全部）</p>
+                <p class="section-subtitle">按模型与策略统计历史命中（多时间窗口）</p>
 
                 <div class="ranking-container" id="rankingContainer"></div>
 
-                <div class="section-header" style="margin-top: 40px;">
+                <div class="section-header ranking-section">
                     <div class="section-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                        </svg>
+                        <svg><use href="#icon-trophy"/></svg>
                     </div>
                     <h2 class="section-title">分组统计</h2>
                 </div>
-                <p class="section-subtitle">按策略 / 模型分组统计命中（历史全部）</p>
+                <p class="section-subtitle">按模型分组统计命中（全部历史）</p>
                 <div class="ranking-container" id="groupedRankingContainer"></div>
 
-                <div class="section-header" style="margin-top: 40px;">
+                <div class="section-header ranking-section">
                     <div class="section-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
@@ -347,7 +292,6 @@
     </div>
 
     <!-- Scripts -->
-    <!-- Chart.js removed -->
     <script src="js/data-loader.js?v=20260810b"></script>
     <script src="js/components.js?v=20260810b"></script>
     <script src="js/app.js?v=20260810b"></script>

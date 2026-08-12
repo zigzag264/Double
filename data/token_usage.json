@@ -14,17 +14,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5022,
-      "completion_tokens": 474,
-      "total_tokens": 5496,
-      "elapsed_seconds": 11.2,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5764,
@@ -53,17 +42,6 @@
       "completion_tokens": 472,
       "total_tokens": 5487,
       "elapsed_seconds": 11.9,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5022,
-      "completion_tokens": 471,
-      "total_tokens": 5493,
-      "elapsed_seconds": 9.9,
       "success": true
     },
     {
@@ -102,17 +80,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5022,
-      "completion_tokens": 472,
-      "total_tokens": 5494,
-      "elapsed_seconds": 14.1,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5764,
@@ -137,17 +104,6 @@
       "target_period": "26092",
       "model_id": "deepseek-v3",
       "model_name": "DeepSeek V3",
-      "prompt_tokens": 0,
-      "completion_tokens": 0,
-      "total_tokens": 0,
-      "elapsed_seconds": 0,
-      "success": false
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
       "prompt_tokens": 0,
       "completion_tokens": 0,
       "total_tokens": 0,
@@ -190,17 +146,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5022,
-      "completion_tokens": 472,
-      "total_tokens": 5494,
-      "elapsed_seconds": 13.0,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5764,
@@ -229,17 +174,6 @@
       "completion_tokens": 466,
       "total_tokens": 5498,
       "elapsed_seconds": 12.6,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5039,
-      "completion_tokens": 474,
-      "total_tokens": 5513,
-      "elapsed_seconds": 14.8,
       "success": true
     },
     {
@@ -278,17 +212,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5039,
-      "completion_tokens": 474,
-      "total_tokens": 5513,
-      "elapsed_seconds": 10.5,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5781,
@@ -322,17 +245,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 476,
-      "total_tokens": 5534,
-      "elapsed_seconds": 15.0,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5801,
@@ -357,17 +269,6 @@
       "target_period": "26092",
       "model_id": "deepseek-v3",
       "model_name": "DeepSeek V3",
-      "prompt_tokens": 0,
-      "completion_tokens": 0,
-      "total_tokens": 0,
-      "elapsed_seconds": 0,
-      "success": false
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
       "prompt_tokens": 0,
       "completion_tokens": 0,
       "total_tokens": 0,
@@ -410,17 +311,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 487,
-      "total_tokens": 5545,
-      "elapsed_seconds": 12.9,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5801,
@@ -449,17 +339,6 @@
       "completion_tokens": 472,
       "total_tokens": 5523,
       "elapsed_seconds": 12.5,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 488,
-      "total_tokens": 5546,
-      "elapsed_seconds": 12.7,
       "success": true
     },
     {
@@ -498,17 +377,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 487,
-      "total_tokens": 5545,
-      "elapsed_seconds": 14.5,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5801,
@@ -537,17 +405,6 @@
       "completion_tokens": 474,
       "total_tokens": 5525,
       "elapsed_seconds": 12.1,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 473,
-      "total_tokens": 5531,
-      "elapsed_seconds": 14.7,
       "success": true
     },
     {
@@ -597,17 +454,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 474,
-      "total_tokens": 5532,
-      "elapsed_seconds": 10.8,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5801,
@@ -647,17 +493,6 @@
       "completion_tokens": 472,
       "total_tokens": 5523,
       "elapsed_seconds": 10.2,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 473,
-      "total_tokens": 5531,
-      "elapsed_seconds": 8.8,
       "success": true
     },
     {
@@ -707,17 +542,6 @@
     {
       "date": "2026-08-11",
       "target_period": "26092",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 474,
-      "total_tokens": 5532,
-      "elapsed_seconds": 10.2,
-      "success": true
-    },
-    {
-      "date": "2026-08-11",
-      "target_period": "26092",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5801,
@@ -757,17 +581,6 @@
       "completion_tokens": 472,
       "total_tokens": 5523,
       "elapsed_seconds": 10.6,
-      "success": true
-    },
-    {
-      "date": "2026-08-13",
-      "target_period": "26093",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 472,
-      "total_tokens": 5530,
-      "elapsed_seconds": 11.7,
       "success": true
     },
     {
@@ -817,17 +630,6 @@
     {
       "date": "2026-08-13",
       "target_period": "26093",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 473,
-      "total_tokens": 5531,
-      "elapsed_seconds": 9.8,
-      "success": true
-    },
-    {
-      "date": "2026-08-13",
-      "target_period": "26093",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5801,
@@ -872,17 +674,6 @@
     {
       "date": "2026-08-13",
       "target_period": "26093",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 474,
-      "total_tokens": 5532,
-      "elapsed_seconds": 8.8,
-      "success": true
-    },
-    {
-      "date": "2026-08-13",
-      "target_period": "26093",
       "model_id": "tongyi-xiaomi-analysis-pro",
       "model_name": "Tongyi Analysis Pro",
       "prompt_tokens": 5801,
@@ -922,17 +713,6 @@
       "completion_tokens": 472,
       "total_tokens": 5523,
       "elapsed_seconds": 11.5,
-      "success": true
-    },
-    {
-      "date": "2026-08-13",
-      "target_period": "26093",
-      "model_id": "deepseek-v3.2-exp",
-      "model_name": "DeepSeek V3.2 Exp",
-      "prompt_tokens": 5058,
-      "completion_tokens": 474,
-      "total_tokens": 5532,
-      "elapsed_seconds": 9.7,
       "success": true
     },
     {

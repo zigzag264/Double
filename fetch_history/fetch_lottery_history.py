@@ -197,11 +197,23 @@ class LotteryDataFetcher:
                 import shutil
                 shutil.copy2(filename, backup_name)
                 print(f"已创建备份文件: {backup_name}")
+                self._cleanup_backups(os.path.dirname(os.path.abspath(backup_name)), keep=5)
                 return backup_name
             except Exception as e:
                 print(f"创建备份时出错: {e}")
                 return None
         return None
+
+    def _cleanup_backups(self, directory, keep=5):
+        """保留最近 keep 份 'lottery_data_backup_*.json' 备份，自动清理更旧的"""
+        backups = [f for f in os.listdir(directory)
+                   if f.startswith('lottery_data_backup_') and f.endswith('.json')]
+        backups.sort(key=lambda f: os.path.getmtime(os.path.join(directory, f)), reverse=True)
+        for old in backups[keep:]:
+            try:
+                os.remove(os.path.join(directory, old))
+            except OSError:
+                pass
 
     def predict_next_draw(self, latest_period, latest_date):
         """

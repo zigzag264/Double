@@ -654,6 +654,95 @@ body::before {
 .model-header-kimi .model-id { color: rgba(255,255,255,0.7); }
 .model-header-kimi .model-id-dot { background: #4ade80; }
 
+/* ===== 统计/概率/机器学习模型头部配色 ===== */
+.model-header-markov { background: linear-gradient(135deg, #312e81, #6366f1); }
+.model-header-bayes  { background: linear-gradient(135deg, #134e4a, #14b8a6); }
+.model-header-normal { background: linear-gradient(135deg, #1e3a5f, #3b82f6); }
+.model-header-poisson{ background: linear-gradient(135deg, #155e75, #06b6d4); }
+.model-header-monte  { background: linear-gradient(135deg, #581c87, #d946ef); }
+.model-header-hot    { background: linear-gradient(135deg, #7c2d12, #f97316); }
+.model-header-cold   { background: linear-gradient(135deg, #881337, #f43f5e); }
+.model-header-ewma   { background: linear-gradient(135deg, #78350f, #f59e0b); }
+.model-header-apriori{ background: linear-gradient(135deg, #365314, #84cc16); }
+.model-header-ensemble{ background: linear-gradient(135deg, #0f172a, #64748b); }
+.model-header-markov,
+.model-header-bayes,
+.model-header-normal,
+.model-header-poisson,
+.model-header-monte,
+.model-header-hot,
+.model-header-cold,
+.model-header-ewma,
+.model-header-apriori,
+.model-header-ensemble { color: #fff; }
+.model-header-markov .model-icon-box,
+.model-header-bayes .model-icon-box,
+.model-header-normal .model-icon-box,
+.model-header-poisson .model-icon-box,
+.model-header-monte .model-icon-box,
+.model-header-hot .model-icon-box,
+.model-header-cold .model-icon-box,
+.model-header-ewma .model-icon-box,
+.model-header-apriori .model-icon-box,
+.model-header-ensemble .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
+.model-header-markov .model-name-wrapper h3,
+.model-header-bayes .model-name-wrapper h3,
+.model-header-normal .model-name-wrapper h3,
+.model-header-poisson .model-name-wrapper h3,
+.model-header-monte .model-name-wrapper h3,
+.model-header-hot .model-name-wrapper h3,
+.model-header-cold .model-name-wrapper h3,
+.model-header-ewma .model-name-wrapper h3,
+.model-header-apriori .model-name-wrapper h3,
+.model-header-ensemble .model-name-wrapper h3 { color: #fff; }
+.model-header-markov .model-id,
+.model-header-bayes .model-id,
+.model-header-normal .model-id,
+.model-header-poisson .model-id,
+.model-header-monte .model-id,
+.model-header-hot .model-id,
+.model-header-cold .model-id,
+.model-header-ewma .model-id,
+.model-header-apriori .model-id,
+.model-header-ensemble .model-id { color: rgba(255,255,255,0.7); }
+.model-header-markov .model-id-dot,
+.model-header-bayes .model-id-dot,
+.model-header-normal .model-id-dot,
+.model-header-poisson .model-id-dot,
+.model-header-monte .model-id-dot,
+.model-header-hot .model-id-dot,
+.model-header-cold .model-id-dot,
+.model-header-ewma .model-id-dot,
+.model-header-apriori .model-id-dot,
+.model-header-ensemble .model-id-dot { background: #cbd5e1; }
+
+/* ===== 模型网格分区标题 ===== */
+.models-section-title {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--fg);
+}
+.models-section-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--fg-soft);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0 0.5rem;
+    line-height: 1.4;
+}
+
 .model-card-header-left {
     display: flex;
     align-items: center;
@@ -927,6 +1016,62 @@ body::before {
 /* ==================== History View ==================== */
 .history-section {
     margin-bottom: 2rem;
+}
+
+.history-section + .history-section {
+    margin-top: 0.5rem;
+}
+
+/* 命中记录紧凑摘要 */
+#accuracyCardsContainer {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.accuracy-summary-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.875rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--card);
+}
+
+.accuracy-summary-row + .accuracy-summary-row {
+    border-top: 1px solid var(--border);
+}
+
+.accuracy-summary-period {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--fg);
+    min-width: 5.5rem;
+}
+
+.accuracy-summary-date {
+    font-size: 0.8125rem;
+    color: var(--fg-soft);
+}
+
+.accuracy-summary-balls {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    flex: 1;
+    min-width: 12rem;
+}
+
+.accuracy-summary-best {
+    font-size: 0.8125rem;
+    color: var(--fg-soft);
+    margin-left: auto;
+}
+
+.accuracy-summary-hits {
+    color: var(--accent);
+    font-weight: 700;
 }
 
 .history-section-header {
@@ -1528,110 +1673,6 @@ body::before {
     color: var(--gray-500);
 }
 
-/* ==================== Prize Rules Card ==================== */
-.prize-rules-card {
-    background: var(--card);
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
-    margin-bottom: 1.5rem;
-    overflow: hidden;
-}
-
-.prize-rules-header {
-    background: var(--blue-50);
-    padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    border-bottom: 1px solid var(--border);
-}
-
-.prize-rules-icon {
-    background: white;
-    padding: 0.4rem;
-    border-radius: 50%;
-    color: var(--blue-600);
-    flex-shrink: 0;
-}
-
-.prize-rules-icon svg {
-    width: 20px;
-    height: 20px;
-}
-
-.prize-rules-header h3 {
-    font-weight: 700;
-    color: var(--fg);
-    font-size: 1rem;
-}
-
-.prize-rules-content {
-    padding: 1rem;
-}
-
-.prize-rules-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.prize-rule-item {
-    background: var(--gray-50);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    padding: 0.875rem;
-    transition: all 0.2s ease;
-}
-
-.prize-rule-item:hover {
-    border-color: var(--blue-400);
-    background: var(--blue-50);
-}
-
-.prize-level {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--fg);
-    margin-bottom: 0.25rem;
-}
-
-.prize-condition {
-    font-size: 1.125rem;
-    font-weight: 800;
-    color: var(--blue-600);
-    margin-bottom: 0.25rem;
-}
-
-.prize-desc {
-    font-size: 0.75rem;
-    color: var(--gray-500);
-}
-
-.prize-rules-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    background: var(--blue-50);
-    padding: 0.875rem;
-    border-radius: 0.5rem;
-    border-left: 3px solid var(--blue-600);
-}
-
-.prize-rules-note svg {
-    width: 18px;
-    height: 18px;
-    color: var(--blue-600);
-    flex-shrink: 0;
-    margin-top: 0.125rem;
-}
-
-.prize-rules-note span {
-    font-size: 0.8125rem;
-    color: var(--fg-soft);
-    line-height: 1.5;
-}
-
 /* ==================== Statistics Cards ==================== */
 .stats-cards-grid {
     display: grid;
@@ -1723,6 +1764,11 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+}
+
+/* 模型排行 Tab 各区块间距（替代内联 margin） */
+.ranking-section + .ranking-section {
+    margin-top: 2.5rem;
 }
 
 .ranking-panel {

@@ -2,12 +2,12 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 5 个大模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash）对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 4 个大模型（DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)）对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
 - 📊 数据趋势分析（统计卡片 + 历史开奖表格）
-- 🏆 模型命中率排行与分组统计
+- 🏆 模型命中率排行（最新一期/最近一月/最近一年）与模型分组统计
 - ⏰ 自动更新开奖数据（GitHub Actions）
 - 📧 每日邮件汇总推送
 - 🎨 深色/浅色主题切换、响应式设计
@@ -54,7 +54,8 @@ double/
 ├── .env                              # 本地环境变量（git 忽略）
 ├── .vercelignore                     # Vercel 构建忽略
 ├── .gitignore                        # Git 忽略规则
-├── generate_ai_prediction.py         # AI 预测自动生成脚本（主入口）
+├── generate_ai_prediction.py         # 预测自动生成脚本（主入口：5 AI + 10 统计模型）
+├── stats_models.py                   # 10 种统计/概率/ML 模型预测（纯标准库，确定性）
 ├── email_content_builder.py          # 邮件内容组装模块（纯函数）
 ├── email_smtp_utils.py               # SMTP 邮件发送工具（共享模块）
 ├── email_daily_digest.py             # 每日邮件推送主入口
@@ -76,17 +77,16 @@ double/
 
 | Tab | 内容 |
 |-----|------|
-| **最新预测** | Hero Banner（下期期号/日期/倒计时）、5 个模型卡片（各 4 组预测）、免责声明 |
-| **历史分析** | 中奖规则卡片、4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格 |
-| **模型排行** | 模型命中率排行（Top5）、策略分组统计、Token 用量排行 |
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计数学模型卡片（共 15 个，各 4 组预测）、免责声明 |
+| **历史分析** | 4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格、命中记录紧凑摘要 |
+| **模型排行** | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计、Token 用量排行 |
 
 ### 页面组件（`components.js`）
 
 - `createLotteryBall()` — 号码球元素（红/蓝、sm/md/lg、命中高亮）
 - `createModelCard()` — AI 模型卡片（含模型头部、策略行、最佳命中徽章）
 - `createStrategyRow()` — 策略预测行（含命中统计）
-- `createAccuracyCard()` — 历史命中记录卡片
-- `createPredictionGroupRow()` — 预测组行（含红/蓝命中数）
+- `createAccuracySummaryRow()` — 命中记录紧凑摘要行（期号 + 开奖号码 + 最佳命中）
 - `createHistoryTableRow()` — 历史开奖表格行
 - `compareNumbers()` — 命中计算逻辑
 
@@ -222,17 +222,19 @@ python3 -m http.server 8000
 
 **功能**:
 1. 加载 Prompt 模板（`doc/prompt2.0.md`）
-2. 加载历史数据（`data/lottery_history.json`，取最近 30 期）
+2. 加载历史数据（`data/lottery_history.json`，取最近 30 期给 AI；全量给统计模型）
 3. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
-4. 逐个调用 5 个 AI 模型生成预测
-5. 验证数据格式（4 组、6 红球已排序、蓝球非空）
-6. 记录 token 用量到 `token_usage.json`，创建备份并保存
+4. 逐个调用 4 个 AI 模型生成预测
+5. 调用 `stats_models.generate_stats_predictions()` 本地生成 10 个统计/概率/ML 模型预测（**不消耗 token；即使 AI 全部失败也会保留统计模型**）
+6. 每个模型统一做去重/防复读后处理 + 格式校验（4 组、6 红球已排序、蓝球非空、策略名互不相同）
+7. 记录 AI 模型 token 用量到 `token_usage.json`，创建备份并保存
+
+> 输出的 `ai_predictions.json` 共 **14 个模型**：4 个 AI（`model_type=ai`）+ 10 个统计（`model_type=stats`）。前端按 `model_type` 分区展示。
 
 **模型配置**（内置）:
 ```python
 MODELS = [
     {"id": "deepseek-v3", "name": "DeepSeek V3", "model_id": "deepseek-v3"},
-    {"id": "deepseek-v3.2-exp", "name": "DeepSeek V3.2 Exp", "model_id": "deepseek-v3.2-exp"},
     {"id": "tongyi-xiaomi-analysis-pro", "name": "Tongyi Analysis Pro", "model_id": "tongyi-xiaomi-analysis-pro"},
     {"id": "Moonshot-Kimi-K2-Instruct", "name": "Kimi K2", "model_id": "Moonshot-Kimi-K2-Instruct"},
     {"id": "qwen3.7-flash-2026-07-15", "name": "Qwen 3.7 Flash (07-15)", "model_id": "qwen3.7-flash-2026-07-15"},
@@ -246,6 +248,29 @@ MODELS = [
 ```bash
 pip install openai
 python3 generate_ai_prediction.py
+```
+
+### `stats_models.py` — 10 种统计/概率/机器学习模型（纯标准库，确定性）
+
+本地基于全部历史开奖数据计算，不调用 API、不耗 token、无需新依赖（仅 `random/math/statistics/itertools`）。每个模型输出 4 组参数变体，结构同 AI 模型（含 `model_type: "stats"`）。策略覆盖统计、概率、机器学习三大类：
+
+| model_id | 模型 | 类型 | 核心算法 |
+|---------|------|------|---------|
+| `markov-chain` | 马尔可夫链 | 概率 | 相邻期红→红转移矩阵 + 平稳分布 |
+| `bayesian` | 贝叶斯推断 | 概率 | Beta 收缩估计（先验×近期似然） |
+| `normal-distribution` | 正态分布(Z-score) | 统计 | 近期 vs 全史的标准化偏离 + 和值正态约束 |
+| `poisson` | 泊松分布 | 概率 | 出现次数 ~ Poisson(λ)，P(出现)≈1−e^{−λ} |
+| `monte-carlo` | 蒙特卡洛模拟 | 概率 | 加权随机抽样 1 万次 + 约束筛选，固定种子 |
+| `frequency-hot` | 频率热号 | 统计 | 5/10/30 期多窗口加权频率 |
+| `cold-miss` | 遗漏回补 | 统计 | 当前遗漏 vs 平均遗漏（冷号回补） |
+| `ewma` | 指数平滑(EWMA) | 统计 | 0/1 序列指数加权，不同 α |
+| `apriori` | 关联规则 | ML | 红球共现置信度 / 提升度 |
+| `ensemble` | 集成投票 | ML | 前 9 模型评分均值/中位数/去极值融合 |
+
+**独立运行/验证**:
+```bash
+python3 stats_models.py                    # 打印 10 模型 × 4 组预测
+python3 stats_models.py --output x.json    # 写入临时 JSON 供检查
 ```
 
 ### `email_daily_digest.py` / `email_push_notify.py` — 邮件推送
@@ -274,7 +299,8 @@ EMAIL_DRY_RUN=true
 
 | 脚本 | 用途 |
 |------|------|
-| `test_prediction.py` | 验证 `ai_predictions.json` 格式 |
+| `test_prediction.py` | 验证 `ai_predictions.json` 格式（15 个模型 × 4 组） |
+| `stats_models.py` | 生成 10 个统计/概率/ML 模型预测（见上文专项说明） |
 | `email_smtp_utils.py` | SMTP 配置/校验/发送共享模块（两个邮件脚本共用） |
 | `fetch_history/fetch_lottery_history.py` | 从 500.com 爬取开奖历史数据 |
 

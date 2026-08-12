@@ -11,7 +11,10 @@
 
 </div>
 
-基于 **5 个 AI 大模型** 的双色球彩票预测与数据分析展示平台。多模型预测对比、5 类 Chart.js 图表分析、历史命中率回溯，以及每日邮件推送。
+基于 **4 个 AI 大模型 + 10 个统计/概率/机器学习模型** 的双色球彩票预测与数据分析展示平台。多模型预测对比、5 类 Chart.js 图表分析、历史命中率回溯，以及每日邮件推送。
+
+> **AI 模型**: DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)
+> **统计/概率/ML 模型**: 马尔可夫链、贝叶斯推断、正态分布(Z-score)、泊松分布、蒙特卡洛模拟、频率热号、遗漏回补、指数平滑(EWMA)、关联规则、集成投票（本地纯标准库计算，确定性输出，不消耗 token）
 
 ---
 
@@ -22,7 +25,7 @@
 | 最新开奖 | **26091** 期 (2026-08-09) — `02 13 14 16 20 24` + `05` |
 | 下期预告 | **26092** 期 · 2026年08月11日（周二）21:15 |
 | 历史数据 | 152 期 |
-| AI 模型数 | 5 个 |
+| 预测模型数 | 15 个（5 AI + 10 统计/概率/ML） |
 | 已归档预测 | 4 期（最佳单期 4 红球，平均 2.0~2.6 红球/期） |
 
 ---
@@ -59,9 +62,10 @@ double/
 │   ├── data-loader.js               # 加载 4 个 JSON 数据源
 │   ├── components.js                # UI 组件（号码球、卡片、命中对比）
 │   └── app.js                       # 编排层（Tab 渲染、排行统计）
+├── stats_models.py                  # 10 个统计/概率/ML 模型（本地、纯标准库）
 ├── data/                            # ★ 核心数据（版本控制）
 │   ├── lottery_history.json         # 152 期历史开奖 + 下期信息
-│   ├── ai_predictions.json          # 当前 AI 预测（5 模型 × 4 组）
+│   ├── ai_predictions.json          # 当前预测（5 AI + 10 统计 = 15 模型 × 4 组）
 │   ├── predictions_history.json     # 历史预测命中记录（含 hit_result）
 │   ├── token_usage.json             # 各模型 API token 用量统计
 │   └── archive/                     # 备份归档（git 忽略）
@@ -71,7 +75,8 @@ double/
 ├── doc/                             # Prompt 模板
 │   └── prompt2.0.md                 # Prompt v2.0（4 策略，★主用）
 ├── .github/workflows/               # 4 个自动化工作流
-├── generate_ai_prediction.py        # ★ AI 预测生成主入口
+├── generate_ai_prediction.py        # ★ 预测生成主入口（5 AI + 集成 10 统计模型）
+├── stats_models.py                  # 10 个统计/概率/ML 模型（本地纯标准库）
 ├── email_content_builder.py         # 邮件 HTML 构建（纯函数模块）
 ├── email_smtp_utils.py              # SMTP 配置/发送（共享模块）
 ├── email_daily_digest.py            # 每日邮件推送
@@ -129,7 +134,7 @@ python3 generate_ai_prediction.py
   ↓
 检测旧预测是否已开奖 → 计算命中 → 归档到 predictions_history.json
   ↓
-依次调用 5 个 AI 模型 → 各生成 4 组预测
+依次调用 4 个 AI 模型 → 各生成 4 组预测
   ↓
 后处理：去重 / 防复读 / 补齐 / 验证
   ↓
@@ -141,10 +146,9 @@ python3 generate_ai_prediction.py
 | 模型 | ID | 类型 | 调用成本 |
 |------|----|------|---------|
 | **DeepSeek V3** | `deepseek-v3` | 通用 | ~500 tokens/次, ~10s |
-| **DeepSeek V3.2 Exp** | `deepseek-v3.2-exp` | 通用 | ~500 tokens/次, ~10s |
 | **Tongyi Analysis Pro** | `tongyi-xiaomi-analysis-pro` | 分析型 | ~500 tokens/次, ~12s |
 | **Kimi K2** | `Moonshot-Kimi-K2-Instruct` | 通用 | ~400 tokens/次, ~15s |
-| **Qwen 3.7 Flash (07-15)** 🆕 | `qwen3.7-flash-2026-07-15` | 推理型 | ~5,500 tokens/次, ~30s |
+| **Qwen 3.7 Flash (07-15)** | `qwen3.7-flash-2026-07-15` | 推理型 | ~5,500 tokens/次, ~30s |
 
 所有模型通过统一 API 端点调用，共享 `AI_API_KEY`。
 

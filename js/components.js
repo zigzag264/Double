@@ -35,10 +35,22 @@ const Components = {
      * @returns {string} CSS 类名
      */
     getModelHeaderClass(modelName) {
+        // AI 模型
         if (modelName.includes('DeepSeek')) return 'model-header-deepseek';
         if (modelName.includes('Qwen')) return 'model-header-qwen';
         if (modelName.includes('Tongyi')) return 'model-header-tongyi';
         if (modelName.includes('Kimi')) return 'model-header-kimi';
+        // 统计/概率/机器学习模型
+        if (modelName.includes('马尔可夫')) return 'model-header-markov';
+        if (modelName.includes('贝叶斯')) return 'model-header-bayes';
+        if (modelName.includes('正态')) return 'model-header-normal';
+        if (modelName.includes('泊松')) return 'model-header-poisson';
+        if (modelName.includes('蒙特卡洛')) return 'model-header-monte';
+        if (modelName.includes('频率')) return 'model-header-hot';
+        if (modelName.includes('遗漏')) return 'model-header-cold';
+        if (modelName.includes('指数')) return 'model-header-ewma';
+        if (modelName.includes('关联')) return 'model-header-apriori';
+        if (modelName.includes('集成')) return 'model-header-ensemble';
         return 'model-header-deepseek';
     },
 
@@ -185,173 +197,44 @@ const Components = {
     },
 
     /**
-     * 创建准确度卡片 (历史预测对比)
-     * @param {Object} record - 历史记录
-     * @returns {HTMLElement} 准确度卡片元素
+     * 创建命中记录紧凑摘要行（期号 + 开奖号码 + 最佳命中）
+     * @param {Object} record - 历史记录（predictions_history 项）
+     * @returns {HTMLElement} 摘要行元素
      */
-    createAccuracyCard(record) {
-        const card = document.createElement('div');
-        card.className = 'accuracy-card';
-
-        const result = record.actual_result;
-        if (!result) return card;
-
-        // 卡片头部
-        const header = document.createElement('div');
-        header.className = 'accuracy-card-header';
-        header.innerHTML = `
-            <div class="accuracy-header-left">
-                <div class="accuracy-trophy-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h4 class="accuracy-header-title">第 ${result.period} 期</h4>
-                    <span class="accuracy-header-subtitle">命中回溯报告</span>
-                </div>
-            </div>
-            <span class="accuracy-header-date">${result.date}</span>
-        `;
-        card.appendChild(header);
-
-        // 实际开奖结果
-        const actualSection = document.createElement('div');
-        actualSection.className = 'actual-result-section';
-        actualSection.innerHTML = `
-            <div class="actual-result-label">
-                <div class="actual-result-bar"></div>
-                <p class="actual-result-text">开奖号码 Official Draw</p>
-            </div>
-        `;
-
-        const actualBalls = document.createElement('div');
-        actualBalls.className = 'actual-result-balls';
-        result.red_balls.forEach(num => {
-            actualBalls.appendChild(this.createLotteryBall(num, 'red', 'md'));
-        });
-        actualBalls.appendChild(this.createBallDivider());
-        actualBalls.appendChild(this.createLotteryBall(result.blue_ball, 'blue', 'md'));
-        actualSection.appendChild(actualBalls);
-
-        card.appendChild(actualSection);
-
-        // 模型命中列表
-        const hitsList = document.createElement('div');
-        hitsList.className = 'model-hits-list';
-
-        record.models.forEach((model, index) => {
-            hitsList.appendChild(this.createModelHitItem(model, index + 1, index === record.models.length - 1));
-        });
-
-        card.appendChild(hitsList);
-
-        return card;
-    },
-
-    /**
-     * 创建模型命中项
-     * @param {Object} model - 模型数据
-     * @param {number} index - 索引
-     * @param {boolean} isLast - 是否最后一个
-     * @returns {HTMLElement} 模型命中项元素
-     */
-    createModelHitItem(model, index, isLast = false) {
-        const item = document.createElement('div');
-        item.className = 'model-hit-item';
-
-        // 计算最佳命中数
-        const bestHit = Math.max(...model.predictions.map(p => p.hit_result?.total_hits || 0));
-
-        // 清理 model_id 以生成有效的 DOM ID
-        const safeModelId = model.model_id.replace(/[^a-zA-Z0-9-_]/g, '-');
-
-        item.innerHTML = `
-            ${!isLast ? '<div class="model-hit-connector"></div>' : ''}
-            <div class="model-hit-row">
-                <div class="model-hit-number">${index}</div>
-                <div class="model-hit-content">
-                    <div class="model-hit-header">
-                        <h4 class="model-hit-name">${model.model_name}</h4>
-                        ${bestHit >= 4 ? `
-                        <span class="high-hit-badge">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                            </svg>
-                            高命中: ${bestHit}
-                        </span>` : ''}
-                    </div>
-                    <div class="prediction-groups" id="groups-${safeModelId}"></div>
-                </div>
-            </div>
-        `;
-
-        // 添加预测组
-        const groupsContainer = item.querySelector(`#groups-${safeModelId}`);
-        model.predictions.forEach(prediction => {
-            groupsContainer.appendChild(this.createPredictionGroupRow(prediction));
-        });
-
-        return item;
-    },
-
-    /**
-     * 创建预测组行
-     * @param {Object} prediction - 预测数据
-     * @returns {HTMLElement} 预测组行元素
-     */
-    createPredictionGroupRow(prediction) {
+    createAccuracySummaryRow(record) {
+        const result = record.actual_result || {};
         const row = document.createElement('div');
-        const totalHits = prediction.hit_result?.total_hits || 0;
-        const isWinning = totalHits >= 3;
+        row.className = 'accuracy-summary-row';
 
-        row.className = `prediction-group-row${isWinning ? ' winning' : ''}`;
+        const period = document.createElement('span');
+        period.className = 'accuracy-summary-period';
+        period.textContent = `第 ${result.period || '—'} 期`;
+        row.appendChild(period);
 
-        // 球容器
-        const ballsContainer = document.createElement('div');
-        ballsContainer.className = 'prediction-group-balls';
-        ballsContainer.innerHTML = `
-            <span class="prediction-group-strategy">${prediction.strategy.substring(0, 8)}${prediction.strategy.length > 8 ? '..' : ''}</span>
-        `;
+        if (result.date) {
+            const date = document.createElement('span');
+            date.className = 'accuracy-summary-date';
+            date.textContent = result.date;
+            row.appendChild(date);
+        }
 
-        const ballsList = document.createElement('div');
-        ballsList.className = 'prediction-group-balls-list';
+        const balls = document.createElement('span');
+        balls.className = 'accuracy-summary-balls';
+        (result.red_balls || []).forEach(n => balls.appendChild(this.createLotteryBall(n, 'red', 'sm')));
+        if (result.blue_ball) balls.appendChild(this.createLotteryBall(result.blue_ball, 'blue', 'sm'));
+        row.appendChild(balls);
 
-        prediction.red_balls.forEach(num => {
-            const isHit = prediction.hit_result?.red_hits?.includes(num);
-            const miniBall = document.createElement('div');
-            miniBall.className = `mini-ball${isHit ? ' hit' : ''}`;
-            miniBall.textContent = num;
-            ballsList.appendChild(miniBall);
+        // 最佳命中：取各模型 best_hit_count 最高者
+        let best = { name: '—', hits: 0, group: null };
+        (record.models || []).forEach(m => {
+            if ((m.best_hit_count || 0) > best.hits) {
+                best = { name: m.model_name, hits: m.best_hit_count || 0, group: m.best_group };
+            }
         });
-
-        const blueBall = document.createElement('div');
-        blueBall.className = `mini-ball blue${prediction.hit_result?.blue_hit ? ' hit' : ''}`;
-        blueBall.textContent = prediction.blue_ball;
-        ballsList.appendChild(blueBall);
-
-        ballsContainer.appendChild(ballsList);
-        row.appendChild(ballsContainer);
-
-        // 统计信息
-        const stats = document.createElement('div');
-        stats.className = 'prediction-group-stats';
-
-        const redHitCount = prediction.hit_result?.red_hit_count || 0;
-        const blueHit = prediction.hit_result?.blue_hit || false;
-
-        stats.innerHTML = `
-            <div class="stat-item">
-                <span class="stat-value ${redHitCount > 0 ? 'has-hit' : 'no-hit'}">${redHitCount}</span>
-                <span class="stat-label">红</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-                <span class="stat-value ${blueHit ? 'blue-hit' : 'no-hit'}">${blueHit ? 1 : 0}</span>
-                <span class="stat-label">蓝</span>
-            </div>
-        `;
-        row.appendChild(stats);
+        const bestEl = document.createElement('span');
+        bestEl.className = 'accuracy-summary-best';
+        bestEl.innerHTML = `最佳 <span class="accuracy-summary-hits">${best.hits} 球</span> · ${best.name}${best.group ? `（G${best.group}）` : ''}`;
+        row.appendChild(bestEl);
 
         return row;
     },

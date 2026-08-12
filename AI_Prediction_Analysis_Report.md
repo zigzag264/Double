@@ -1,4 +1,4 @@
-> ⚠️ **历史分析报告说明**：本报告基于旧版模型（GPT-5、Claude 4.5、Gemini 2.5、DeepSeek R1）和旧版 Prompt v1.0（5 策略），分析的是 2025 年 10–11 月期间的 7 期预测数据。当前系统已迁移至 5 个新模型（DeepSeek V3、DeepSeek V3.2 Exp、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash）和 Prompt v2.0（4 策略），命中表现可能有所不同。此报告保留作为历史参考。
+> ⚠️ **历史分析报告说明**：本报告基于旧版模型（GPT-5、Claude 4.5、Gemini 2.5、DeepSeek R1）和旧版 Prompt v1.0（5 策略），分析的是 2025 年 10–11 月期间的 7 期预测数据。当前系统已迁移至 4 个新模型（DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)）和 Prompt v2.0（4 策略），命中表现可能有所不同。此报告保留作为历史参考。
 
 # 双色球 AI 预测分析报告
 

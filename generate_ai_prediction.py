@@ -21,6 +21,8 @@ from openai import (
 )
 from typing import Dict, Any, Optional
 
+from stats_models import generate_stats_predictions
+
 # ==================== 配置区 ====================
 # 默认 API 配置（通过环境变量设置，用于多数模型）
 BASE_URL = os.environ.get("AI_BASE_URL")
@@ -33,15 +35,6 @@ MODELS = [
         "id": "deepseek-v3",
         "name": "DeepSeek V3",
         "model_id": "deepseek-v3",
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
-        "id": "deepseek-v3.2-exp",
-        "name": "DeepSeek V3.2 Exp",
-        "model_id": "deepseek-v3.2-exp",
         "supports_streaming": True,
         "timeout": 240,
         "temperature": 0.8,
@@ -411,6 +404,12 @@ def validate_prediction(prediction: Dict[str, Any]) -> bool:
                 print(f"    ⚠️  红球存在重复号码: {group['red_balls']}")
                 return False
 
+        # 检查 4 组策略名互不相同（防止同一模型输出重复策略名，导致排行期数虚增）
+        strategies = [g.get("strategy", "") for g in prediction["predictions"]]
+        if len(set(strategies)) != len(strategies):
+            print(f"    ⚠️  策略名重复: {strategies}")
+            return False
+
         return True
 
     except Exception as e:
@@ -587,8 +586,37 @@ def generate_predictions() -> Dict[str, Any]:
     print("=" * 60)
     print(f"  总计: {sum(1 for d in diagnostics if d['status'] == '✅ 成功')}/{len(diagnostics)} 个模型成功\n")
 
-    # 记录 token 用量（无论是否全部成功）
+    # 记录 token 用量（仅 AI 模型，统计模型无 token 消耗）
     save_token_usage(diagnostics, target_period, prediction_date)
+
+    # ============ 生成统计/概率/机器学习模型预测（本地计算，不调用 API） ============
+    print("\n" + "=" * 50)
+    print("📊 生成统计数学模型预测 (10 种)...")
+    print("=" * 50)
+    stats_predictions = []
+    try:
+        stats_predictions = generate_stats_predictions(
+            target_period, prediction_date, lottery_data.get("data", []))
+    except Exception as e:
+        print(f"  ⚠️  统计模型生成异常: {type(e).__name__}: {e}")
+
+    if stats_predictions:
+        # 与 AI 模型一致：先做去重/防复读后处理，再严格校验格式
+        valid_stats = []
+        for sm in stats_predictions:
+            sm = post_process_prediction(sm, lottery_data.get("data", []))
+            if validate_prediction(sm):
+                valid_stats.append(sm)
+        all_predictions.extend(valid_stats)
+        names = "、".join(sm["model_name"] for sm in valid_stats)
+        print(f"  ✓ 统计模型通过校验 {len(valid_stats)}/{len(stats_predictions)} 个: {names}\n")
+    else:
+        print("  ⚠️  统计模型预测为空（历史数据不足），跳过\n")
+
+    # 标记模型类型（AI 模型标记为 'ai'；统计模型生成时已带 'stats'）
+    for m in all_predictions:
+        if m.get("model_type") != "stats":
+            m["model_type"] = "ai"
 
     # 构建最终输出
     if not all_predictions:
@@ -605,7 +633,9 @@ def generate_predictions() -> Dict[str, Any]:
         "models": all_predictions
     }
 
-    print(f"✅ 成功生成 {len(all_predictions)}/{len(MODELS)} 个模型的预测\n")
+    ai_count = sum(1 for m in all_predictions if m.get("model_type") != "stats")
+    stats_count = len(all_predictions) - ai_count
+    print(f"✅ 成功生成 {len(all_predictions)} 个模型的预测（AI {ai_count} + 统计 {stats_count}）\n")
     return result
 
 def calculate_hit_result(prediction_group: Dict[str, Any], actual_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -895,12 +925,24 @@ def _clear_predictions_file():
     except Exception as e:
         print(f"  ⚠️  清空预测文件失败: {e}")
 
+def _cleanup_archive_backups(archive_dir: str, prefix: str, keep: int = 10):
+    """保留最近 keep 份指定前缀的归档备份，自动清理更旧的（避免备份无限堆积）"""
+    try:
+        backups = [f for f in os.listdir(archive_dir)
+                   if f.startswith(prefix) and f.endswith('.json')]
+        backups.sort(key=lambda f: os.path.getmtime(os.path.join(archive_dir, f)), reverse=True)
+        for old in backups[keep:]:
+            os.remove(os.path.join(archive_dir, old))
+    except OSError:
+        pass
+
+
 def save_predictions(predictions: Dict[str, Any]):
     """保存预测数据到文件"""
     try:
         print("💾 保存预测数据...")
 
-        # 创建备份（写入 archive 目录）
+        # 创建备份（写入 archive 目录，仅保留最近 10 份）
         if os.path.exists(AI_PREDICTIONS_FILE):
             archive_dir = os.path.join(os.path.dirname(AI_PREDICTIONS_FILE), "archive")
             os.makedirs(archive_dir, exist_ok=True)
@@ -910,6 +952,7 @@ def save_predictions(predictions: Dict[str, Any]):
             with open(backup_file, 'w', encoding='utf-8') as f:
                 json.dump(backup_data, f, ensure_ascii=False, indent=2)
             print(f"  ✓ 已创建备份: {os.path.basename(backup_file)}")
+            _cleanup_archive_backups(archive_dir, "ai_predictions_backup_", keep=10)
 
         # 保存新预测
         with open(AI_PREDICTIONS_FILE, 'w', encoding='utf-8') as f:
