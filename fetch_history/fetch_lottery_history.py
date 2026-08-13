@@ -256,8 +256,15 @@ class LotteryDataFetcher:
             while next_date.weekday() not in draw_weekdays:
                 next_date += timedelta(days=1)
 
-            # 计算下一期期号
-            next_period = str(period_num + 1).zfill(len(latest_period))
+            # 计算下一期期号（期号格式 YYNNN，前两位为年份，每年从 001 重新计数）
+            seq = period_num % 1000
+            if next_date.year == last_draw_date.year:
+                # 同年：序号 +1，沿用当前年份前缀
+                next_seq = seq + 1
+            else:
+                # 跨年：序号从 001 重新开始，年份前缀取下一期开奖日所在年份
+                next_seq = 1
+            next_period = f"{str(next_date.year)[2:]}{next_seq:03d}"
 
             # 格式化日期
             next_date_str = next_date.strftime('%Y-%m-%d')

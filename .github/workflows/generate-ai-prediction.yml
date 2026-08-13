@@ -32,8 +32,12 @@ jobs:
       - name: Run AI prediction generator
         run: python3 generate_ai_prediction.py
         env:
+          # 默认 provider（DeepSeek V3 / Tongyi / Kimi / Qwen 等模型）
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          # sensenova provider（DeepSeek V4 Flash / GLM 5.2 等模型，独立 api_key/base_url）
+          SENSENOVA_API_KEY: ${{ secrets.SENSENOVA_API_KEY }}
+          SENSENOVA_BASE_URL: ${{ secrets.SENSENOVA_BASE_URL }}
 
       - name: Check for changes
         id: check_changes

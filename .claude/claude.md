@@ -48,13 +48,13 @@ double/
 ├── .github/workflows/
 │   ├── update-lottery-data.yml       # 爬虫工作流：每天 UTC 14:00（北京 22:00）
 │   ├── generate-ai-prediction.yml    # AI 预测工作流：每周一三五 UTC 00:00
-│   ├── email-daily-digest.yml        # 邮件推送工作流：每天 UTC 00:30
+│   ├── email-daily-digest.yml        # 邮件推送工作流：每天 UTC 00:30 + 12:00（北京 08:30 + 20:00）
 │   └── push-notify.yml               # Push 事件邮件通知
 ├── .env.example                      # 环境变量模板
 ├── .env                              # 本地环境变量（git 忽略）
 ├── .vercelignore                     # Vercel 构建忽略
 ├── .gitignore                        # Git 忽略规则
-├── generate_ai_prediction.py         # 预测自动生成脚本（主入口：5 AI + 10 统计模型）
+├── generate_ai_prediction.py         # 预测自动生成脚本（主入口：6 AI + 10 统计模型）
 ├── stats_models.py                   # 10 种统计/概率/ML 模型预测（纯标准库，确定性）
 ├── email_content_builder.py          # 邮件内容组装模块（纯函数）
 ├── email_smtp_utils.py               # SMTP 邮件发送工具（共享模块）
@@ -62,7 +62,8 @@ double/
 ├── email_push_notify.py              # Push 触发邮件通知
 ├── test_prediction.py                # 预测文件格式测试脚本
 ├── vercel.json                       # Vercel 部署配置
-├── start_server.sh / .bat            # 本地开发服务器
+├── server.py                         # 本地开发服务器（静态文件 + /api/update 触发爬虫与 AI 更新，端口 8080）
+├── start_server.sh / .bat            # 本地开发服务器启动脚本（运行 server.py）
 ├── LICENSE                           # 许可证
 └── README.md                         # 项目说明
 ```
@@ -75,7 +76,7 @@ double/
 
 | Tab | 内容 |
 |-----|------|
-| **最新预测** | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计数学模型卡片（共 15 个，各 4 组预测）、免责声明 |
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计数学模型卡片（共 16 个，各 4 组预测）、免责声明 |
 | **历史分析** | 4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格、命中记录紧凑摘要 |
 | **模型排行** | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计、Token 用量排行 |
 
@@ -105,11 +106,12 @@ start_server.bat
 # macOS/Linux
 ./start_server.sh
 
-# 手动
-python3 -m http.server 8000
+# 手动（需要 /api/update 更新接口时用 server.py；仅预览静态文件可用 http.server）
+python server.py              # 端口 8080，提供 /api/update 触发爬虫与 AI 预测更新
+# python -m http.server 8000  # 纯静态预览，无更新接口
 ```
 
-访问 `http://localhost:8000`。**不能直接双击 `index.html`（CORS 限制）**。
+访问 `http://localhost:8080`（server.py）或 `http://localhost:8000`（http.server）。**不能直接双击 `index.html`（CORS 限制）**。
 
 ---
 
@@ -199,14 +201,14 @@ python3 -m http.server 8000
 ### 2. `generate-ai-prediction.yml` — 生成 AI 预测
 - **触发**: 每周一三五 UTC 00:00（北京时间 08:00）+ 手动
 - **执行**: `python3 generate_ai_prediction.py`
-- **Secrets**: `AI_API_KEY`, `AI_BASE_URL`
+- **Secrets**: `AI_API_KEY`, `AI_BASE_URL`, `SENSENOVA_API_KEY`, `SENSENOVA_BASE_URL`
 - **推送**: `data/ai_predictions.json`, `data/predictions_history.json`, `data/token_usage.json`
 
 ### 3. `email-daily-digest.yml` — 每日邮件推送
-- **触发**: 每天 UTC 00:30（北京时间 08:30）+ 手动
+- **触发**: 每天 UTC 00:30 + 12:00（北京时间 08:30 + 20:00）
 - **执行**: `python3 email_daily_digest.py`
 - **Secrets**: `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_RECIPIENT`
-- **注意**: 在 AI 预测生成之后运行，确保邮件含最新预测
+- **注意**: 早间推送在 AI 预测生成（UTC 00:00）之后 30 分钟运行，留足缓冲确保邮件含最新预测
 
 ### 4. `push-notify.yml` — Push 事件邮件通知
 - **触发**: push 到 master 分支 + 手动
@@ -245,13 +247,15 @@ MODELS = [
 ]
 ```
 
-**环境变量**:
-- `AI_API_KEY`（必填）
-- `AI_BASE_URL`（可选，默认 `https://aihubmix.com/v1`）
+**环境变量**（默认 provider 用于 DeepSeek V3 / Tongyi / Kimi / Qwen；sensenova provider 用于 DeepSeek V4 Flash / GLM 5.2，二者独立凭证）:
+- `AI_API_KEY`（默认 provider，必填）
+- `AI_BASE_URL`（默认 provider，可选）
+- `SENSENOVA_API_KEY`（sensenova provider，必填——缺失则新模型回退到默认凭证并调用失败）
+- `SENSENOVA_BASE_URL`（sensenova provider，默认 `https://token.sensenova.cn/v1`）
 
 ```bash
 pip install openai
-python3 generate_ai_prediction.py
+python generate_ai_prediction.py
 ```
 
 ### `stats_models.py` — 10 种统计/概率/机器学习模型（纯标准库，确定性）
@@ -273,8 +277,8 @@ python3 generate_ai_prediction.py
 
 **独立运行/验证**:
 ```bash
-python3 stats_models.py                    # 打印 10 模型 × 4 组预测
-python3 stats_models.py --output x.json    # 写入临时 JSON 供检查
+python stats_models.py                    # 打印 10 模型 × 4 组预测
+python stats_models.py --output x.json    # 写入临时 JSON 供检查
 ```
 
 ### `email_daily_digest.py` / `email_push_notify.py` — 邮件推送
@@ -303,7 +307,7 @@ EMAIL_DRY_RUN=true
 
 | 脚本 | 用途 |
 |------|------|
-| `test_prediction.py` | 验证 `ai_predictions.json` 格式（15 个模型 × 4 组） |
+| `test_prediction.py` | 验证 `ai_predictions.json` 格式（16 个模型 × 4 组） |
 | `stats_models.py` | 生成 10 个统计/概率/ML 模型预测（见上文专项说明） |
 | `email_smtp_utils.py` | SMTP 配置/校验/发送共享模块（两个邮件脚本共用） |
 | `fetch_history/fetch_lottery_history.py` | 从 500.com 爬取开奖历史数据 |
@@ -342,8 +346,8 @@ Vercel 自动重新部署
 ### 手动触发
 
 1. **立即更新开奖数据**: GitHub Actions → Update Lottery Data → Run workflow
-2. **手动生成预测**: `python3 generate_ai_prediction.py`
-3. **测试邮件**: 设置 `EMAIL_DRY_RUN=true` 后运行 `python3 email_daily_digest.py`
+2. **手动生成预测**: `python generate_ai_prediction.py`
+3. **测试邮件**: 设置 `EMAIL_DRY_RUN=true` 后运行 `python email_daily_digest.py`
 
 ### 数据更新检查清单
 
@@ -360,8 +364,10 @@ Vercel 自动重新部署
 
 | 变量 | 用途 | 使用方 |
 |------|------|--------|
-| `AI_API_KEY` | AI 模型调用凭证 | `generate_ai_prediction.py` |
-| `AI_BASE_URL` | AI API 端点（默认 aihubmix.com） | `generate_ai_prediction.py` |
+| `AI_API_KEY` | 默认 provider 的 AI 调用凭证 | `generate_ai_prediction.py` |
+| `AI_BASE_URL` | 默认 provider 端点（见 `.env.example`） | `generate_ai_prediction.py` |
+| `SENSENOVA_API_KEY` | sensenova provider 凭证（DeepSeek V4 Flash / GLM 5.2） | `generate_ai_prediction.py` |
+| `SENSENOVA_BASE_URL` | sensenova 端点（默认 `https://token.sensenova.cn/v1`） | `generate_ai_prediction.py` |
 | `SMTP_SERVER` | SMTP 服务器（默认 smtp.qq.com） | `email_daily_digest.py` / `email_push_notify.py` |
 | `SMTP_PORT` | SMTP 端口（默认 465） | 同上 |
 | `SMTP_USER` | 邮箱地址 | 同上 |

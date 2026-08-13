@@ -492,6 +492,13 @@ def save_token_usage(diagnostics: list, target_period: str, prediction_date: str
                 "success": d.get("status") == "✅ 成功",
             })
 
+        # 去重：同一 (期号, 模型) 仅保留最新一次记录，避免重跑导致累计排行膨胀
+        _dedup = {}
+        for r in records:
+            _dedup[(r.get("target_period", ""), r.get("model_id", ""))] = r
+        deduped_count = len(records) - len(_dedup)
+        records = list(_dedup.values())
+
         # 裁剪：按期号分组，保留最近 KEEP_PERIODS 期
         period_groups = defaultdict(list)
         for r in records:
@@ -508,8 +515,13 @@ def save_token_usage(diagnostics: list, target_period: str, prediction_date: str
 
         _write_json_file(TOKEN_USAGE_FILE, {"records": records})
         msg = f"  📊 已记录 {len(diagnostics)} 条 token 用量到 token_usage.json"
+        notes = []
+        if deduped_count:
+            notes.append(f"去重 {deduped_count} 条重跑记录")
         if trimmed:
-            msg += f"（裁剪 {trimmed} 条过期记录，保留最近 {len(kept_periods)} 期）"
+            notes.append(f"裁剪 {trimmed} 条过期记录（保留最近 {len(kept_periods)} 期）")
+        if notes:
+            msg += "（" + "，".join(notes) + "）"
         print(msg)
     except Exception as e:
         print(f"  ⚠️  保存 token 用量失败: {str(e)}")
@@ -794,13 +806,39 @@ def _repair_group(group: Dict[str, Any], recent_draws: list) -> Dict[str, Any]:
     }
 
 
+def _normalize_balls(prediction: Dict[str, Any]) -> None:
+    """将合法红蓝球规整为 2 位零填充字符串、红球按数值升序排列（原地修改）。
+
+    AI 偶尔输出 "6" 而非 "06"；统一规整后，去重键、字典序排序校验、归档
+    时的命中比对（按原字符串相等）才一致可靠。非法号码原样保留，交由
+    validate_prediction 拒绝，避免在此处静默吞掉格式错误。
+    """
+    for g in prediction.get("predictions", []):
+        reds = g.get("red_balls", [])
+        normalized = []
+        for b in reds:
+            if isinstance(b, str) and b.isdigit() and 1 <= int(b) <= 33:
+                normalized.append(f"{int(b):02d}")
+            else:
+                normalized.append(b)
+        # 全为 2 位零填充串时字典序即数值序；混入非法值时该模型会被 validate 拒绝，排序无影响
+        g["red_balls"] = sorted(normalized)
+        blue = g.get("blue_ball")
+        if isinstance(blue, str) and blue.isdigit() and 1 <= int(blue) <= 16:
+            g["blue_ball"] = f"{int(blue):02d}"
+
+
 def post_process_prediction(prediction: Dict[str, Any], history_data: list) -> Dict[str, Any]:
     """
     对模型预测进行后处理：
+    0. 规整：红蓝球统一为 2 位零填充
     1. 去重：移除红蓝完全相同的重复组
     2. 防复读：修复与近期开奖太相似的组
     3. 补齐：确保总是 4 组
     """
+    # 0. 规整号码格式（须在去重/排序/校验/归档之前）
+    _normalize_balls(prediction)
+
     recent_draws = [d for d in history_data if isinstance(d, dict) and "red_balls" in d and "blue_ball" in d]
 
     # 1. 去重
@@ -955,6 +993,11 @@ def archive_old_prediction(lottery_data: Dict[str, Any]) -> bool:
                 pred_with_hit = pred_group.copy()
                 pred_with_hit["hit_result"] = calculate_hit_result(pred_group, actual_result)
                 predictions_with_hits.append(pred_with_hit)
+
+            # 跳过没有预测组的模型，避免 max() 空序列崩溃导致整期归档失败
+            if not predictions_with_hits:
+                print(f"    ⚠️  模型 {model_data.get('model_id', '?')} 无预测组，跳过归档")
+                continue
 
             # 找出最佳预测组
             best_pred = max(predictions_with_hits, key=lambda p: p["hit_result"]["total_hits"])
