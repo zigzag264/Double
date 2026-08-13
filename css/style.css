@@ -654,6 +654,12 @@ body::before {
 .model-header-kimi .model-id { color: rgba(255,255,255,0.7); }
 .model-header-kimi .model-id-dot { background: #4ade80; }
 
+.model-header-glm { background: linear-gradient(135deg, #4c1d95, #8b5cf6); color: #fff; }
+.model-header-glm .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
+.model-header-glm .model-name-wrapper h3 { color: #fff; }
+.model-header-glm .model-id { color: rgba(255,255,255,0.7); }
+.model-header-glm .model-id-dot { background: #c4b5fd; }
+
 /* ===== 统计/概率/机器学习模型头部配色 ===== */
 .model-header-markov { background: linear-gradient(135deg, #312e81, #6366f1); }
 .model-header-bayes  { background: linear-gradient(135deg, #134e4a, #14b8a6); }

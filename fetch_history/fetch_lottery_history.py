@@ -25,6 +25,19 @@ import os
 from datetime import datetime, timedelta
 
 
+def _dump_json(obj) -> str:
+    """紧凑 JSON（无缩进）序列化，用于落盘的数据文件。
+    相比 indent=2 可减小 30%~50% 体积，减少 git 体积与传输成本。
+    """
+    return json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
+
+
+def _write_json_file(path: str, obj) -> None:
+    """以紧凑格式写入 JSON 文件。"""
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(_dump_json(obj))
+
+
 class LotteryDataFetcher:
     """双色球数据获取器"""
     
@@ -307,9 +320,8 @@ class LotteryDataFetcher:
                 # 合并数据
                 merged_data = self.merge_with_existing_data(data, filename)
 
-                # 保存合并后的数据
-                with open(filename, 'w', encoding='utf-8') as f:
-                    json.dump(merged_data, f, ensure_ascii=False, indent=2)
+                # 保存合并后的数据（紧凑格式）
+                _write_json_file(filename, merged_data)
                 print(f"\n数据已成功保存到 {filename}")
                 print(f"共保存 {len(merged_data)} 期数据")
 
@@ -318,16 +330,14 @@ class LotteryDataFetcher:
                     web_data_path = os.path.join(os.path.dirname(filename), '..', 'data', 'lottery_history.json')
                     formatted_data = self.format_for_web(merged_data)
 
-                    with open(web_data_path, 'w', encoding='utf-8') as f:
-                        json.dump(formatted_data, f, ensure_ascii=False, indent=2)
+                    _write_json_file(web_data_path, formatted_data)
                     print(f"✓ 已同步到网页数据文件: {web_data_path}")
                 except Exception as e:
                     print(f"⚠️  同步到网页数据失败: {e}")
 
             else:
-                # 直接保存新数据
-                with open(filename, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
+                # 直接保存新数据（紧凑格式）
+                _write_json_file(filename, data)
                 print(f"\n数据已成功保存到 {filename}")
                 print(f"共保存 {len(data)} 期数据")
         except Exception as e:

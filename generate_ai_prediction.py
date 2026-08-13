@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time as time_module
+from collections import defaultdict
 from datetime import datetime, timedelta
 from openai import OpenAI
 from openai import (
@@ -22,6 +23,13 @@ from openai import (
 from typing import Dict, Any, Optional
 
 from stats_models import generate_stats_predictions
+
+# 自动加载 .env 文件（如果存在）
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # ==================== 配置区 ====================
 # 默认 API 配置（通过环境变量设置，用于多数模型）
@@ -71,6 +79,32 @@ MODELS = [
         "reasoning_effort": "low",
         "max_tokens": 4096,
     },
+    {
+        "id": "deepseek-v4-flash",
+        "name": "DeepSeek V4 Flash",
+        "model_id": "deepseek-v4-flash",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+        "api_key": os.environ.get("SENSENOVA_API_KEY"),
+        "base_url": os.environ.get("SENSENOVA_BASE_URL"),
+        # 推理模型：reasoning_content 与正文 content 共享输出预算，推理链会吃满
+        # 默认上限导致 content 为空（JSON 解析失败）。reasoning_effort="none" 直接
+        # 关闭推理路径，正文 JSON 即刻输出（~7s、completion≈500 tokens）。
+        "reasoning_effort": "none",
+    },
+    {
+        "id": "glm-5.2",
+        "name": "GLM 5.2",
+        "model_id": "glm-5.2",
+        "supports_streaming": True,
+        "timeout": 240,
+        "temperature": 0.8,
+        "max_retries": 2,
+        "api_key": os.environ.get("SENSENOVA_API_KEY"),
+        "base_url": os.environ.get("SENSENOVA_BASE_URL"),
+    },
 ]
 
 # 文件路径
@@ -82,6 +116,21 @@ TOKEN_USAGE_FILE = os.path.join(SCRIPT_DIR, "data", "token_usage.json")
 PROMPT_FILE = os.path.join(SCRIPT_DIR, "doc", "prompt2.0.md")
 
 # ==================== 工具函数 ====================
+
+def _dump_json(obj) -> str:
+    """紧凑 JSON（无缩进）序列化，用于落盘的数据文件。
+
+    相比 indent=2 可减小 30%~50% 体积，减少 git 体积、传输与首屏 parse 成本。
+    归档备份与部署文件统一使用此格式。
+    """
+    return json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
+
+
+def _write_json_file(path: str, obj) -> None:
+    """以紧凑格式写入 JSON 文件。"""
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(_dump_json(obj))
+
 
 def load_prompt_template() -> str:
     """加载 Prompt 模板文件"""
@@ -417,7 +466,12 @@ def validate_prediction(prediction: Dict[str, Any]) -> bool:
         return False
 
 def save_token_usage(diagnostics: list, target_period: str, prediction_date: str):
-    """将本次各模型的 token 用量追加到 data/token_usage.json"""
+    """将本次各模型的 token 用量追加到 data/token_usage.json
+
+    追加后按 target_period 裁剪，仅保留最近 KEEP_PERIODS 期记录，
+    避免文件随时间无限增长（前端排行只展示累计统计，旧记录无展示价值）。
+    """
+    KEEP_PERIODS = 52  # 约半年的开奖期数
     try:
         records = []
         if os.path.exists(TOKEN_USAGE_FILE):
@@ -438,9 +492,25 @@ def save_token_usage(diagnostics: list, target_period: str, prediction_date: str
                 "success": d.get("status") == "✅ 成功",
             })
 
-        with open(TOKEN_USAGE_FILE, 'w', encoding='utf-8') as f:
-            json.dump({"records": records}, f, ensure_ascii=False, indent=2)
-        print(f"  📊 已记录 {len(diagnostics)} 条 token 用量到 token_usage.json")
+        # 裁剪：按期号分组，保留最近 KEEP_PERIODS 期
+        period_groups = defaultdict(list)
+        for r in records:
+            period_groups[r.get("target_period", "")].append(r)
+        sorted_periods = sorted(
+            period_groups.keys(),
+            key=lambda p: int(p) if isinstance(p, str) and str(p).isdigit() else 0,
+            reverse=True,
+        )
+        kept_periods = sorted_periods[:KEEP_PERIODS]
+        before = len(records)
+        records = [r for p in kept_periods for r in period_groups[p]]
+        trimmed = before - len(records)
+
+        _write_json_file(TOKEN_USAGE_FILE, {"records": records})
+        msg = f"  📊 已记录 {len(diagnostics)} 条 token 用量到 token_usage.json"
+        if trimmed:
+            msg += f"（裁剪 {trimmed} 条过期记录，保留最近 {len(kept_periods)} 期）"
+        print(msg)
     except Exception as e:
         print(f"  ⚠️  保存 token 用量失败: {str(e)}")
 
@@ -482,7 +552,7 @@ def generate_predictions() -> Dict[str, Any]:
 
     # 准备历史数据（最近30期）
     history_data = lottery_data.get("data", [])[:30]
-    history_json = json.dumps(history_data, ensure_ascii=False, indent=2)
+    history_json = _dump_json(history_data)  # 紧凑格式，减少 prompt 输入 token
 
     # 预测日期：根据开奖规则计算下期开奖日期
     prediction_date = get_next_draw_date()
@@ -760,12 +830,22 @@ def post_process_prediction(prediction: Dict[str, Any], history_data: list) -> D
             repaired.append(g)
 
     # 3. 补齐到 4 组（如果去重后不足）
+    # 补齐时使用备用策略名，确保不与现有组重复
+    _FALLBACK_STRATEGIES = ["均值回归", "区间平衡", "奇偶优化", "跨度精选"]
+    existing_strategies = {g["strategy"] for g in repaired}
+    fallback_idx = 0
     while len(repaired) < 4:
         # 以最后一组为蓝本生成变体
         template = repaired[-1] if repaired else unique_groups[0]
+        # 取一个不重复的备用策略名
+        strategy_name = template["strategy"]
+        while strategy_name in existing_strategies and fallback_idx < len(_FALLBACK_STRATEGIES):
+            strategy_name = _FALLBACK_STRATEGIES[fallback_idx]
+            fallback_idx += 1
+        existing_strategies.add(strategy_name)
         variant = {
             "group_id": len(repaired) + 1,
-            "strategy": template["strategy"],
+            "strategy": strategy_name,
             "red_balls": list(template["red_balls"]),
             "blue_ball": template["blue_ball"],
         }
@@ -898,9 +978,8 @@ def archive_old_prediction(lottery_data: Dict[str, Any]) -> bool:
         # 插入到历史记录顶部
         history_data["predictions_history"].insert(0, new_record)
 
-        # 保存历史记录
-        with open(PREDICTIONS_HISTORY_FILE, 'w', encoding='utf-8') as f:
-            json.dump(history_data, f, ensure_ascii=False, indent=2)
+        # 保存历史记录（紧凑格式）
+        _write_json_file(PREDICTIONS_HISTORY_FILE, history_data)
 
         print(f"  ✅ 已将期号 {old_target_period} 的预测归档到历史记录")
         print(f"  📊 归档模型数: {len(models_with_hits)}\n")
@@ -919,8 +998,7 @@ def _clear_predictions_file():
         "models": []
     }
     try:
-        with open(AI_PREDICTIONS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(empty, f, ensure_ascii=False, indent=2)
+        _write_json_file(AI_PREDICTIONS_FILE, empty)
         print(f"  ✓ 已清空 {os.path.basename(AI_PREDICTIONS_FILE)}")
     except Exception as e:
         print(f"  ⚠️  清空预测文件失败: {e}")
@@ -949,14 +1027,12 @@ def save_predictions(predictions: Dict[str, Any]):
             backup_file = os.path.join(archive_dir, f"ai_predictions_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
             with open(AI_PREDICTIONS_FILE, 'r', encoding='utf-8') as f:
                 backup_data = json.load(f)
-            with open(backup_file, 'w', encoding='utf-8') as f:
-                json.dump(backup_data, f, ensure_ascii=False, indent=2)
+            _write_json_file(backup_file, backup_data)
             print(f"  ✓ 已创建备份: {os.path.basename(backup_file)}")
             _cleanup_archive_backups(archive_dir, "ai_predictions_backup_", keep=10)
 
-        # 保存新预测
-        with open(AI_PREDICTIONS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(predictions, f, ensure_ascii=False, indent=2)
+        # 保存新预测（紧凑格式）
+        _write_json_file(AI_PREDICTIONS_FILE, predictions)
 
         print(f"  ✓ 已保存到: {AI_PREDICTIONS_FILE}\n")
 
