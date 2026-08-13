@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 4 个大模型（DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)）对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 6 个大模型（DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)、DeepSeek V4 Flash、GLM 5.2）对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
@@ -35,7 +35,7 @@ double/
 │   ├── lottery_history.json          # 历史开奖数据 + 下期开奖信息
 │   ├── ai_predictions.json           # 当前 AI 预测（未开奖期号）
 │   ├── predictions_history.json      # 历史预测对比（已开奖期号）
-│   ├── token_usage.json              # 各模型每次调用的 token 用量统计
+│   ├── token_usage.json              # 各模型每次调用的 token 用量统计（生成侧裁剪保留近 52 期）
 │   └── archive/                      # 备份归档（git 忽略）
 │       ├── ai_predictions_backup_*.json
 │       ├── predictions_history_backup_*.json
@@ -63,8 +63,6 @@ double/
 ├── test_prediction.py                # 预测文件格式测试脚本
 ├── vercel.json                       # Vercel 部署配置
 ├── start_server.sh / .bat            # 本地开发服务器
-├── AI_PREDICTION_GUIDE.md            # AI 预测自动生成指南
-├── AI_Prediction_Analysis_Report.md  # 历史预测分析报告
 ├── LICENSE                           # 许可证
 └── README.md                         # 项目说明
 ```
@@ -93,6 +91,10 @@ double/
 ### 主题切换
 
 CSS 变量实现深色/浅色模式，偏好保存至 localStorage。
+
+### 数据懒加载
+
+首屏只加载 `lottery_history.json` + `ai_predictions.json`（Tab1 所需）；进入 Tab2/Tab3 时由 `loadSecondaryData()` 并发拉取 `predictions_history.json` + `token_usage.json`（并发去重，仅拉一次）。`/api/update` 响应已含全部 4 个数据源，更新后标记次要数据为已加载，避免重复请求。
 
 ### 启动方式
 
@@ -224,12 +226,12 @@ python3 -m http.server 8000
 1. 加载 Prompt 模板（`doc/prompt2.0.md`）
 2. 加载历史数据（`data/lottery_history.json`，取最近 30 期给 AI；全量给统计模型）
 3. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
-4. 逐个调用 4 个 AI 模型生成预测
+4. 逐个调用 6 个 AI 模型生成预测
 5. 调用 `stats_models.generate_stats_predictions()` 本地生成 10 个统计/概率/ML 模型预测（**不消耗 token；即使 AI 全部失败也会保留统计模型**）
 6. 每个模型统一做去重/防复读后处理 + 格式校验（4 组、6 红球已排序、蓝球非空、策略名互不相同）
 7. 记录 AI 模型 token 用量到 `token_usage.json`，创建备份并保存
 
-> 输出的 `ai_predictions.json` 共 **14 个模型**：4 个 AI（`model_type=ai`）+ 10 个统计（`model_type=stats`）。前端按 `model_type` 分区展示。
+> 输出的 `ai_predictions.json` 共 **16 个模型**：6 个 AI（`model_type=ai`）+ 10 个统计（`model_type=stats`）。前端按 `model_type` 分区展示。
 
 **模型配置**（内置）:
 ```python
@@ -238,6 +240,8 @@ MODELS = [
     {"id": "tongyi-xiaomi-analysis-pro", "name": "Tongyi Analysis Pro", "model_id": "tongyi-xiaomi-analysis-pro"},
     {"id": "Moonshot-Kimi-K2-Instruct", "name": "Kimi K2", "model_id": "Moonshot-Kimi-K2-Instruct"},
     {"id": "qwen3.7-flash-2026-07-15", "name": "Qwen 3.7 Flash (07-15)", "model_id": "qwen3.7-flash-2026-07-15"},
+    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "deepseek-v4-flash"},
+    {"id": "glm-5.2", "name": "GLM 5.2", "model_id": "glm-5.2"},
 ]
 ```
 
@@ -409,7 +413,8 @@ start_server.bat     # Windows
 
 ## 文件编码与格式
 
-- JSON 文件：UTF-8，`ensure_ascii=False`，`indent=2`
+- JSON 数据文件：UTF-8，`ensure_ascii=False`，**紧凑格式**（`separators=(',',':')`，无缩进）— 落盘文件统一用 `_dump_json()` / `_write_json_file()` 写入，较 `indent=2` 减小 30%~50% 体积
+- 调试/人工检查用临时 JSON（如 `stats_models.py --output`）保留 `indent=2` 便于阅读
 - Python 文件：UTF-8，`# -*- coding: utf-8 -*-`
 - HTML/CSS/JS：UTF-8
 
@@ -445,6 +450,4 @@ __pycache__/
 
 ## 相关文档索引
 
-- [AI_PREDICTION_GUIDE.md](./AI_PREDICTION_GUIDE.md) — AI 预测自动生成详细指南
-- [AI_Prediction_Analysis_Report.md](./AI_Prediction_Analysis_Report.md) — 历史预测命中率分析报告
 - [README.md](./README.md) — 项目对外说明

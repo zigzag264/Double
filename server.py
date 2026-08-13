@@ -165,7 +165,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "timestamp": datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M"),
             }
 
-        self.wfile.write(json.dumps(resp, ensure_ascii=False, indent=2).encode("utf-8"))
+        self.wfile.write(json.dumps(resp, ensure_ascii=False, separators=(',', ':')).encode("utf-8"))
 
 
 def main():

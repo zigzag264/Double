@@ -13,6 +13,11 @@ let appData = {
 // 各 Tab 渲染标记（懒渲染：首次进入某 Tab 时才构建；更新数据后重置）
 const renderedTabs = { prediction: true };
 
+// 次要数据（Tab2 历史分析 / Tab3 模型排行 用）懒加载状态
+// 首屏只加载 lotteryHistory + aiPredictions；进入 Tab2/3 时再拉取 predictionsHistory + tokenUsage
+let secondaryLoaded = false;
+let secondaryLoading = null;
+
 // 初始化应用
 async function initApp() {
     try {
@@ -36,24 +41,51 @@ async function initApp() {
     }
 }
 
-// 加载所有数据
+// 加载首屏数据（仅 Tab1 所需：历史开奖 + 当前预测，体积小、首屏必需）
 async function loadAllData() {
     try {
-        const [lotteryHistory, aiPredictions, predictionsHistory, tokenUsage] = await Promise.all([
+        const [lotteryHistory, aiPredictions] = await Promise.all([
             DataLoader.loadLotteryHistory(),
-            DataLoader.loadPredictions(),
-            DataLoader.loadPredictionsHistory(),
-            DataLoader.loadTokenUsage()
+            DataLoader.loadPredictions()
         ]);
 
         appData.lotteryHistory = lotteryHistory;
         appData.aiPredictions = aiPredictions;
-        appData.predictionsHistory = predictionsHistory;
-        appData.tokenUsage = tokenUsage;
     } catch (error) {
         console.error('数据加载失败:', error);
         throw error;
     }
+}
+
+// 懒加载次要数据（Tab2/3 所需：历史预测对比 + token 用量）
+// 首次进入任一次要 Tab 时触发，并发去重，仅拉取一次
+async function loadSecondaryData() {
+    if (secondaryLoaded) return;
+    if (!secondaryLoading) {
+        secondaryLoading = (async () => {
+            try {
+                const [predictionsHistory, tokenUsage] = await Promise.all([
+                    DataLoader.loadPredictionsHistory(),
+                    DataLoader.loadTokenUsage()
+                ]);
+                appData.predictionsHistory = predictionsHistory;
+                appData.tokenUsage = tokenUsage;
+            } catch (error) {
+                console.error('次要数据加载失败:', error);
+                // 降级：保证后续渲染函数拿到安全空结构而非 null
+                if (!appData.predictionsHistory) {
+                    appData.predictionsHistory = { predictions_history: [] };
+                }
+                if (!appData.tokenUsage) {
+                    appData.tokenUsage = { records: [] };
+                }
+            } finally {
+                secondaryLoaded = true;
+                secondaryLoading = null;
+            }
+        })();
+    }
+    await secondaryLoading;
 }
 
 // 渲染Hero Banner
@@ -645,6 +677,8 @@ async function handleUpdateData() {
                 appData.aiPredictions = result.data.ai_predictions || appData.aiPredictions;
                 appData.predictionsHistory = result.data.predictions_history || appData.predictionsHistory;
                 appData.tokenUsage = result.data.token_usage || appData.tokenUsage;
+                // /api/update 已返回次要数据，标记为已加载，避免进入 Tab2/3 时重复拉取
+                secondaryLoaded = true;
             }
 
             // 重置渲染标记：预测页立即重渲，其余 Tab 下次进入时按新数据懒渲染
@@ -689,7 +723,7 @@ function setupEventListeners() {
 }
 
 // 处理 Tab 切换（懒渲染：首次进入某 Tab 时才构建内容）
-function handleTabSwitch(tabName) {
+async function handleTabSwitch(tabName) {
     // 同步导航与内容区状态
     document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(item => {
         item.classList.toggle('active', item.dataset.tab === tabName);
@@ -698,14 +732,16 @@ function handleTabSwitch(tabName) {
         content.classList.toggle('active', content.dataset.tab === tabName);
     });
 
-    // 首次进入才渲染；更新数据后标记被清除，会自动按新数据重建
+    // 次要 Tab 需先懒加载次要数据再渲染
     if (tabName === 'analysis' && !renderedTabs.analysis) {
+        await loadSecondaryData();
         renderedTabs.analysis = true;
         renderStatisticsCards();
         renderHistoryTable();
         renderAccuracyCards();
     }
     if (tabName === 'ranking' && !renderedTabs.ranking) {
+        await loadSecondaryData();
         renderedTabs.ranking = true;
         renderRankingTab();
     }

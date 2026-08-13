@@ -11,9 +11,9 @@
 
 </div>
 
-基于 **4 个 AI 大模型 + 10 个统计/概率/机器学习模型** 的双色球彩票预测与数据分析展示平台。多模型预测对比、5 类 Chart.js 图表分析、历史命中率回溯，以及每日邮件推送。
+基于 **6 个 AI 大模型 + 10 个统计/概率/机器学习模型** 的双色球彩票预测与数据分析展示平台。多模型预测对比、5 类 Chart.js 图表分析、历史命中率回溯，以及每日邮件推送。
 
-> **AI 模型**: DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)
+> **AI 模型**: DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)、DeepSeek V4 Flash、GLM 5.2
 > **统计/概率/ML 模型**: 马尔可夫链、贝叶斯推断、正态分布(Z-score)、泊松分布、蒙特卡洛模拟、频率热号、遗漏回补、指数平滑(EWMA)、关联规则、集成投票（本地纯标准库计算，确定性输出，不消耗 token）
 
 ---
@@ -85,8 +85,6 @@ double/
 ├── vercel.json                      # Vercel 部署配置
 ├── start_server.*                   # 本地开发启动脚本
 ├── .env.example                     # 环境变量模板
-├── AI_PREDICTION_GUIDE.md           # AI 预测生成指南
-├── AI_Prediction_Analysis_Report.md # 历史预测分析报告
 └── README.md                        # 本文件
 ```
 
@@ -134,7 +132,7 @@ python3 generate_ai_prediction.py
   ↓
 检测旧预测是否已开奖 → 计算命中 → 归档到 predictions_history.json
   ↓
-依次调用 4 个 AI 模型 → 各生成 4 组预测
+依次调用 6 个 AI 模型 → 各生成 4 组预测
   ↓
 后处理：去重 / 防复读 / 补齐 / 验证
   ↓
@@ -208,7 +206,7 @@ Vercel 自动重新部署
 | 工作流 | 触发 | 执行 | 手动场景 |
 |--------|------|------|---------|
 | **Update Lottery Data** | 每天 UTC 14:00 | 爬取最新开奖数据 | 开奖后立即更新 |
-| **Generate AI Prediction** | 周一/三/五 UTC 00:00 | 调用 5 个模型生成预测 | 预测过期/新增模型 |
+| **Generate AI Prediction** | 周一/三/五 UTC 00:00 | 调用 6 个模型生成预测 | 预测过期/新增模型 |
 | **Email Daily Digest** | 每天 UTC 00:30 | 发送每日汇总邮件 | 测试邮件格式 |
 | **Push Notification** | 每次 push 到 master | 发送更新摘要邮件 | 推送更新通知 |
 
@@ -292,8 +290,6 @@ vercel --prod
 
 | 文档 | 内容 |
 |------|------|
-| [AI_PREDICTION_GUIDE.md](./AI_PREDICTION_GUIDE.md) | AI 预测自动生成详细指南 |
-| [AI_Prediction_Analysis_Report.md](./AI_Prediction_Analysis_Report.md) | 历史预测命中率分析报告 |
 | [doc/prompt2.0.md](./doc/prompt2.0.md) | Prompt 模板 v2.0（4 策略，主用） |
 
 ---

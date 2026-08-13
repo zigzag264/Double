@@ -40,6 +40,7 @@ const Components = {
         if (modelName.includes('Qwen')) return 'model-header-qwen';
         if (modelName.includes('Tongyi')) return 'model-header-tongyi';
         if (modelName.includes('Kimi')) return 'model-header-kimi';
+        if (modelName.includes('GLM')) return 'model-header-glm';
         // 统计/概率/机器学习模型
         if (modelName.includes('马尔可夫')) return 'model-header-markov';
         if (modelName.includes('贝叶斯')) return 'model-header-bayes';
