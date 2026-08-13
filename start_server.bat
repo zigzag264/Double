@@ -17,7 +17,7 @@ if %errorlevel% neq 0 (
 
 echo √ 启动本地服务器...
 echo.
-echo 📡 服务器地址: http://localhost:8000
+echo 📡 服务器地址: http://localhost:8080
 echo 🌐 请在浏览器中打开上述地址
 echo.
 echo 💡 提示: 按 Ctrl+C 停止服务器
