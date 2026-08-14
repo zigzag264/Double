@@ -636,18 +636,6 @@ body::before {
 .model-header-deepseek .model-id { color: rgba(255,255,255,0.7); }
 .model-header-deepseek .model-id-dot { background: #60a5fa; }
 
-.model-header-qwen { background: linear-gradient(135deg, #1e1b4b, #7c3aed); color: #fff; }
-.model-header-qwen .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
-.model-header-qwen .model-name-wrapper h3 { color: #fff; }
-.model-header-qwen .model-id { color: rgba(255,255,255,0.7); }
-.model-header-qwen .model-id-dot { background: #a78bfa; }
-
-.model-header-tongyi { background: linear-gradient(135deg, #164e63, #0891b2); color: #fff; }
-.model-header-tongyi .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
-.model-header-tongyi .model-name-wrapper h3 { color: #fff; }
-.model-header-tongyi .model-id { color: rgba(255,255,255,0.7); }
-.model-header-tongyi .model-id-dot { background: #22d3ee; }
-
 .model-header-kimi { background: linear-gradient(135deg, #14532d, #16a34a); color: #fff; }
 .model-header-kimi .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
 .model-header-kimi .model-name-wrapper h3 { color: #fff; }

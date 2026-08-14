@@ -49,15 +49,6 @@ MODELS = [
         "max_retries": 2,
     },
     {
-        "id": "tongyi-xiaomi-analysis-pro",
-        "name": "Tongyi Analysis Pro",
-        "model_id": "tongyi-xiaomi-analysis-pro",
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
         "id": "Moonshot-Kimi-K2-Instruct",
         "name": "Kimi K2",
         "model_id": "Moonshot-Kimi-K2-Instruct",
@@ -65,19 +56,6 @@ MODELS = [
         "timeout": 240,
         "temperature": 0.8,
         "max_retries": 2,
-    },
-    {
-        "id": "qwen3.7-flash-2026-07-15",
-        "name": "Qwen 3.7 Flash (07-15)",
-        "model_id": "qwen3.7-flash-2026-07-15",
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-        # 推理模型：reasoning_effort=low 抑制推理深度，减少 token 消耗和耗时
-        # max_tokens 限制可见输出长度，迫使模型更简洁
-        "reasoning_effort": "low",
-        "max_tokens": 4096,
     },
     {
         "id": "deepseek-v4-flash",

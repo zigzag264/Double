@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 6 个大模型（DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)、DeepSeek V4 Flash、GLM 5.2）对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
+基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 4 个大模型（DeepSeek V3、Kimi K2、DeepSeek V4 Flash、GLM 5.2）对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
 
 **核心特性**:
 - 🤖 多 AI 模型预测（通过 API 自动生成）
@@ -76,7 +76,7 @@ double/
 
 | Tab | 内容 |
 |-----|------|
-| **最新预测** | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计数学模型卡片（共 16 个，各 4 组预测）、免责声明 |
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计数学模型卡片（共 14 个，各 4 组预测）、免责声明 |
 | **历史分析** | 4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格、命中记录紧凑摘要 |
 | **模型排行** | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计、Token 用量排行 |
 
@@ -228,26 +228,24 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
 1. 加载 Prompt 模板（`doc/prompt2.0.md`）
 2. 加载历史数据（`data/lottery_history.json`，取最近 30 期给 AI；全量给统计模型）
 3. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
-4. 逐个调用 6 个 AI 模型生成预测
+4. 逐个调用 4 个 AI 模型生成预测
 5. 调用 `stats_models.generate_stats_predictions()` 本地生成 10 个统计/概率/ML 模型预测（**不消耗 token；即使 AI 全部失败也会保留统计模型**）
 6. 每个模型统一做去重/防复读后处理 + 格式校验（4 组、6 红球已排序、蓝球非空、策略名互不相同）
 7. 记录 AI 模型 token 用量到 `token_usage.json`，创建备份并保存
 
-> 输出的 `ai_predictions.json` 共 **16 个模型**：6 个 AI（`model_type=ai`）+ 10 个统计（`model_type=stats`）。前端按 `model_type` 分区展示。
+> 输出的 `ai_predictions.json` 共 **14 个模型**：4 个 AI（`model_type=ai`）+ 10 个统计（`model_type=stats`）。前端按 `model_type` 分区展示。
 
 **模型配置**（内置）:
 ```python
 MODELS = [
     {"id": "deepseek-v3", "name": "DeepSeek V3", "model_id": "deepseek-v3"},
-    {"id": "tongyi-xiaomi-analysis-pro", "name": "Tongyi Analysis Pro", "model_id": "tongyi-xiaomi-analysis-pro"},
     {"id": "Moonshot-Kimi-K2-Instruct", "name": "Kimi K2", "model_id": "Moonshot-Kimi-K2-Instruct"},
-    {"id": "qwen3.7-flash-2026-07-15", "name": "Qwen 3.7 Flash (07-15)", "model_id": "qwen3.7-flash-2026-07-15"},
     {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "deepseek-v4-flash"},
     {"id": "glm-5.2", "name": "GLM 5.2", "model_id": "glm-5.2"},
 ]
 ```
 
-**环境变量**（默认 provider 用于 DeepSeek V3 / Tongyi / Kimi / Qwen；sensenova provider 用于 DeepSeek V4 Flash / GLM 5.2，二者独立凭证）:
+**环境变量**（默认 provider 用于 DeepSeek V3 / Kimi；sensenova provider 用于 DeepSeek V4 Flash / GLM 5.2，二者独立凭证）:
 - `AI_API_KEY`（默认 provider，必填）
 - `AI_BASE_URL`（默认 provider，可选）
 - `SENSENOVA_API_KEY`（sensenova provider，必填——缺失则新模型回退到默认凭证并调用失败）
@@ -307,7 +305,7 @@ EMAIL_DRY_RUN=true
 
 | 脚本 | 用途 |
 |------|------|
-| `test_prediction.py` | 验证 `ai_predictions.json` 格式（16 个模型 × 4 组） |
+| `test_prediction.py` | 验证 `ai_predictions.json` 格式（14 个模型 × 4 组） |
 | `stats_models.py` | 生成 10 个统计/概率/ML 模型预测（见上文专项说明） |
 | `email_smtp_utils.py` | SMTP 配置/校验/发送共享模块（两个邮件脚本共用） |
 | `fetch_history/fetch_lottery_history.py` | 从 500.com 爬取开奖历史数据 |

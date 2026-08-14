@@ -429,8 +429,10 @@ function renderGroupedRankings() {
     }
 
     // 收集每个模型的命中汇总（策略分组已移除）
+    // 注意：每期每模型有 4 组预测，"期数"须按期去重，否则被组数放大 4 倍
     const stats = {};   // key = 模型名
     records.forEach(rec => {
+        const period = rec.actual_result?.period;
         (rec.models || []).forEach(model => {
             (model.predictions || []).forEach(pred => {
                 const hr = pred.hit_result;
@@ -443,16 +445,19 @@ function renderGroupedRankings() {
                     blueHits: 0,
                     totalHits: 0,
                     games: 0,
+                    periods: new Set(),
                 };
                 entry.redTotal += hr.red_hit_count || 0;
                 entry.blueHits += hr.blue_hit || 0;
                 entry.totalHits += hr.total_hits || 0;
-                entry.games += 1;
+                if (period) entry.periods.add(period);
                 if ((hr.total_hits || 0) > entry.maxHits) entry.maxHits = hr.total_hits || 0;
                 stats[key] = entry;
             });
         });
     });
+    // 期数 = 该模型实际参与的不同期号数（去重）
+    Object.values(stats).forEach(e => { e.games = e.periods.size; });
 
     // 按 总球数 降序排序
     const arr = Object.values(stats).sort((a, b) => b.totalHits - a.totalHits || b.blueHits - a.blueHits);

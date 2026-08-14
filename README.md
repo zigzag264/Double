@@ -11,9 +11,9 @@
 
 </div>
 
-基于 **6 个 AI 大模型 + 10 个统计/概率/机器学习模型** 的双色球彩票预测与数据分析展示平台。多模型预测对比、历史命中率回溯、模型排行与 Token 用量统计，以及每日邮件推送。
+基于 **4 个 AI 大模型 + 10 个统计/概率/机器学习模型** 的双色球彩票预测与数据分析展示平台。多模型预测对比、历史命中率回溯、模型排行与 Token 用量统计，以及每日邮件推送。
 
-> **AI 模型**: DeepSeek V3、Tongyi Analysis Pro、Kimi K2、Qwen 3.7 Flash (07-15)、DeepSeek V4 Flash、GLM 5.2
+> **AI 模型**: DeepSeek V3、Kimi K2、DeepSeek V4 Flash、GLM 5.2
 > **统计/概率/ML 模型**: 马尔可夫链、贝叶斯推断、正态分布(Z-score)、泊松分布、蒙特卡洛模拟、频率热号、遗漏回补、指数平滑(EWMA)、关联规则、集成投票（本地纯标准库计算，确定性输出，不消耗 token）
 
 ---
@@ -25,7 +25,7 @@
 | 最新开奖 | **26092** 期 (2026-08-11) — `09 11 12 25 30 33` + `11` |
 | 下期预告 | **26093** 期 · 2026年08月13日（周四）21:15 |
 | 历史数据 | 153 期 |
-| 预测模型数 | 16 个（6 AI + 10 统计/概率/ML） |
+| 预测模型数 | 14 个（4 AI + 10 统计/概率/ML） |
 | 已归档预测 | 5 期 |
 
 ---
@@ -176,7 +176,7 @@ python3 generate_ai_prediction.py
            │ generate_ai_prediction.py │
            │                      │
            │  1. 归档旧预测 → 计算命中 → predictions_history.json
-           │  2. 调用 6 个 AI 模型（AIHubMix + Sensenova 双供应商）
+           │  2. 调用 4 个 AI 模型（AIHubMix + Sensenova 双供应商）
            │  3. 调用 10 个统计模型（本地计算，0 token 消耗）
            │  4. 去重 / 防复读 / 格式校验
            │  5. 记录 token 用量 → token_usage.json（裁剪保留近 52 期）
@@ -242,13 +242,11 @@ Vercel 自动重新部署
 | 模型 | ID | 供应商 | 类型 | 特性 |
 |------|------|--------|------|------|
 | **DeepSeek V3** | `deepseek-v3` | AIHubMix | 通用 | ~500 tokens/次, ~10s |
-| **Tongyi Analysis Pro** | `tongyi-xiaomi-analysis-pro` | AIHubMix | 分析型 | ~500 tokens/次, ~12s |
 | **Kimi K2** | `Moonshot-Kimi-K2-Instruct` | AIHubMix | 通用 | ~400 tokens/次, ~15s |
-| **Qwen 3.7 Flash (07-15)** | `qwen3.7-flash-2026-07-15` | AIHubMix | 推理型 | ~5,500 tokens/次, ~30s |
 | **DeepSeek V4 Flash** | `deepseek-v4-flash` | Sensenova | 推理型 | 需 `reasoning_effort="none"` 避免推理链占满输出预算 |
 | **GLM 5.2** | `glm-5.2` | Sensenova | 通用 | ~500 tokens/次, ~10s |
 
-**双供应商架构**: DeepSeek V3/Tongyi/Kimi/Qwen 通过 AIHubMix 统一端点调用（共享 `AI_API_KEY`）；DeepSeek V4 Flash 和 GLM 5.2 通过 Sensenova 端点调用（使用 `SENSENOVA_API_KEY`）。每个模型可独立配置 `api_key` / `base_url` 覆盖。
+**双供应商架构**: DeepSeek V3/Kimi 通过 AIHubMix 统一端点调用（共享 `AI_API_KEY`）；DeepSeek V4 Flash 和 GLM 5.2 通过 Sensenova 端点调用（使用 `SENSENOVA_API_KEY`）。每个模型可独立配置 `api_key` / `base_url` 覆盖。
 
 ### 预测策略
 
@@ -288,7 +286,7 @@ Vercel 自动重新部署
 
 | Tab | 数据加载 | 内容 |
 |-----|---------|------|
-| **最新预测** | 首屏加载 | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计模型卡片（共 16 个，各 4 组预测）、免责声明 |
+| **最新预测** | 首屏加载 | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计模型卡片（共 14 个，各 4 组预测）、免责声明 |
 | **历史分析** | 懒加载 | 4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格、命中记录紧凑摘要 |
 | **模型排行** | 懒加载 | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计、Token 用量排行 |
 
@@ -336,7 +334,7 @@ EMAIL_DRY_RUN=true python3 email_daily_digest.py
 
 | 变量 | 用途 | 使用方 |
 |------|------|--------|
-| `AI_API_KEY` | AIHubMix API 凭证（DeepSeek V3/Tongyi/Kimi/Qwen） | `generate_ai_prediction.py` |
+| `AI_API_KEY` | AIHubMix API 凭证（DeepSeek V3/Kimi） | `generate_ai_prediction.py` |
 | `AI_BASE_URL` | AIHubMix 端点（默认 `https://aihubmix.com/v1`） | `generate_ai_prediction.py` |
 | `SENSENOVA_API_KEY` | Sensenova API 凭证（DeepSeek V4 Flash/GLM 5.2） | `generate_ai_prediction.py` |
 | `SENSENOVA_BASE_URL` | Sensenova 端点（默认 `https://token.sensenova.cn/v1`） | `generate_ai_prediction.py` |

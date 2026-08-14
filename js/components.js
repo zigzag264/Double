@@ -37,8 +37,6 @@ const Components = {
     getModelHeaderClass(modelName) {
         // AI 模型
         if (modelName.includes('DeepSeek')) return 'model-header-deepseek';
-        if (modelName.includes('Qwen')) return 'model-header-qwen';
-        if (modelName.includes('Tongyi')) return 'model-header-tongyi';
         if (modelName.includes('Kimi')) return 'model-header-kimi';
         if (modelName.includes('GLM')) return 'model-header-glm';
         // 统计/概率/机器学习模型

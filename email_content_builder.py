@@ -258,6 +258,68 @@ def _build_ranking_html(hist, limit=10):
     return table1 + table2
 
 
+def _build_grouped_stats_html(hist, limit=10):
+    """模型分组统计 HTML — 按模型聚合全部历史命中（每期 4 组求和，期数按期去重）"""
+    records = hist.get("predictions_history", []) if hist else []
+    if not records:
+        return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
+
+    stats = {}
+    for rec in records:
+        period = (rec.get("actual_result") or {}).get("period")
+        for m in rec.get("models", []):
+            name = m.get("model_name", "—")
+            if name not in stats:
+                stats[name] = {"name": name, "maxHits": 0, "redTotal": 0,
+                               "blueTotal": 0, "total": 0, "periods": set()}
+            e = stats[name]
+            for pred in m.get("predictions", []):
+                hr = pred.get("hit_result")
+                if not hr:
+                    continue
+                t = hr.get("total_hits", 0)
+                e["redTotal"] += hr.get("red_hit_count", 0)
+                e["blueTotal"] += 1 if hr.get("blue_hit") else 0
+                e["total"] += t
+                if t > e["maxHits"]:
+                    e["maxHits"] = t
+            if period:
+                e["periods"].add(period)
+    for e in stats.values():
+        e["games"] = len(e["periods"])
+
+    arr = sorted(stats.values(), key=lambda x: (x["total"], x["blueTotal"]), reverse=True)[:limit]
+
+    rows = ""
+    for i, r in enumerate(arr):
+        medal = {0: "🥇", 1: "🥈", 2: "🥉"}.get(i, f"{i+1}")
+        bg = "#fefce8" if i == 0 else "#f8fafc" if i % 2 == 0 else "#ffffff"
+        rows += f'''
+        <tr style="background:{bg}">
+          <td style="padding:6px 8px;text-align:center;font-weight:700;font-size:13px">{medal}</td>
+          <td style="padding:6px 8px;font-weight:600;color:#1e293b;font-size:12px">{r["name"]}</td>
+          <td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["maxHits"]}球</td>
+          <td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["redTotal"]}球</td>
+          <td style="padding:6px 8px;text-align:center;color:#3b82f6;font-weight:600;font-size:12px">{r["blueTotal"]}球</td>
+          <td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["total"]}球</td>
+          <td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["games"]}期</td>
+        </tr>'''
+
+    return f'''
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-size:14px">
+      <thead><tr style="background:#f1f5f9">
+        <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">#</th>
+        <th style="padding:6px 8px;text-align:left;color:#64748b;font-size:11px">模型</th>
+        <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">历史最大单期</th>
+        <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">总红数</th>
+        <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">总蓝球</th>
+        <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">总球数</th>
+        <th style="padding:6px 8px;text-align:center;color:#64748b;font-size:11px">期数</th>
+      </tr></thead>
+      <tbody>{rows}</tbody>
+    </table>'''
+
+
 def build_html_digest(data, warnings, generated_at, commit_info=None):
     """
     构建 HTML 邮件正文。
@@ -306,6 +368,14 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
           </td></tr>
         </table>'''
 
+    # 模型分组统计（仅 push 通知展示全部历史汇总；每日汇总保持精简）
+    grouped_html = ""
+    if is_push:
+        grouped_html = (
+            f'{_SECTION.format("📦 模型分组统计（全部历史）")}'
+            f'{_build_grouped_stats_html(hist)}'
+        )
+
     # Footer
     footer_text = (
         '本邮件由 GitHub Actions 自动推送'
@@ -327,6 +397,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {_build_latest_draw_html(latest, nd)}
         {_SECTION.format("📊 命中排行 Top 10")}
         {_build_ranking_html(hist)}
+        {grouped_html}
         {_SECTION.format("🔮 AI 全部预测")}
         {_build_predictions_html(pred, latest_period, next_period)}
       </div>
