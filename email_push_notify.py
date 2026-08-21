@@ -5,16 +5,16 @@ Push 触发邮件通知脚本
 与 email_content_builder.py 共用相同的 HTML 格式。
 """
 
-import sys
 import subprocess
-from datetime import datetime, timezone, timedelta
 
 from email_content_builder import build_html_digest, load_data, validate_data
-from email_smtp_utils import load_config, validate_config, send_email
+from email_smtp_utils import beijing_time, send_digest
+
 
 # ==================== 数据获取 ====================
 
 def get_git_info():
+    """获取最近一次提交的信息：作者、标题、变更文件、统计。"""
     author, msg, files, stat = "unknown", "no commit info", [], ""
     try:
         author = subprocess.run(["git", "log", "-1", "--format=%an"], capture_output=True, text=True, check=True).stdout.strip()
@@ -26,14 +26,9 @@ def get_git_info():
     return author, msg, [f for f in files if f], stat
 
 
-# ==================== HTML 构建 ====================
-
-def build_html():
+def _build(now):
+    """加载数据并组装 push 通知正文。返回 (html, commit_info)。"""
     author, commit_msg, files, stat = get_git_info()
-    BJ_TIME = datetime.now(timezone(timedelta(hours=8)))
-    now = BJ_TIME.strftime("%Y-%m-%d %H:%M")
-
-    # 使用统一的数据加载（与每日定时推送一致）
     data = load_data()
     errors, warnings = validate_data(data)
 
@@ -43,27 +38,17 @@ def build_html():
         "files": [f for f in files if f],
     }
 
-    return build_html_digest(data, warnings, generated_at=now, commit_info=commit_info)
+    html = build_html_digest(data, warnings, generated_at=now, commit_info=commit_info)
+    return html, commit_info
 
-
-# ==================== 发送 ====================
 
 def send():
-    cfg = load_config()
-    validate_config(cfg, allow_dry_run=True)
+    print("=" * 50)
+    print("📧 双色球项目更新推送")
+    print("=" * 50)
 
-    if cfg["dry_run"]:
-        print("ℹ️  Dry-run 模式：邮件将打印到控制台，不会实际发送\n")
-
-    html = build_html()
-    BJ_TIME = datetime.now(timezone(timedelta(hours=8)))
-    subject = f"[双色球] 项目更新 · {BJ_TIME.strftime('%m-%d %H:%M')}"
-
-    try:
-        send_email(subject, html, cfg, success_msg="✅ 推送通知邮件发送成功")
-    except Exception as e:
-        print(f"❌ 邮件发送失败: {e}")
-        sys.exit(1)
+    subject = f"[双色球] 项目更新 · {beijing_time()[5:]}"
+    send_digest(subject, _build)
 
 
 if __name__ == "__main__":

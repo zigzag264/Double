@@ -79,3 +79,34 @@ def send_email(subject, body, cfg, success_msg="✅ 邮件发送成功"):
     except smtplib.SMTPException as e:
         print(f"❌ SMTP 错误: {e}")
         raise
+
+
+def beijing_time():
+    """当前北京时间字符串（YYYY-MM-DD HH:MM）"""
+    from datetime import datetime, timezone, timedelta
+    return datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M")
+
+
+def send_digest(subject, build_fn, fatal=True):
+    """共享发送编排：加载配置 → 校验 → 打印 dry-run 提示 → 组装内容 → 发送。
+
+    build_fn(now) 返回 (html, commit_info 或 None)。
+    fatal=True 时凭证缺失/发送失败会 sys.exit(1)。
+    """
+    cfg = load_config()
+    validate_config(cfg, allow_dry_run=True)
+
+    if cfg["dry_run"]:
+        print("ℹ️  Dry-run 模式：邮件将打印到控制台，不会实际发送\n")
+
+    print("\n📊 加载数据...")
+    now = beijing_time()
+    html, commit_info = build_fn(now)
+
+    print("\n📤 发送邮件...")
+    try:
+        send_email(subject, html, cfg, success_msg="✅ 推送通知邮件发送成功" if commit_info else "✅ 邮件发送成功")
+    except Exception:
+        print("❌ 邮件发送失败")
+        if fatal:
+            sys.exit(1)

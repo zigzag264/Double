@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""测试 AI 预测脚本功能"""
+"""测试预测脚本功能"""
 
 import json
 
 def test_prediction_file():
     """测试预测文件格式"""
     print("=" * 50)
-    print("测试 AI 预测数据文件")
+    print("测试预测数据文件")
     print("=" * 50 + "\n")
     
     try:

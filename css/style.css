@@ -335,10 +335,10 @@ body::before {
 /* ==================== Hero Banner ==================== */
 .hero-banner {
     position: relative;
-    background: linear-gradient(135deg, var(--bg), var(--blue-50));
+    background: var(--card);
     border: 1px solid var(--border);
     border-radius: 1rem;
-    padding: 2rem;
+    padding: 1.75rem 2rem;
     margin-bottom: 1.5rem;
     overflow: hidden;
 }
@@ -349,27 +349,8 @@ body::before {
     top: 0;
     left: 0;
     width: 100%;
-    height: 4px;
-    background: linear-gradient(90deg, var(--blue-600), var(--blue-400));
-}
-
-.hero-banner-blur-1,
-.hero-banner-blur-2 {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.15;
-    pointer-events: none;
-}
-.hero-banner-blur-1 {
-    width: 300px; height: 300px;
-    background: var(--blue-400);
-    top: -100px; right: -100px;
-}
-.hero-banner-blur-2 {
-    width: 200px; height: 200px;
-    background: var(--blue-600);
-    bottom: -50px; left: -50px;
+    height: 3px;
+    background: var(--blue-500);
 }
 
 .hero-banner-content {
@@ -579,18 +560,6 @@ body::before {
     font-size: 0.95rem;
 }
 
-.info-card-content .highlight-red,
-.info-card-content .highlight-blue,
-.info-card-content .highlight-purple,
-.info-card-content .highlight-green {
-    font-weight: 700;
-    padding: 0 2px;
-}
-.info-card-content .highlight-red { color: #ef4444; }
-.info-card-content .highlight-blue { color: #3b82f6; }
-.info-card-content .highlight-purple { color: #8b5cf6; }
-.info-card-content .highlight-green { color: #10b981; }
-
 /* ==================== Model Cards Grid ==================== */
 .models-grid {
     display: grid;
@@ -630,35 +599,20 @@ body::before {
     color: var(--blue-700);
 }
 
-.model-header-deepseek { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; }
-.model-header-deepseek .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
-.model-header-deepseek .model-name-wrapper h3 { color: #fff; }
-.model-header-deepseek .model-id { color: rgba(255,255,255,0.7); }
-.model-header-deepseek .model-id-dot { background: #60a5fa; }
+/* ===== 统计/概率/机器学习模型头部配色（淡彩分类） ===== */
+/* 每个模型一个低饱和度淡色底 + 深色文字，通过 --tint-* 变量统一子元素配色 */
+.model-header-markov { --tint-bg: #eef0ff; --tint-fg: #3730a3; --tint-border: #c7d2fe; --tint-glow: #a5b4fc; }
+.model-header-bayes  { --tint-bg: #ecfeff; --tint-fg: #155e75; --tint-border: #a5f3fc; --tint-glow: #67e8f9; }
+.model-header-normal { --tint-bg: #eff6ff; --tint-fg: #1e40af; --tint-border: #bfdbfe; --tint-glow: #93c5fd; }
+.model-header-poisson{ --tint-bg: #f0f9ff; --tint-fg: #0e7490; --tint-border: #bae6fd; --tint-glow: #7dd3fc; }
+.model-header-monte  { --tint-bg: #faf5ff; --tint-fg: #6b21a8; --tint-border: #e9d5ff; --tint-glow: #d8b4fe; }
+.model-header-hot    { --tint-bg: #fff7ed; --tint-fg: #9a3412; --tint-border: #fed7aa; --tint-glow: #fdba74; }
+.model-header-cold   { --tint-bg: #fff1f2; --tint-fg: #9f1239; --tint-border: #fecdd3; --tint-glow: #fda4af; }
+.model-header-ewma   { --tint-bg: #fffbeb; --tint-fg: #92400e; --tint-border: #fde68a; --tint-glow: #fcd34d; }
+.model-header-apriori{ --tint-bg: #f7fee7; --tint-fg: #3f6212; --tint-border: #d9f99d; --tint-glow: #bef264; }
+.model-header-ensemble{ --tint-bg: #f8fafc; --tint-fg: #334155; --tint-border: #e2e8f0; --tint-glow: #cbd5e1; }
 
-.model-header-kimi { background: linear-gradient(135deg, #14532d, #16a34a); color: #fff; }
-.model-header-kimi .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
-.model-header-kimi .model-name-wrapper h3 { color: #fff; }
-.model-header-kimi .model-id { color: rgba(255,255,255,0.7); }
-.model-header-kimi .model-id-dot { background: #4ade80; }
-
-.model-header-glm { background: linear-gradient(135deg, #4c1d95, #8b5cf6); color: #fff; }
-.model-header-glm .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
-.model-header-glm .model-name-wrapper h3 { color: #fff; }
-.model-header-glm .model-id { color: rgba(255,255,255,0.7); }
-.model-header-glm .model-id-dot { background: #c4b5fd; }
-
-/* ===== 统计/概率/机器学习模型头部配色 ===== */
-.model-header-markov { background: linear-gradient(135deg, #312e81, #6366f1); }
-.model-header-bayes  { background: linear-gradient(135deg, #134e4a, #14b8a6); }
-.model-header-normal { background: linear-gradient(135deg, #1e3a5f, #3b82f6); }
-.model-header-poisson{ background: linear-gradient(135deg, #155e75, #06b6d4); }
-.model-header-monte  { background: linear-gradient(135deg, #581c87, #d946ef); }
-.model-header-hot    { background: linear-gradient(135deg, #7c2d12, #f97316); }
-.model-header-cold   { background: linear-gradient(135deg, #881337, #f43f5e); }
-.model-header-ewma   { background: linear-gradient(135deg, #78350f, #f59e0b); }
-.model-header-apriori{ background: linear-gradient(135deg, #365314, #84cc16); }
-.model-header-ensemble{ background: linear-gradient(135deg, #0f172a, #64748b); }
+/* 通用淡彩头部：由各 model-header 的 --tint-* 变量驱动 */
 .model-header-markov,
 .model-header-bayes,
 .model-header-normal,
@@ -668,17 +622,11 @@ body::before {
 .model-header-cold,
 .model-header-ewma,
 .model-header-apriori,
-.model-header-ensemble { color: #fff; }
-.model-header-markov .model-icon-box,
-.model-header-bayes .model-icon-box,
-.model-header-normal .model-icon-box,
-.model-header-poisson .model-icon-box,
-.model-header-monte .model-icon-box,
-.model-header-hot .model-icon-box,
-.model-header-cold .model-icon-box,
-.model-header-ewma .model-icon-box,
-.model-header-apriori .model-icon-box,
-.model-header-ensemble .model-icon-box { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: #fff; }
+.model-header-ensemble {
+    background: var(--tint-bg);
+    color: var(--tint-fg);
+    border-bottom: 1px solid var(--tint-border);
+}
 .model-header-markov .model-name-wrapper h3,
 .model-header-bayes .model-name-wrapper h3,
 .model-header-normal .model-name-wrapper h3,
@@ -688,7 +636,7 @@ body::before {
 .model-header-cold .model-name-wrapper h3,
 .model-header-ewma .model-name-wrapper h3,
 .model-header-apriori .model-name-wrapper h3,
-.model-header-ensemble .model-name-wrapper h3 { color: #fff; }
+.model-header-ensemble .model-name-wrapper h3 { color: var(--tint-fg); }
 .model-header-markov .model-id,
 .model-header-bayes .model-id,
 .model-header-normal .model-id,
@@ -698,7 +646,7 @@ body::before {
 .model-header-cold .model-id,
 .model-header-ewma .model-id,
 .model-header-apriori .model-id,
-.model-header-ensemble .model-id { color: rgba(255,255,255,0.7); }
+.model-header-ensemble .model-id { color: var(--tint-fg); opacity: 0.7; }
 .model-header-markov .model-id-dot,
 .model-header-bayes .model-id-dot,
 .model-header-normal .model-id-dot,
@@ -708,7 +656,17 @@ body::before {
 .model-header-cold .model-id-dot,
 .model-header-ewma .model-id-dot,
 .model-header-apriori .model-id-dot,
-.model-header-ensemble .model-id-dot { background: #cbd5e1; }
+.model-header-ensemble .model-id-dot { background: var(--tint-glow); }
+.model-header-markov .model-icon-box,
+.model-header-bayes .model-icon-box,
+.model-header-normal .model-icon-box,
+.model-header-poisson .model-icon-box,
+.model-header-monte .model-icon-box,
+.model-header-hot .model-icon-box,
+.model-header-cold .model-icon-box,
+.model-header-ewma .model-icon-box,
+.model-header-apriori .model-icon-box,
+.model-header-ensemble .model-icon-box { color: var(--tint-fg); }
 
 /* ===== 模型网格分区标题 ===== */
 .models-section-title {
@@ -804,15 +762,6 @@ body::before {
 .model-card-ticket-icon svg {
     width: 18px;
     height: 18px;
-}
-
-.model-hit-connector {
-    position: absolute;
-    left: 24px;
-    top: 0;
-    bottom: 50%;
-    width: 2px;
-    background: var(--border);
 }
 
 .ranking-empty {
@@ -1097,299 +1046,6 @@ body::before {
     font-size: 0.875rem;
     color: var(--gray-500);
     margin-bottom: 1.5rem;
-}
-
-.accuracy-card {
-    background: var(--card);
-    border-radius: 0.75rem;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-    transition: box-shadow 0.2s;
-}
-
-.accuracy-card:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.accuracy-card-header {
-    background: var(--blue-600);
-    padding: 1rem 1.25rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: white;
-}
-
-.accuracy-header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.accuracy-trophy-icon {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.375rem;
-    border-radius: 0.5rem;
-    color: white;
-}
-
-.accuracy-trophy-icon svg {
-    width: 18px;
-    height: 18px;
-    stroke-width: 3;
-}
-
-.accuracy-header-title {
-    font-weight: 700;
-    font-size: 1rem;
-    line-height: 1;
-}
-
-.accuracy-header-subtitle {
-    color: var(--blue-200);
-    font-size: 0.75rem;
-}
-
-.accuracy-header-date {
-    font-family: 'Courier New', monospace;
-    color: var(--blue-200);
-    font-size: 0.75rem;
-    background: rgba(255, 255, 255, 0.15);
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-}
-
-/* Actual Result */
-.actual-result-section {
-    padding: 1.25rem 1.5rem;
-    background: var(--bg-soft);
-    border-bottom: 1px solid var(--border);
-}
-
-.actual-result-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.actual-result-bar {
-    width: 4px;
-    height: 16px;
-    background: var(--blue-600);
-    border-radius: 9999px;
-}
-
-.actual-result-text {
-    font-size: 0.75rem;
-    color: var(--gray-500);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 700;
-}
-
-.actual-result-balls {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-/* Model Hits List */
-.model-hits-list {
-    padding: 1rem 1.5rem;
-}
-
-.model-hit-item {
-    position: relative;
-    margin-bottom: 1.25rem;
-}
-
-.model-hit-item:last-child {
-    margin-bottom: 0;
-}
-
-.model-hit-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-}
-
-.model-hit-number {
-    margin-top: 0.25rem;
-    min-width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--blue-50);
-    border: 2px solid var(--blue-200);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--blue-600);
-}
-
-.model-hit-content {
-    flex: 1;
-}
-
-.model-hit-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
-.model-hit-name {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--fg);
-}
-
-.high-hit-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 10px;
-    font-weight: 700;
-    background: var(--blue-50);
-    color: var(--blue-600);
-    padding: 0.125rem 0.5rem;
-    border-radius: 9999px;
-    border: 1px solid var(--blue-200);
-}
-
-.high-hit-badge svg {
-    width: 10px;
-    height: 10px;
-    fill: currentColor;
-}
-
-/* Prediction Groups in History */
-.prediction-groups {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-}
-
-.prediction-group-row {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-}
-
-.prediction-group-row.winning {
-    background: var(--blue-50);
-    border-color: var(--blue-200);
-}
-
-.prediction-group-row:not(.winning) {
-    background: var(--gray-50);
-}
-
-.prediction-group-row:not(.winning):hover {
-    border-color: var(--border);
-}
-
-.prediction-group-balls {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
-    overflow-x: auto;
-}
-
-.prediction-group-strategy {
-    font-weight: 700;
-    font-size: 10px;
-    color: var(--gray-500);
-    text-transform: uppercase;
-    width: 64px;
-    flex-shrink: 0;
-}
-
-.prediction-group-balls-list {
-    display: flex;
-    gap: 0.375rem;
-}
-
-.mini-ball {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 10px;
-    transition: all 0.2s;
-}
-
-.mini-ball.hit {
-    background: var(--red-500);
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
-}
-
-.mini-ball:not(.hit) {
-    background: white;
-    color: var(--gray-400);
-    border: 1px solid var(--border);
-}
-
-.mini-ball.blue.hit {
-    background: var(--blue-600);
-    color: white;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
-}
-
-.prediction-group-stats {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    justify-content: flex-end;
-}
-
-.stat-item {
-    display: flex;
-    align-items: baseline;
-    gap: 0.25rem;
-}
-
-.stat-value {
-    font-weight: 800;
-    font-size: 0.875rem;
-}
-
-.stat-value.has-hit {
-    color: var(--blue-600);
-}
-
-.stat-value.no-hit {
-    color: var(--gray-300);
-}
-
-.stat-value.blue-hit {
-    color: var(--blue-600);
-}
-
-.stat-label {
-    font-size: 10px;
-    color: var(--gray-500);
-}
-
-.stat-divider {
-    width: 1px;
-    height: 12px;
-    background: var(--border);
 }
 
 /* ==================== History Table ==================== */
@@ -1733,7 +1389,7 @@ body::before {
     color: var(--fg);
 }
 
-/* Analysis Charts Grid */
+
 /* ==================== Responsive Design ==================== */
 @media (min-width: 640px) {
     .strategy-header {
@@ -1859,9 +1515,6 @@ body::before {
     width: 28px;
 }
 
-.rank-num.rank-1 { color: #f59e0b; }
-.rank-num.rank-2 { color: #6b7280; }
-.rank-num.rank-3 { color: #b45309; }
 
 
 .rank-model {
@@ -1921,33 +1574,4 @@ body::before {
 
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
-}
-
-/* ==================== Token 用量表 ==================== */
-.token-table-wrap {
-    overflow-x: auto;
-    padding: 0 16px 16px;
-}
-
-.token-table th {
-    white-space: nowrap;
-}
-
-.token-table td {
-    text-align: center;
-}
-
-.token-table td.token-model {
-    font-weight: 600;
-    color: var(--fg);
-    text-align: left;
-}
-
-.token-table td.token-total {
-    font-weight: 700;
-    color: var(--blue-500);
-}
-
-.token-table thead th:first-child {
-    text-align: left;
 }

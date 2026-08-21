@@ -1,4 +1,4 @@
-# 🎯 双色球 AI 预测
+# 🎯 双色球 模型预测
 
 > 在线访问：[https://double-color-ball-ai.vercel.app](https://double-color-ball-ai.vercel.app)
 
@@ -11,10 +11,9 @@
 
 </div>
 
-基于 **4 个 AI 大模型 + 10 个统计/概率/机器学习模型** 的双色球彩票预测与数据分析展示平台。多模型预测对比、历史命中率回溯、模型排行与 Token 用量统计，以及每日邮件推送。
+基于 **10 个统计/概率/机器学习模型** 的双色球彩票预测与数据分析展示平台。多模型预测对比、历史命中率回溯、模型排行，以及每日邮件推送。
 
-> **AI 模型**: DeepSeek V3、Kimi K2、DeepSeek V4 Flash、GLM 5.2
-> **统计/概率/ML 模型**: 马尔可夫链、贝叶斯推断、正态分布(Z-score)、泊松分布、蒙特卡洛模拟、频率热号、遗漏回补、指数平滑(EWMA)、关联规则、集成投票（本地纯标准库计算，确定性输出，不消耗 token）
+> **统计/概率/ML 模型**: 马尔可夫链、贝叶斯推断、正态分布(Z-score)、泊松分布、蒙特卡洛模拟、频率热号、遗漏回补、指数平滑(EWMA)、关联规则、集成投票（本地纯标准库计算，确定性输出，不调用 API、不消耗 token）
 
 ---
 
@@ -22,11 +21,11 @@
 
 | 指标 | 当前值 |
 |------|--------|
-| 最新开奖 | **26092** 期 (2026-08-11) — `09 11 12 25 30 33` + `11` |
-| 下期预告 | **26093** 期 · 2026年08月13日（周四）21:15 |
-| 历史数据 | 153 期 |
-| 预测模型数 | 14 个（4 AI + 10 统计/概率/ML） |
-| 已归档预测 | 5 期 |
+| 最新开奖 | **26095** 期 (2026-08-18) — `04 06 14 21 22 33` + `16` |
+| 下期预告 | **26096** 期 · 2026年08月20日（周四）21:15 |
+| 历史数据 | 156 期 |
+| 预测模型数 | 10 个统计/概率/ML 模型 |
+| 已归档预测 | 7 期 |
 
 ---
 
@@ -36,12 +35,12 @@
 
 ```
 ┌─ GitHub Actions ───────────────────────────────────────────────────┐
-│ 爬虫 (UTC 14:00) → AI 预测 (UTC 00:00) → 邮件推送 (UTC 00:30)      │
+│ 爬虫 (UTC 14:00) → 预测 (UTC 00:00) → 邮件推送 (UTC 00:30)         │
 │                              │ git push                            │
 └──────────────────────────────┼─────────────────────────────────────┘
                                ▼
 ┌─ Git 仓库 = 数据层 ──────────┼─────────────────────────────────────┐
-│  data/ 目录下 4 个 JSON 文件 + archive/ 备份                        │
+│  data/ 目录下 3 个 JSON 文件 + archive/ 备份                       │
 │  (紧凑格式，JSON 即数据库)                                          │
 └──────────────────────────────┼─────────────────────────────────────┘
                                ▼
@@ -52,7 +51,7 @@
 ┌─ 浏览器端 ───────────────────┼─────────────────────────────────────┐
 │  首屏 (Tab1)                  │  懒加载 (Tab2/Tab3)                 │
 │  lottery_history.json         │  predictions_history.json          │
-│  ai_predictions.json          │  token_usage.json                  │
+│  ai_predictions.json          │                                    │
 │         ↓                     │         ↓                          │
 │  data-loader.js ─→ components.js ─→ app.js ─→ 3 个 Tab 页面       │
 └────────────────────────────────────────────────────────────────────┘
@@ -66,7 +65,7 @@
 
 ```bash
 python server.py
-# POST /api/update — 自动执行爬虫 + AI 预测，返回最新全部数据
+# POST /api/update — 自动执行爬虫 + 统计模型预测，返回最新全部数据
 ```
 
 ---
@@ -77,31 +76,28 @@ python server.py
 double/
 ├── index.html                        # 主页面（3 个 Tab）
 ├── css/
-│   └── style.css                     # 深色/浅色主题样式（CSS 变量）
+│   └── style.css                     # 样式（CSS 变量，清新简约淡彩设计）
 ├── js/
 │   ├── data-loader.js                # 数据加载模块（fetch JSON，缓存清除）
 │   ├── components.js                 # UI 组件（号码球、模型卡片、命中对比）
 │   └── app.js                        # 编排层（Tab 渲染、排行统计、懒加载）
 ├── data/                             # ★ 核心数据（版本控制，紧凑格式 JSON）
-│   ├── lottery_history.json          # 153 期历史开奖 + 下期信息
-│   ├── ai_predictions.json           # 当前预测（6 AI + 10 统计 = 16 模型 × 4 组）
+│   ├── lottery_history.json          # 历史开奖 + 下期信息
+│   ├── ai_predictions.json           # 当前预测（10 统计模型 × 4 组）
 │   ├── predictions_history.json      # 历史预测命中记录（含 hit_result）
-│   ├── token_usage.json              # 各模型 API token 用量统计（裁剪保留近 52 期）
 │   └── archive/                      # 备份归档（git 忽略，保留最近 10 份）
 │       ├── ai_predictions_backup_*.json
 │       └── predictions_history_backup_*.json
 ├── fetch_history/                    # 爬虫模块
 │   ├── fetch_lottery_history.py      # 500.com 爬虫（BeautifulSoup）
 │   └── lottery_data.json             # 爬虫原始数据
-├── doc/
-│   └── prompt2.0.md                  # Prompt 模板 v2.0（4 策略，★主用）
 ├── .github/workflows/                # 4 个自动化工作流
 │   ├── update-lottery-data.yml       # 爬虫：每天 UTC 14:00
-│   ├── generate-ai-prediction.yml    # AI 预测：每周一三五 UTC 00:00
+│   ├── generate-prediction.yml       # 预测：每周一三五 UTC 00:00
 │   ├── email-daily-digest.yml        # 邮件推送：每天 UTC 00:30
 │   └── push-notify.yml               # Push 事件邮件通知
 ├── server.py                         # 本地开发服务器（端口 8080，含 /api/update）
-├── generate_ai_prediction.py         # ★ 预测生成主入口（6 AI + 集成 10 统计模型）
+├── generate_ai_prediction.py         # ★ 预测生成主入口（集成 10 统计模型）
 ├── stats_models.py                   # 10 个统计/概率/ML 模型（纯标准库，确定性）
 ├── email_content_builder.py          # 邮件 HTML 构建（纯函数模块）
 ├── email_smtp_utils.py               # SMTP 配置/发送（共享模块）
@@ -134,19 +130,13 @@ python3 -m http.server 8000
 
 访问 `http://localhost:8000`（或 `http://localhost:8080`）
 
-### 生成 AI 预测
+### 生成预测
 
 ```bash
-# 安装 Python 依赖
-pip install openai requests beautifulsoup4
+# 安装 Python 依赖（爬虫用；预测仅用标准库，无需额外依赖）
+pip install requests beautifulsoup4
 
-# 设置 API 凭证（详见 .env.example）
-export AI_API_KEY="your-aihubmix-api-key"
-export AI_BASE_URL="https://aihubmix.com/v1"
-export SENSENOVA_API_KEY="your-sensenova-api-key"
-export SENSENOVA_BASE_URL="https://token.sensenova.cn/v1"
-
-# 一键生成
+# 一键生成（10 个统计模型本地计算，不调用 API）
 python3 generate_ai_prediction.py
 ```
 
@@ -168,19 +158,17 @@ python3 generate_ai_prediction.py
                       │ 写入 JSON
                       ▼
            ┌──────────────────────┐
-           │ lottery_history.json │ ◄── 历史开奖数据（153 期）
+           │ lottery_history.json │ ◄── 历史开奖数据
            └──────────┬───────────┘
-                      │ 预测脚本读取最近 30 期
+                      │ 预测脚本读取全部历史
                       ▼
            ┌──────────────────────┐
            │ generate_ai_prediction.py │
            │                      │
            │  1. 归档旧预测 → 计算命中 → predictions_history.json
-           │  2. 调用 4 个 AI 模型（AIHubMix + Sensenova 双供应商）
-           │  3. 调用 10 个统计模型（本地计算，0 token 消耗）
-           │  4. 去重 / 防复读 / 格式校验
-           │  5. 记录 token 用量 → token_usage.json（裁剪保留近 52 期）
-           │  6. 输出 ai_predictions.json
+           │  2. 调用 10 个统计模型（本地计算，0 token 消耗）
+           │  3. 去重 / 防复读 / 格式校验
+           │  4. 输出 ai_predictions.json
            └──────────┬───────────┘
                       │ git push
                       ▼
@@ -193,7 +181,7 @@ python3 generate_ai_prediction.py
            │  前端 3 个 Tab                              │
            │  ┌──────────────────────────────────────┐   │
            │  │ Tab1 最新预测（首屏加载）              │   │
-           │  │  Hero Banner + 16 模型卡片 × 4 组预测  │   │
+           │  │  Hero Banner + 10 模型卡片 × 4 组预测 │   │
            │  └──────────────────────────────────────┘   │
            │  ┌──────────────────────────────────────┐   │
            │  │ Tab2 历史分析（懒加载）                │   │
@@ -201,7 +189,7 @@ python3 generate_ai_prediction.py
            │  └──────────────────────────────────────┘   │
            │  ┌──────────────────────────────────────┐   │
            │  │ Tab3 模型排行（懒加载）                │   │
-           │  │  命中率排行 + 模型分组统计 + Token 排行 │   │
+           │  │  命中率排行 + 模型分组统计             │   │
            │  └──────────────────────────────────────┘   │
            └─────────────────────────────────────────────┘
 ```
@@ -209,8 +197,7 @@ python3 generate_ai_prediction.py
 ### 数据优化
 
 - **JSON 紧凑格式**: 所有落盘数据文件使用 `separators=(',',':')` 无缩进序列化，较 `indent=2` 减小 **30%~54%** 体积，节省 git 存储与传输带宽
-- **数据懒加载**: 首屏只拉取 `lottery_history.json` + `ai_predictions.json`（Tab1 所需）；进入 Tab2/Tab3 时由 `loadSecondaryData()` 并发拉取剩下两个文件（并发去重，仅拉一次）
-- **token_usage 裁剪**: 生成侧按期号分组保留最近 52 期记录，避免文件随时间无限增长（~7000 条/年）
+- **数据懒加载**: 首屏只拉取 `lottery_history.json` + `ai_predictions.json`（Tab1 所需）；进入 Tab2/Tab3 时由 `loadSecondaryData()` 并发拉取 `predictions_history.json`（并发去重，仅拉一次）
 
 ### 自动时序
 
@@ -219,7 +206,7 @@ python3 generate_ai_prediction.py
   ↓ 北京 22:00 (UTC 14:00)
 [爬虫] 更新 lottery_history.json
   ↓ 周一/三/五 北京 08:00 (UTC 00:00)
-[AI 预测] 归档旧预测 + 生成新预测
+[预测] 归档旧预测 + 生成新预测
   ↓ 北京 08:30 (UTC 00:30)
 [邮件推送] 发送每日汇总邮件
   ↓
@@ -235,33 +222,7 @@ Vercel 自动重新部署
 
 ---
 
-## 🤖 AI 预测引擎
-
-### 模型配置
-
-| 模型 | ID | 供应商 | 类型 | 特性 |
-|------|------|--------|------|------|
-| **DeepSeek V3** | `deepseek-v3` | AIHubMix | 通用 | ~500 tokens/次, ~10s |
-| **Kimi K2** | `Moonshot-Kimi-K2-Instruct` | AIHubMix | 通用 | ~400 tokens/次, ~15s |
-| **DeepSeek V4 Flash** | `deepseek-v4-flash` | Sensenova | 推理型 | 需 `reasoning_effort="none"` 避免推理链占满输出预算 |
-| **GLM 5.2** | `glm-5.2` | Sensenova | 通用 | ~500 tokens/次, ~10s |
-
-**双供应商架构**: DeepSeek V3/Kimi 通过 AIHubMix 统一端点调用（共享 `AI_API_KEY`）；DeepSeek V4 Flash 和 GLM 5.2 通过 Sensenova 端点调用（使用 `SENSENOVA_API_KEY`）。每个模型可独立配置 `api_key` / `base_url` 覆盖。
-
-### 预测策略
-
-每个模型生成 4 组预测，采用不同量化策略：
-
-| 策略 | 核心逻辑 |
-|------|---------|
-| **热号追随者** | 多周期加权频率（5期×5 + 10期×3 + 30期×2），衰减因子，三区间平衡 |
-| **平衡策略师** | 历史分布拟合，精细约束（AC 值 8-14，总和 100-120），区间分布 |
-| **周期理论家** | 三周期频率交叉，趋势强度评分，周期转折点识别 |
-| **综合决策者** | 加权投票（热号 30%+冷号 25%+平衡 20%+周期 25%），多样性保证 |
-
-> 详细 Prompt 模板见 [doc/prompt2.0.md](./doc/prompt2.0.md)
-
-### 统计/概率/ML 模型（10 个，本地计算）
+## 🤖 统计/概率/ML 模型引擎（10 个，本地计算）
 
 所有模型基于全部历史开奖数据本地计算，**不调用 API、不消耗 token**，仅依赖 Python 标准库（`random/math/statistics/itertools`）：
 
@@ -278,6 +239,8 @@ Vercel 自动重新部署
 | `apriori` | 关联规则 | ML | 红球共现置信度 / 提升度 |
 | `ensemble` | 集成投票 | ML | 前 9 模型评分均值/中位数/去极值融合 |
 
+每个模型输出 4 组参数变体预测，结构与策略覆盖统计、概率、机器学习三大类。
+
 ---
 
 ## 🎛 前端架构
@@ -286,9 +249,9 @@ Vercel 自动重新部署
 
 | Tab | 数据加载 | 内容 |
 |-----|---------|------|
-| **最新预测** | 首屏加载 | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计模型卡片（共 14 个，各 4 组预测）、免责声明 |
+| **最新预测** | 首屏加载 | Hero Banner（下期期号/日期/倒计时）、统计模型卡片（共 10 个，各 4 组预测）、免责声明 |
 | **历史分析** | 懒加载 | 4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格、命中记录紧凑摘要 |
-| **模型排行** | 懒加载 | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计、Token 用量排行 |
+| **模型排行** | 懒加载 | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计 |
 
 ### 核心组件（`components.js`）
 
@@ -299,19 +262,19 @@ Vercel 自动重新部署
 - `createHistoryTableRow()` — 历史开奖表格行
 - `compareNumbers()` — 命中计算逻辑
 
-### 主题切换
+### 视觉风格
 
-CSS 变量实现深色/浅色模式，偏好保存至 localStorage。
+清新简约：白底 + 细边框 + 轻阴影；10 个模型各配一个低饱和度淡彩头部（`--tint-*` CSS 变量），便于分类辨识，整体大量留白。
 
 ---
 
 ## 📧 邮件推送
 
-两种推送机制，共用 `email_content_builder.py` 统一 HTML 构建，`email_smtp_utils.py` 共享 SMTP 发送：
+两种推送机制，共用 `email_content_builder.py` 统一 HTML 构建，`email_smtp_utils.py` 共享配置加载/校验/发送（含 `send_digest` 编排封装，消除重复逻辑）：
 
 | 类型 | 脚本 | 触发 | 内容 |
 |------|------|------|------|
-| **每日汇总** | `email_daily_digest.py` | 每天 UTC 00:30 | 最新开奖 + 命中排行 + AI 预测 |
+| **每日汇总** | `email_daily_digest.py` | 每天 UTC 00:30 | 最新开奖 + 命中排行 + 模型预测 |
 | **Push 通知** | `email_push_notify.py` | 每次 push 到 master | 每日汇总 + Git 提交信息 |
 
 ### 配置
@@ -334,10 +297,6 @@ EMAIL_DRY_RUN=true python3 email_daily_digest.py
 
 | 变量 | 用途 | 使用方 |
 |------|------|--------|
-| `AI_API_KEY` | AIHubMix API 凭证（DeepSeek V3/Kimi） | `generate_ai_prediction.py` |
-| `AI_BASE_URL` | AIHubMix 端点（默认 `https://aihubmix.com/v1`） | `generate_ai_prediction.py` |
-| `SENSENOVA_API_KEY` | Sensenova API 凭证（DeepSeek V4 Flash/GLM 5.2） | `generate_ai_prediction.py` |
-| `SENSENOVA_BASE_URL` | Sensenova 端点（默认 `https://token.sensenova.cn/v1`） | `generate_ai_prediction.py` |
 | `SMTP_SERVER` | SMTP 服务器（默认 `smtp.qq.com`） | 邮件脚本 |
 | `SMTP_PORT` | SMTP 端口（默认 `465`） | 邮件脚本 |
 | `SMTP_USER` | 邮箱地址 | 邮件脚本 |
@@ -370,7 +329,7 @@ vercel --prod
 | 层 | 技术 |
 |----|------|
 | **前端** | HTML5, CSS3 (CSS Variables, Grid, Flexbox), Vanilla JS (ES6+) |
-| **AI 调用** | OpenAI API 兼容格式（双供应商：AIHubMix + Sensenova） |
+| **预测引擎** | Python 标准库（random/math/statistics/itertools），纯本地计算 |
 | **爬虫** | Python requests + BeautifulSoup4（500.com） |
 | **自动化** | GitHub Actions（4 个工作流：爬虫/预测/邮件/Push） |
 | **部署** | Vercel（自动部署 + CDN，数据文件不缓存） |
@@ -383,11 +342,10 @@ vercel --prod
 
 | 文档 | 内容 |
 |------|------|
-| [doc/prompt2.0.md](./doc/prompt2.0.md) | AI 预测 Prompt 模板 v2.0（4 策略） |
 | [.claude/CLAUDE.md](./.claude/CLAUDE.md) | 项目内部维护说明（数据结构、脚本详情、Git 规则） |
 
 ---
 
 ## ⚠️ 免责声明
 
-本项目仅供学习交流使用，不构成任何投资建议。彩票具有随机性，AI 预测仅为技术演示，不保证准确性。双色球开奖为随机事件，任何预测均无法保证命中。
+本项目仅供学习交流使用，不构成任何投资建议。彩票具有随机性，预测仅为技术演示，不保证准确性。双色球开奖为随机事件，任何预测均无法保证命中。

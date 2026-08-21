@@ -4,17 +4,16 @@
 
 功能:
 1. 提供静态文件服务（替代 python -m http.server）
-2. POST /api/update — 一键更新开奖数据 + AI 预测，并返回最新数据
+2. POST /api/update — 一键更新开奖数据 + 统计模型预测，并返回最新数据
 
 启动: python server.py
-访问: http://localhost:8000
+访问: http://localhost:8080
 """
 
 import json
 import os
 import subprocess
 import sys
-import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from datetime import datetime, timezone, timedelta
@@ -51,10 +50,10 @@ def _read_json(rel_path):
 
 
 def run_update():
-    """执行数据更新流程：爬虫 → AI 预测。
+    """执行数据更新流程：爬虫 → 统计模型预测。
 
     返回 (success, message, data)
-    - data 包含更新后的 lottery_history / ai_predictions / predictions_history / token_usage
+    - data 包含更新后的 lottery_history / ai_predictions / predictions_history
     """
     results = []
     env = load_env()
@@ -86,15 +85,15 @@ def run_update():
     except Exception as e:
         results.append(f"❌ 开奖数据更新异常: {e}")
 
-    # 2. 运行 AI 预测生成下期预测
+    # 2. 运行统计模型预测生成下期预测
     print("\n" + "=" * 50)
-    print("🤖 [2/2] 生成 AI 预测...")
+    print("🤖 [2/2] 生成统计模型预测...")
     print("=" * 50)
 
-    ai_script = os.path.join(SCRIPT_DIR, "generate_ai_prediction.py")
+    pred_script = os.path.join(SCRIPT_DIR, "generate_ai_prediction.py")
     try:
         proc = subprocess.run(
-            [sys.executable, ai_script],
+            [sys.executable, pred_script],
             cwd=SCRIPT_DIR,
             env=env,
             capture_output=True,
@@ -102,23 +101,22 @@ def run_update():
             timeout=600,
         )
         if proc.returncode == 0:
-            results.append("✅ AI 预测生成成功")
+            results.append("✅ 统计模型预测生成成功")
             print(proc.stdout[-2000:])
         else:
-            results.append("❌ AI 预测生成失败")
+            results.append("❌ 统计模型预测生成失败")
             print(proc.stdout[-2000:])
             print(proc.stderr[-2000:])
     except subprocess.TimeoutExpired:
-        results.append("❌ AI 预测生成超时")
+        results.append("❌ 统计模型预测生成超时")
     except Exception as e:
-        results.append(f"❌ AI 预测生成异常: {e}")
+        results.append(f"❌ 统计模型预测生成异常: {e}")
 
     # 3. 读取最新数据
     data = {
         "lottery_history": _read_json("lottery_history.json"),
         "ai_predictions": _read_json("ai_predictions.json"),
         "predictions_history": _read_json("predictions_history.json"),
-        "token_usage": _read_json("token_usage.json"),
     }
 
     success = all("✅" in r for r in results)
@@ -171,7 +169,7 @@ class Handler(SimpleHTTPRequestHandler):
 def main():
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     print("=" * 50)
-    print("双色球开奖与 AI 预测数据展示系统")
+    print("双色球开奖与统计模型预测数据展示系统")
     print("=" * 50)
     print(f"📡 服务器地址: http://localhost:{PORT}")
     print(f"🌐 请在浏览器中打开上述地址")

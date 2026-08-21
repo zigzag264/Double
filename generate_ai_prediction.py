@@ -1,97 +1,26 @@
 # -*- coding: utf-8 -*-
 """
-双色球 AI 预测自动生成脚本
-自动调用 AI 模型生成下期预测数据
+双色球 统计模型预测自动生成脚本
+自动调用本地统计/概率/机器学习模型生成下期预测数据
+
+说明：现仅由 stats_models.py 的 10 个纯标准库统计模型生成预测，
+不调用 API、不消耗 token。
 """
 
 import json
 import os
-import sys
-import time as time_module
-from collections import defaultdict
-from datetime import datetime, timedelta
-from openai import OpenAI
-from openai import (
-    APITimeoutError,
-    RateLimitError,
-    APIConnectionError,
-    InternalServerError,
-    AuthenticationError,
-    NotFoundError,
-    BadRequestError,
-)
-from typing import Dict, Any, Optional
+from datetime import datetime
+
+from typing import Dict, Any
 
 from stats_models import generate_stats_predictions
 
-# 自动加载 .env 文件（如果存在）
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
-
 # ==================== 配置区 ====================
-# 默认 API 配置（通过环境变量设置，用于多数模型）
-BASE_URL = os.environ.get("AI_BASE_URL")
-API_KEY = os.environ.get("AI_API_KEY")
-
-# 模型配置列表（每个模型可单独配置 api_key / base_url，留空则用默认凭证）
-# 每模型可单独配置：streaming 支持、超时、温度、重试次数
-MODELS = [
-    {
-        "id": "deepseek-v3",
-        "name": "DeepSeek V3",
-        "model_id": "deepseek-v3",
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
-        "id": "Moonshot-Kimi-K2-Instruct",
-        "name": "Kimi K2",
-        "model_id": "Moonshot-Kimi-K2-Instruct",
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-    },
-    {
-        "id": "deepseek-v4-flash",
-        "name": "DeepSeek V4 Flash",
-        "model_id": "deepseek-v4-flash",
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-        "api_key": os.environ.get("SENSENOVA_API_KEY"),
-        "base_url": os.environ.get("SENSENOVA_BASE_URL"),
-        # 推理模型：reasoning_content 与正文 content 共享输出预算，推理链会吃满
-        # 默认上限导致 content 为空（JSON 解析失败）。reasoning_effort="none" 直接
-        # 关闭推理路径，正文 JSON 即刻输出（~7s、completion≈500 tokens）。
-        "reasoning_effort": "none",
-    },
-    {
-        "id": "glm-5.2",
-        "name": "GLM 5.2",
-        "model_id": "glm-5.2",
-        "supports_streaming": True,
-        "timeout": 240,
-        "temperature": 0.8,
-        "max_retries": 2,
-        "api_key": os.environ.get("SENSENOVA_API_KEY"),
-        "base_url": os.environ.get("SENSENOVA_BASE_URL"),
-    },
-]
-
 # 文件路径
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOTTERY_HISTORY_FILE = os.path.join(SCRIPT_DIR, "data", "lottery_history.json")
 AI_PREDICTIONS_FILE = os.path.join(SCRIPT_DIR, "data", "ai_predictions.json")
 PREDICTIONS_HISTORY_FILE = os.path.join(SCRIPT_DIR, "data", "predictions_history.json")
-TOKEN_USAGE_FILE = os.path.join(SCRIPT_DIR, "data", "token_usage.json")
-PROMPT_FILE = os.path.join(SCRIPT_DIR, "doc", "prompt2.0.md")
 
 # ==================== 工具函数 ====================
 
@@ -110,15 +39,6 @@ def _write_json_file(path: str, obj) -> None:
         f.write(_dump_json(obj))
 
 
-def load_prompt_template() -> str:
-    """加载 Prompt 模板文件"""
-    try:
-        with open(PROMPT_FILE, 'r', encoding='utf-8') as f:
-            return f.read()
-    except Exception as e:
-        print(f"❌ 加载 Prompt 文件失败: {str(e)}")
-        raise
-
 def load_lottery_history() -> Dict[str, Any]:
     """加载历史开奖数据"""
     try:
@@ -128,251 +48,6 @@ def load_lottery_history() -> Dict[str, Any]:
         print(f"❌ 加载历史数据失败: {str(e)}")
         raise
 
-def get_next_draw_date() -> str:
-    """
-    根据双色球开奖规则（每周二、四、日 21:15）计算下期开奖日期
-    返回 YYYY-MM-DD 格式
-    """
-    today = datetime.now()
-    weekday = today.weekday()  # 0=周一, 1=周二, 2=周三, 3=周四, 4=周五, 5=周六, 6=周日
-
-    # 开奖日: 周二(1), 周四(3), 周日(6)
-    draw_weekdays = [1, 3, 6]
-
-    # 如果今天是开奖日且未到开奖时间(21:15)，则预测今天
-    if weekday in draw_weekdays:
-        draw_time = today.replace(hour=21, minute=15, second=0, microsecond=0)
-        if today < draw_time:
-            return today.strftime("%Y-%m-%d")
-
-    # 否则找下一个开奖日
-    for days_ahead in range(1, 8):
-        future_date = today + timedelta(days=days_ahead)
-        if future_date.weekday() in draw_weekdays:
-            return future_date.strftime("%Y-%m-%d")
-
-    # 理论上不会到这里
-    return today.strftime("%Y-%m-%d")
-
-def get_openai_client(api_key: str = None, base_url: str = None, default_timeout: int = 120) -> OpenAI:
-    """获取 OpenAI 客户端（支持自定义凭证）"""
-    return OpenAI(
-        api_key=api_key or API_KEY,
-        base_url=base_url or BASE_URL,
-        timeout=default_timeout,
-        max_retries=0
-    )
-
-def extract_json_from_response(response_text: str) -> str:
-    """从 AI 响应中提取 JSON 内容"""
-    # 去除可能的 markdown 标记
-    text = response_text.strip()
-
-    # 如果有 ```json 标记，提取中间的内容
-    if "```json" in text:
-        start = text.find("```json") + 7
-        end = text.find("```", start)
-        text = text[start:end].strip()
-    elif "```" in text:
-        start = text.find("```") + 3
-        end = text.find("```", start)
-        text = text[start:end].strip()
-
-    return text
-
-# ==================== 模型调用核心 ====================
-
-def _build_messages(prompt: str) -> list:
-    """构建统一的 messages 列表"""
-    return [
-        {
-            "role": "system",
-            "content": "你是一个专业的彩票数据分析师，擅长基于历史数据进行模式分析和预测。请严格按照要求返回 JSON 格式数据，不要有任何额外的解释或说明。禁止输出任何推理、思考、分析过程（reasoning/thinking/CoT）。禁止使用 reasoning、thinking 等标签包裹内容。直接输出最终 JSON 结果。"
-        },
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
-
-
-def _call_with_streaming(client: OpenAI, model_config: dict, prompt: str):
-    """流式模式调用，返回 (完整响应文本, token用量dict)"""
-    timeout = model_config.get("timeout", 120)
-    response_text = ""
-    usage = {}
-
-    stream_kwargs = dict(
-        model=model_config["id"],
-        messages=_build_messages(prompt),
-        temperature=model_config.get("temperature", 0.8),
-        stream=True,
-        stream_options={"include_usage": True},
-        timeout=timeout + 60,  # 流式较慢，额外加 60s
-    )
-    # 推理模型默认会输出大量推理链，
-    # 用 reasoning_effort=low 抑制推理深度，大幅减少 token 消耗和耗时
-    # 推理模型用 max_completion_tokens 而非 max_tokens 来控制总输出
-    if "max_tokens" in model_config:
-        stream_kwargs["max_tokens"] = model_config["max_tokens"]
-    if "max_completion_tokens" in model_config:
-        stream_kwargs["max_completion_tokens"] = model_config["max_completion_tokens"]
-    if "reasoning_effort" in model_config:
-        stream_kwargs["reasoning_effort"] = model_config["reasoning_effort"]
-
-    stream = client.chat.completions.create(**stream_kwargs)
-
-    for chunk in stream:
-        if getattr(chunk, "usage", None):
-            usage = {
-                "prompt_tokens": chunk.usage.prompt_tokens,
-                "completion_tokens": chunk.usage.completion_tokens,
-                "total_tokens": chunk.usage.total_tokens,
-            }
-            continue
-        if chunk.choices:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                response_text += delta.content
-
-    return response_text.strip(), usage
-
-
-def _call_without_streaming(client: OpenAI, model_config: dict, prompt: str):
-    """非流式模式调用，返回 (完整响应文本, token用量dict)"""
-    timeout = model_config.get("timeout", 120)
-
-    create_kwargs = dict(
-        model=model_config["id"],
-        messages=_build_messages(prompt),
-        temperature=model_config.get("temperature", 0.8),
-        stream=False,
-        timeout=timeout,
-    )
-    if "max_tokens" in model_config:
-        create_kwargs["max_tokens"] = model_config["max_tokens"]
-    if "max_completion_tokens" in model_config:
-        create_kwargs["max_completion_tokens"] = model_config["max_completion_tokens"]
-    if "reasoning_effort" in model_config:
-        create_kwargs["reasoning_effort"] = model_config["reasoning_effort"]
-
-    response = client.chat.completions.create(**create_kwargs)
-
-    usage = {}
-    if getattr(response, "usage", None):
-        usage = {
-            "prompt_tokens": response.usage.prompt_tokens,
-            "completion_tokens": response.usage.completion_tokens,
-            "total_tokens": response.usage.total_tokens,
-        }
-
-    return response.choices[0].message.content.strip(), usage
-
-
-def _is_retryable_error(e: Exception) -> bool:
-    """判断错误是否可重试"""
-    return isinstance(e, (APITimeoutError, RateLimitError, APIConnectionError, InternalServerError))
-
-
-def _is_skip_error(e: Exception) -> bool:
-    """判断错误是否应跳过（不重试）"""
-    return isinstance(e, (AuthenticationError, NotFoundError, BadRequestError))
-
-
-def _format_usage(usage: dict) -> str:
-    """格式化 token 用量显示"""
-    if not usage:
-        return "token: N/A"
-    p = usage.get("prompt_tokens", 0)
-    c = usage.get("completion_tokens", 0)
-    t = usage.get("total_tokens", 0)
-    return f"token: ↑{p:,} ↓{c:,} ∑{t:,}"
-
-
-def _parse_prediction(response_text: str, model_name: str) -> Dict[str, Any]:
-    """从响应文本中提取并解析 JSON 预测数据"""
-    json_text = extract_json_from_response(response_text)
-    try:
-        return json.loads(json_text)
-    except json.JSONDecodeError as e:
-        print(f"    ❌ {model_name} JSON 解析失败: {e}")
-        print(f"    原始响应前500字符:\n{response_text[:500]}")
-        raise
-
-
-def call_ai_model(client: OpenAI, model_config: dict, prompt: str) -> Optional[Dict[str, Any]]:
-    """
-    调用 AI 模型获取预测（带自动流式回退 + 重试）
-
-    流程：
-      1. 若模型支持 streaming → 尝试流式调用
-      2. 流式失败 → 自动回退到非流式
-      3. 对可重试错误（超时/限流/断连/500）进行重试
-      4. 对不可重试错误（认证/模型不存在/参数错误）直接跳过
-    """
-    model_name = model_config["name"]
-    max_retries = model_config.get("max_retries", 2)
-    usage = {}
-
-    # ---- 尝试流式调用 ----
-    if model_config.get("supports_streaming", True):
-        for attempt in range(max_retries + 1):
-            try:
-                t0 = time_module.time()
-                response_text, usage = _call_with_streaming(client, model_config, prompt)
-                elapsed = time_module.time() - t0
-                prediction = _parse_prediction(response_text, model_name)
-                print(f"    ✅ 流式成功 | 耗时: {elapsed:.1f}s | 响应: {len(response_text)} 字符 | {_format_usage(usage)}")
-                return prediction, usage
-
-            except json.JSONDecodeError:
-                # JSON 解析失败不可重试
-                return None, usage
-            except Exception as e:
-                if _is_skip_error(e):
-                    print(f"    ❌ 流式调用失败 (不可恢复): {type(e).__name__}")
-                    print(f"       {e}")
-                    break  # 不再尝试流式，进入非流式回退
-                if attempt < max_retries:
-                    wait = 2 ** attempt
-                    print(f"    ⚠️ 流式调用失败 (第{attempt+1}次): {type(e).__name__}")
-                    print(f"       {e}")
-                    print(f"    ℹ️  等待 {wait}s 后重试...")
-                    time_module.sleep(wait)
-                else:
-                    print(f"    ❌ 流式调用失败 ({max_retries+1}次均失败): {type(e).__name__}")
-                    print(f"       {e}")
-
-        # 流式全部失败 → 回退到非流式
-        print(f"    ℹ️  回退到非流式模式...")
-
-    # ---- 非流式调用 ----
-    for attempt in range(max_retries + 1):
-        try:
-            t0 = time_module.time()
-            response_text, usage = _call_without_streaming(client, model_config, prompt)
-            elapsed = time_module.time() - t0
-            prediction = _parse_prediction(response_text, model_name)
-            print(f"    ✅ 非流式成功 | 耗时: {elapsed:.1f}s | 响应: {len(response_text)} 字符 | {_format_usage(usage)}")
-            return prediction, usage
-
-        except json.JSONDecodeError:
-            return None, usage
-        except Exception as e:
-            if _is_skip_error(e):
-                print(f"    ❌ 非流式调用失败 (不可恢复): {type(e).__name__}")
-                print(f"       {e}")
-                return None, usage
-            if attempt < max_retries:
-                wait = 2 ** attempt
-                print(f"    ⚠️ 非流式调用失败 (第{attempt+1}次): {type(e).__name__}")
-                print(f"       {e}")
-                print(f"    ℹ️  等待 {wait}s 后重试...")
-                time_module.sleep(wait)
-            else:
-                print(f"    ❌ 非流式调用失败 ({max_retries+1}次均失败): {type(e).__name__}")
-                print(f"       {e}")
-                return None, usage
 
 def validate_prediction(prediction: Dict[str, Any]) -> bool:
     """验证预测数据格式"""
@@ -443,82 +118,12 @@ def validate_prediction(prediction: Dict[str, Any]) -> bool:
         print(f"    ⚠️  验证出错: {str(e)}")
         return False
 
-def save_token_usage(diagnostics: list, target_period: str, prediction_date: str):
-    """将本次各模型的 token 用量追加到 data/token_usage.json
-
-    追加后按 target_period 裁剪，仅保留最近 KEEP_PERIODS 期记录，
-    避免文件随时间无限增长（前端排行只展示累计统计，旧记录无展示价值）。
-    """
-    KEEP_PERIODS = 52  # 约半年的开奖期数
-    try:
-        records = []
-        if os.path.exists(TOKEN_USAGE_FILE):
-            with open(TOKEN_USAGE_FILE, 'r', encoding='utf-8') as f:
-                records = json.load(f).get("records", [])
-
-        for d in diagnostics:
-            usage = d.get("usage") or {}
-            records.append({
-                "date": prediction_date,
-                "target_period": target_period,
-                "model_id": d.get("model_id", ""),
-                "model_name": d.get("name", ""),
-                "prompt_tokens": usage.get("prompt_tokens", 0),
-                "completion_tokens": usage.get("completion_tokens", 0),
-                "total_tokens": usage.get("total_tokens", 0),
-                "elapsed_seconds": round(d.get("elapsed", 0), 1),
-                "success": d.get("status") == "✅ 成功",
-            })
-
-        # 去重：同一 (期号, 模型) 仅保留最新一次记录，避免重跑导致累计排行膨胀
-        _dedup = {}
-        for r in records:
-            _dedup[(r.get("target_period", ""), r.get("model_id", ""))] = r
-        deduped_count = len(records) - len(_dedup)
-        records = list(_dedup.values())
-
-        # 裁剪：按期号分组，保留最近 KEEP_PERIODS 期
-        period_groups = defaultdict(list)
-        for r in records:
-            period_groups[r.get("target_period", "")].append(r)
-        sorted_periods = sorted(
-            period_groups.keys(),
-            key=lambda p: int(p) if isinstance(p, str) and str(p).isdigit() else 0,
-            reverse=True,
-        )
-        kept_periods = sorted_periods[:KEEP_PERIODS]
-        before = len(records)
-        records = [r for p in kept_periods for r in period_groups[p]]
-        trimmed = before - len(records)
-
-        _write_json_file(TOKEN_USAGE_FILE, {"records": records})
-        msg = f"  📊 已记录 {len(diagnostics)} 条 token 用量到 token_usage.json"
-        notes = []
-        if deduped_count:
-            notes.append(f"去重 {deduped_count} 条重跑记录")
-        if trimmed:
-            notes.append(f"裁剪 {trimmed} 条过期记录（保留最近 {len(kept_periods)} 期）")
-        if notes:
-            msg += "（" + "，".join(notes) + "）"
-        print(msg)
-    except Exception as e:
-        print(f"  ⚠️  保存 token 用量失败: {str(e)}")
-
 
 def generate_predictions() -> Dict[str, Any]:
-    """生成所有模型的预测"""
+    """生成统计模型的预测"""
     print("\n" + "="*50)
-    print("🤖 双色球 AI 预测自动生成")
+    print("📊 双色球统计模型预测自动生成")
     print("="*50 + "\n")
-
-    # 加载 Prompt 模板
-    print("📄 加载 Prompt 模板...")
-    try:
-        prompt_template = load_prompt_template()
-        print(f"  ✓ Prompt 模板加载成功 ({len(prompt_template)} 字符)\n")
-    except Exception as e:
-        print(f"  ✗ Prompt 模板加载失败: {str(e)}\n")
-        return None
 
     # 加载历史数据
     print("📊 加载历史开奖数据...")
@@ -540,117 +145,14 @@ def generate_predictions() -> Dict[str, Any]:
     print(f"📅 开奖日期: {target_date}")
     print(f"📝 历史数据: 最近 {len(lottery_data.get('data', []))} 期\n")
 
-    # 准备历史数据（最近30期）
-    history_data = lottery_data.get("data", [])[:30]
-    history_json = _dump_json(history_data)  # 紧凑格式，减少 prompt 输入 token
-
-    # 预测日期：根据开奖规则计算下期开奖日期
-    prediction_date = get_next_draw_date()
+    # 预测日期：取历史数据最近更新日（last_updated 的日期部分）
+    prediction_date = (lottery_data.get("last_updated", "") or "")[:10] or target_date
     print(f"📅 预测日期: {prediction_date}\n")
 
-    # 存储所有模型的预测和诊断信息
     all_predictions = []
-    diagnostics = []  # 每个模型一条诊断记录
-
-    # 逐个调用模型
-    print("🔮 开始生成预测...\n")
-    for model_config in MODELS:
-        model_name = model_config["name"]
-        model_api_key = model_config.get("api_key")
-        model_base_url = model_config.get("base_url")
-        # 每个模型使用自己的客户端（支持不同凭证）
-        resolved_api_key = model_api_key or os.environ.get("AI_API_KEY")
-        resolved_base_url = model_base_url or os.environ.get("AI_BASE_URL")
-        if not resolved_api_key or not resolved_base_url:
-            print(f"  ⚠️  {model_name}: 缺少 API 凭证，跳过\n")
-            diagnostics.append({
-                "name": model_name,
-                "model_id": model_config["model_id"],
-                "status": "❌ 失败",
-                "detail": "缺少 API 凭证",
-                "elapsed": 0,
-                "usage": {},
-            })
-            continue
-
-        client = get_openai_client(
-            api_key=resolved_api_key,
-            base_url=resolved_base_url,
-            default_timeout=model_config.get("timeout", 120)
-        )
-
-        t_start = time_module.time()
-        status = "❌ 失败"
-        detail = ""
-        usage = {}
-
-        try:
-            # 构建 prompt
-            prompt = prompt_template.format(
-                target_period=target_period,
-                target_date=target_date,
-                lottery_history=history_json,
-                prediction_date=prediction_date,
-                model_id=model_config['model_id'],
-                model_name=model_config['name']
-            )
-
-            # 推理模型追加硬约束：禁止输出任何推理链
-            if model_config.get("reasoning_effort"):
-                prompt += (
-                    "\n\n## 硬性约束\n"
-                    "（重要）无论任何情况下，都禁止输出思考过程、推理链、分析步骤。"
-                    "这一步对你的达标至关重要：直接输出上述 JSON 结构，不要包含任何其他文字。"
-                )
-
-            # 调用模型
-            prediction, usage = call_ai_model(client, model_config, prompt)
-
-            if prediction is None:
-                detail = "调用失败或解析失败"
-                print(f"  ✗ {model_name}: {detail}\n")
-            else:
-                # 先进行后处理（去重 + 防复读 + 补齐4组），再验证
-                prediction = post_process_prediction(prediction, lottery_data.get("data", []))
-                if validate_prediction(prediction):
-                    all_predictions.append(prediction)
-                    status = "✅ 成功"
-                    detail = "验证通过"
-                    print(f"  ✓ {model_name}: 验证通过\n")
-                else:
-                    detail = "验证失败（格式不正确）"
-                    print(f"  ✗ {model_name}: {detail}\n")
-
-        except Exception as e:
-            detail = f"{type(e).__name__}: {str(e)}"
-            print(f"  ✗ 处理 {model_name} 时异常: {detail}\n")
-
-        elapsed = time_module.time() - t_start
-        diagnostics.append({
-            "name": model_name,
-            "model_id": model_config["model_id"],
-            "status": "✅ 成功" if status == "✅ 成功" else "❌ 失败",
-            "detail": detail if detail else "成功",
-            "elapsed": elapsed,
-            "usage": usage,
-        })
-
-    # 打印诊断汇总表
-    print("\n" + "=" * 60)
-    print("📊 模型调用诊断汇总")
-    print("=" * 60)
-    for d in diagnostics:
-        elapsed_str = f"{d['elapsed']:.1f}s" if d['elapsed'] < 60 else f"{d['elapsed']/60:.1f}min"
-        token_str = _format_usage(d.get("usage", {}))
-        print(f"  {d['status']} | {d['name']:<8s} | {elapsed_str:>7s} | {token_str} | {d['detail']}")
-    print("=" * 60)
-    print(f"  总计: {sum(1 for d in diagnostics if d['status'] == '✅ 成功')}/{len(diagnostics)} 个模型成功\n")
-
-    # 记录 token 用量（仅 AI 模型，统计模型无 token 消耗）
-    save_token_usage(diagnostics, target_period, prediction_date)
 
     # ============ 生成统计/概率/机器学习模型预测（本地计算，不调用 API） ============
-    print("\n" + "=" * 50)
+    print("=" * 50)
     print("📊 生成统计数学模型预测 (10 种)...")
     print("=" * 50)
     stats_predictions = []
@@ -661,7 +163,7 @@ def generate_predictions() -> Dict[str, Any]:
         print(f"  ⚠️  统计模型生成异常: {type(e).__name__}: {e}")
 
     if stats_predictions:
-        # 与 AI 模型一致：先做去重/防复读后处理，再严格校验格式
+        # 先做去重/防复读后处理，再严格校验格式
         valid_stats = []
         for sm in stats_predictions:
             sm = post_process_prediction(sm, lottery_data.get("data", []))
@@ -672,11 +174,6 @@ def generate_predictions() -> Dict[str, Any]:
         print(f"  ✓ 统计模型通过校验 {len(valid_stats)}/{len(stats_predictions)} 个: {names}\n")
     else:
         print("  ⚠️  统计模型预测为空（历史数据不足），跳过\n")
-
-    # 标记模型类型（AI 模型标记为 'ai'；统计模型生成时已带 'stats'）
-    for m in all_predictions:
-        if m.get("model_type") != "stats":
-            m["model_type"] = "ai"
 
     # 构建最终输出
     if not all_predictions:
@@ -693,9 +190,7 @@ def generate_predictions() -> Dict[str, Any]:
         "models": all_predictions
     }
 
-    ai_count = sum(1 for m in all_predictions if m.get("model_type") != "stats")
-    stats_count = len(all_predictions) - ai_count
-    print(f"✅ 成功生成 {len(all_predictions)} 个模型的预测（AI {ai_count} + 统计 {stats_count}）\n")
+    print(f"✅ 成功生成 {len(all_predictions)} 个统计模型的预测\n")
     return result
 
 def calculate_hit_result(prediction_group: Dict[str, Any], actual_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -787,9 +282,9 @@ def _repair_group(group: Dict[str, Any], recent_draws: list) -> Dict[str, Any]:
 def _normalize_balls(prediction: Dict[str, Any]) -> None:
     """将合法红蓝球规整为 2 位零填充字符串、红球按数值升序排列（原地修改）。
 
-    AI 偶尔输出 "6" 而非 "06"；统一规整后，去重键、字典序排序校验、归档
-    时的命中比对（按原字符串相等）才一致可靠。非法号码原样保留，交由
-    validate_prediction 拒绝，避免在此处静默吞掉格式错误。
+    统一规整后，去重键、字典序排序校验、归档时的命中比对（按原字符串相等）
+    才一致可靠。非法号码原样保留，交由 validate_prediction 拒绝，避免在此处
+    静默吞掉格式错误。
     """
     for g in prediction.get("predictions", []):
         reds = g.get("red_balls", [])
@@ -1012,7 +507,7 @@ def archive_old_prediction(lottery_data: Dict[str, Any]) -> bool:
         return False
 
 def _clear_predictions_file():
-    """清空当前 AI 预测文件（写入空结构），避免邮件推送展示过期货。"""
+    """清空当前预测文件（写入空结构），避免邮件推送展示过期货。"""
     empty = {
         "prediction_date": "",
         "target_period": "",

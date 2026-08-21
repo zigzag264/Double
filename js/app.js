@@ -6,15 +6,14 @@
 let appData = {
     lotteryHistory: null,
     aiPredictions: null,
-    predictionsHistory: null,
-    tokenUsage: { records: [] }
+    predictionsHistory: null
 };
 
 // 各 Tab 渲染标记（懒渲染：首次进入某 Tab 时才构建；更新数据后重置）
 const renderedTabs = { prediction: true };
 
 // 次要数据（Tab2 历史分析 / Tab3 模型排行 用）懒加载状态
-// 首屏只加载 lotteryHistory + aiPredictions；进入 Tab2/3 时再拉取 predictionsHistory + tokenUsage
+// 首屏只加载 lotteryHistory + aiPredictions；进入 Tab2/3 时再拉取 predictionsHistory
 let secondaryLoaded = false;
 let secondaryLoading = null;
 
@@ -57,30 +56,24 @@ async function loadAllData() {
     }
 }
 
-// 懒加载次要数据（Tab2/3 所需：历史预测对比 + token 用量）
+// 懒加载次要数据（Tab2/3 所需：历史预测对比）
 // 首次进入任一次要 Tab 时触发，并发去重，仅拉取一次
+// 失败时不标记已加载，允许下次进入 Tab 重试
 async function loadSecondaryData() {
     if (secondaryLoaded) return;
     if (!secondaryLoading) {
         secondaryLoading = (async () => {
             try {
-                const [predictionsHistory, tokenUsage] = await Promise.all([
-                    DataLoader.loadPredictionsHistory(),
-                    DataLoader.loadTokenUsage()
-                ]);
+                const predictionsHistory = await DataLoader.loadPredictionsHistory();
                 appData.predictionsHistory = predictionsHistory;
-                appData.tokenUsage = tokenUsage;
+                secondaryLoaded = true;
             } catch (error) {
                 console.error('次要数据加载失败:', error);
                 // 降级：保证后续渲染函数拿到安全空结构而非 null
                 if (!appData.predictionsHistory) {
                     appData.predictionsHistory = { predictions_history: [] };
                 }
-                if (!appData.tokenUsage) {
-                    appData.tokenUsage = { records: [] };
-                }
             } finally {
-                secondaryLoaded = true;
                 secondaryLoading = null;
             }
         })();
@@ -144,24 +137,18 @@ function renderModelsGrid() {
         }
     }
 
-    // 按模型类型分区渲染（AI 模型 / 统计数学模型），同网格、不同分区标题
-    const models = appData.aiPredictions.models || [];
-    const aiModels = models.filter(m => (m.model_type || 'ai') !== 'stats');
-    const statsModels = models.filter(m => m.model_type === 'stats');
+    // 渲染统计数学模型
+    const statsModels = (appData.aiPredictions.models || []).filter(m => m.model_type === 'stats');
 
-    const renderSection = (title, list) => {
-        if (!list.length) return;
+    if (statsModels.length) {
         const header = document.createElement('div');
         header.className = 'models-section-title';
-        header.innerHTML = `${title} <span class="models-section-count">${list.length}</span>`;
+        header.innerHTML = `📊 统计数学模型预测 <span class="models-section-count">${statsModels.length}</span>`;
         modelsGridEl.appendChild(header);
-        list.forEach(model => {
+        statsModels.forEach(model => {
             modelsGridEl.appendChild(Components.createModelCard(model, actualResult));
         });
-    };
-
-    renderSection('🤖 AI 模型预测', aiModels);
-    renderSection('📊 统计数学模型预测', statsModels);
+    }
 }
 
 // 创建已开奖状态横幅
@@ -191,83 +178,7 @@ function createDrawnStatusBanner(actualResult) {
 function renderRankingTab() {
     renderHitRankings();
     renderGroupedRankings();
-    renderTokenUsage();
     renderAccuracyCards();
-}
-
-// 渲染模型 Token 用量排行表
-function renderTokenUsage() {
-    const container = document.getElementById('tokenUsageContainer');
-    if (!container) return;
-
-    const records = (appData.tokenUsage && appData.tokenUsage.records) || [];
-    if (!records.length) {
-        container.innerHTML = '<div class="ranking-empty"><p>暂无 Token 用量数据</p></div>';
-        return;
-    }
-
-    // 按模型聚合
-    const stats = {};
-    records.forEach(r => {
-        const key = r.model_id || r.model_name;
-        const entry = stats[key] || {
-            modelName: r.model_name,
-            modelId: r.model_id,
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
-            elapsed: 0,
-            calls: 0,
-        };
-        entry.promptTokens += r.prompt_tokens || 0;
-        entry.completionTokens += r.completion_tokens || 0;
-        entry.totalTokens += r.total_tokens || 0;
-        entry.elapsed += r.elapsed_seconds || 0;
-        entry.calls += 1;
-        stats[key] = entry;
-    });
-
-    const arr = Object.values(stats).sort((a, b) => b.totalTokens - a.totalTokens);
-
-    const fmt = (n) => n.toLocaleString('zh-CN');
-
-    let rows = arr.map(m => `
-        <tr>
-            <td class="token-model">${m.modelName}</td>
-            <td>${fmt(m.promptTokens)}</td>
-            <td>${fmt(m.completionTokens)}</td>
-            <td class="token-total">${fmt(m.totalTokens)}</td>
-            <td>${m.elapsed.toFixed(1)}s</td>
-            <td>${m.calls}</td>
-            <td>${fmt(Math.round(m.totalTokens / m.calls))}</td>
-        </tr>
-    `).join('');
-
-    const totalElapsed = arr.reduce((s, m) => s + m.elapsed, 0);
-
-    container.innerHTML = `
-        <div class="ranking-panel">
-            <div class="ranking-header">
-                <span class="ranking-title">Token 用量排行</span>
-                <span class="ranking-sub">累计 ${records.length} 次调用 · 总耗时 ${totalElapsed.toFixed(1)}s</span>
-            </div>
-            <div class="token-table-wrap">
-                <table class="ranking-table token-table">
-                    <thead>
-                        <tr>
-                            <th>模型</th>
-                            <th>总Prompt输入</th>
-                            <th>总输出</th>
-                            <th>总每次总计</th>
-                            <th>总耗时</th>
-                            <th>调用次数</th>
-                            <th>平均token</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>
-        </div>`;
 }
 
 // 命中排行：按时间窗口（最新一期 / 最近一月 / 最近一年）分组取 Top10
@@ -655,7 +566,7 @@ function renderStatisticsCards() {
     if (avgSumEl) avgSumEl.textContent = avgSum;
 }
 
-// 一键更新数据：爬虫更新开奖 + AI 预测 + 刷新页面
+// 一键更新数据：爬虫更新开奖 + 统计模型预测 + 刷新页面
 async function handleUpdateData() {
     const btn = document.getElementById('updateDataBtn');
     const statusEl = document.getElementById('updateStatus');
@@ -681,15 +592,14 @@ async function handleUpdateData() {
                 appData.lotteryHistory = result.data.lottery_history || appData.lotteryHistory;
                 appData.aiPredictions = result.data.ai_predictions || appData.aiPredictions;
                 appData.predictionsHistory = result.data.predictions_history || appData.predictionsHistory;
-                appData.tokenUsage = result.data.token_usage || appData.tokenUsage;
                 // /api/update 已返回次要数据，标记为已加载，避免进入 Tab2/3 时重复拉取
                 secondaryLoaded = true;
             }
 
             // 重置渲染标记：预测页立即重渲，其余 Tab 下次进入时按新数据懒渲染
             renderedTabs.prediction = true;
-            delete renderedTabs.analysis;
-            delete renderedTabs.ranking;
+            renderedTabs.analysis = false;
+            renderedTabs.ranking = false;
             renderHeroBanner();
             renderModelsGrid();
 
@@ -700,7 +610,7 @@ async function handleUpdateData() {
             // 显示错误摘要（取 message 中 ❌ 开头的行）
             const data = appData.lotteryHistory?.data || [];
             const latest = data[0] || {};
-            statusEl.textContent = `❌ 更新失败。开奖数据已更新至 ${latest.period || '未知'} 期，但 AI 预测生成失败（请检查 API 凭证）。`;
+            statusEl.textContent = `❌ 更新失败。开奖数据已更新至 ${latest.period || '未知'} 期，但预测生成失败（请检查统计模型脚本）。`;
         }
     } catch (error) {
         console.error('更新数据失败:', error);

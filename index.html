@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双色球 AI 预测</title>
+    <title>双色球 模型预测</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=20251125b">
+    <link rel="stylesheet" href="css/style.css?v=20260821b">
 </head>
 <body>
     <!-- 复用图标定义（导航等重复图标） -->
@@ -38,7 +38,7 @@
                         <div class="navbar-logo">🎟️</div>
                         <div class="navbar-title-wrapper">
                             <span class="navbar-title">
-                                双色球<span class="highlight">AI</span>预测
+                                双色球<span class="highlight">模型</span>预测
                             </span>
                             <span class="navbar-subtitle">Double Color Ball</span>
                         </div>
@@ -87,14 +87,12 @@
             <div class="tab-content active" data-tab="prediction">
                 <!-- Hero Banner -->
                 <div class="hero-banner">
-                    <div class="hero-banner-blur-1"></div>
-                    <div class="hero-banner-blur-2"></div>
                     <div class="hero-banner-content">
                         <div class="hero-banner-grid">
                             <div>
                                 <div class="hero-banner-badge">
                                     <span class="hero-badge-tag">Next Draw</span>
-                                    <span class="hero-badge-countdown" id="heroCountdown">距离开奖仅剩 2 天</span>
+                                    <span class="hero-badge-countdown" id="heroCountdown">—</span>
                                 </div>
                                 <h2 class="hero-title">
                                     第 <span id="heroPeriod">-</span> 期
@@ -124,7 +122,7 @@
                     </div>
                     <!-- 更新数据按钮 -->
                     <div class="hero-update-area">
-                        <button class="update-btn" id="updateDataBtn" type="button" title="运行爬虫更新开奖数据，并重新生成 AI 预测">
+                        <button class="update-btn" id="updateDataBtn" type="button" title="运行爬虫更新开奖数据，并重新生成统计模型预测">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/>
                             </svg>
@@ -143,7 +141,7 @@
                     </div>
                     <div class="info-card-content">
                         <h3 class="info-card-title">本期预测策略说明</h3>
-                        <p>6 大前沿 AI 模型基于近 30 期历史数据，采用 <span class="highlight-red">热号追随</span>、<span class="highlight-blue">平衡策略</span>、<span class="highlight-purple">周期理论</span>、<span class="highlight-green">综合决策</span> 4 种策略加权分析；另以 10 种统计/概率/机器学习模型（马尔可夫链、贝叶斯推断、正态分布、泊松、蒙特卡洛等）交叉验证，捕捉号码的均值回归与趋势延续。</p>
+                        <p>10 种统计/概率/机器学习模型（马尔可夫链、贝叶斯推断、正态分布、泊松、蒙特卡洛、频率热号、遗漏回补、指数平滑、关联规则、集成投票）基于全部历史数据本地计算，各输出 4 组参数变体预测，交叉验证捕捉号码的均值回归与趋势延续。</p>
                     </div>
                 </div>
 
@@ -155,7 +153,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>
                     </svg>
-                    <span>AI 预测结果仅供参考，不代表最终开奖结果</span>
+                    <span>预测结果仅供参考，不代表最终开奖结果</span>
                 </div>
 
                 </div>
@@ -268,32 +266,21 @@
                 </div>
                 <p class="section-subtitle">按模型分组统计命中（全部历史）</p>
                 <div class="ranking-container" id="groupedRankingContainer"></div>
-
-                <div class="section-header ranking-section">
-                    <div class="section-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
-                        </svg>
-                    </div>
-                    <h2 class="section-title">Token 用量排行</h2>
-                </div>
-                <p class="section-subtitle">按模型聚合 · 每次调用耗 token 统计</p>
-                <div class="ranking-container" id="tokenUsageContainer"></div>
             </div>
         </main>
 
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
-                <p class="footer-copyright">© 2025 Double Color Ball AI. Powered by Advanced LLMs.</p>
+                <p class="footer-copyright">© 2025 Double Color Ball 统计模型预测系统.</p>
                 <p class="footer-disclaimer">仅供娱乐与统计分析，请理性购彩</p>
             </div>
         </footer>
     </div>
 
     <!-- Scripts -->
-    <script src="js/data-loader.js?v=20260810b"></script>
-    <script src="js/components.js?v=20260810b"></script>
-    <script src="js/app.js?v=20260810b"></script>
+    <script src="js/data-loader.js?v=20260821b"></script>
+    <script src="js/components.js?v=20260821b"></script>
+    <script src="js/app.js?v=20260821b"></script>
 </body>
 </html>

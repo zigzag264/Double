@@ -30,27 +30,24 @@ const Components = {
     },
 
     /**
-     * 获取模型头部样式类名
-     * @param {string} modelName - 模型名称
+     * 获取模型头部样式类名（按 model_id 精确映射，避免中文名子串误判）
+     * @param {string} modelId - 模型 ID
      * @returns {string} CSS 类名
      */
-    getModelHeaderClass(modelName) {
-        // AI 模型
-        if (modelName.includes('DeepSeek')) return 'model-header-deepseek';
-        if (modelName.includes('Kimi')) return 'model-header-kimi';
-        if (modelName.includes('GLM')) return 'model-header-glm';
-        // 统计/概率/机器学习模型
-        if (modelName.includes('马尔可夫')) return 'model-header-markov';
-        if (modelName.includes('贝叶斯')) return 'model-header-bayes';
-        if (modelName.includes('正态')) return 'model-header-normal';
-        if (modelName.includes('泊松')) return 'model-header-poisson';
-        if (modelName.includes('蒙特卡洛')) return 'model-header-monte';
-        if (modelName.includes('频率')) return 'model-header-hot';
-        if (modelName.includes('遗漏')) return 'model-header-cold';
-        if (modelName.includes('指数')) return 'model-header-ewma';
-        if (modelName.includes('关联')) return 'model-header-apriori';
-        if (modelName.includes('集成')) return 'model-header-ensemble';
-        return 'model-header-deepseek';
+    getModelHeaderClass(modelId) {
+        const map = {
+            'markov-chain': 'markov',
+            'bayesian': 'bayes',
+            'normal-distribution': 'normal',
+            'poisson': 'poisson',
+            'monte-carlo': 'monte',
+            'frequency-hot': 'hot',
+            'cold-miss': 'cold',
+            'ewma': 'ewma',
+            'apriori': 'apriori',
+            'ensemble': 'ensemble',
+        };
+        return `model-header-${map[modelId] || 'markov'}`;
     },
 
     /**
@@ -63,23 +60,22 @@ const Components = {
         const card = document.createElement('div');
         card.className = 'model-card';
 
-        const headerClass = this.getModelHeaderClass(model.model_name);
+        const headerClass = this.getModelHeaderClass(model.model_id);
 
         // 清理 model_id 以生成有效的 DOM ID（移除特殊字符）
         const safeModelId = model.model_id.replace(/[^a-zA-Z0-9-_]/g, '-');
 
-        // 计算最佳命中（如果已开奖）
+        // 单次遍历：预计算每组命中结果 + 找最佳命中（避免重复 compareNumbers）
         let bestHitCount = 0;
         let bestGroupId = null;
-        if (actualResult) {
-            model.predictions.forEach(prediction => {
-                const hitResult = this.compareNumbers(prediction, actualResult);
-                if (hitResult && hitResult.totalHits > bestHitCount) {
-                    bestHitCount = hitResult.totalHits;
-                    bestGroupId = prediction.group_id;
-                }
-            });
-        }
+        const hitResults = model.predictions.map(prediction => {
+            const hitResult = actualResult ? this.compareNumbers(prediction, actualResult) : null;
+            if (hitResult && hitResult.totalHits > bestHitCount) {
+                bestHitCount = hitResult.totalHits;
+                bestGroupId = prediction.group_id;
+            }
+            return hitResult;
+        });
 
         card.innerHTML = `
             <div class="model-card-header ${headerClass}">
@@ -118,11 +114,11 @@ const Components = {
             </div>
         `;
 
-        // 添加策略行
+        // 添加策略行（命中结果已在上一步预计算，直接传入避免重复计算）
         const strategiesContainer = card.querySelector(`#strategies-${safeModelId}`);
         model.predictions.forEach((prediction, index) => {
             const isBest = actualResult && prediction.group_id === bestGroupId;
-            strategiesContainer.appendChild(this.createStrategyRow(prediction, index === model.predictions.length - 1, actualResult, isBest));
+            strategiesContainer.appendChild(this.createStrategyRow(prediction, index === model.predictions.length - 1, hitResults[index], isBest));
         });
 
         return card;
@@ -132,19 +128,13 @@ const Components = {
      * 创建策略行
      * @param {Object} prediction - 预测数据
      * @param {boolean} isLast - 是否是最后一个
-     * @param {Object} actualResult - 实际开奖结果（可选）
+     * @param {Object|null} hitResult - 预计算的命中结果（已开奖时非 null）
      * @param {boolean} isBest - 是否是最佳预测组
      * @returns {HTMLElement} 策略行元素
      */
-    createStrategyRow(prediction, isLast = false, actualResult = null, isBest = false) {
+    createStrategyRow(prediction, isLast = false, hitResult = null, isBest = false) {
         const row = document.createElement('div');
         row.className = 'strategy-row';
-
-        // 计算命中结果（如果已开奖）
-        let hitResult = null;
-        if (actualResult) {
-            hitResult = this.compareNumbers(prediction, actualResult);
-        }
 
         // 创建头部
         const header = document.createElement('div');

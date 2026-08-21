@@ -3,7 +3,7 @@
 双色球 统计/概率/机器学习 数学模型预测模块
 
 基于历史开奖数据，用纯 Python 标准库（random/math/statistics/collections/itertools）
-实现 10 种数学模型，每种输出 4 组参数变体预测，输出结构与 AI 模型完全一致，
+实现 10 种数学模型，每种输出 4 组参数变体预测，输出结构与预测模型完全一致，
 可被 generate_ai_prediction.py 集成并统一进入归档/排行/邮件/前端。
 
 特性:
@@ -324,12 +324,12 @@ def _model_markov(chrono, history):
     g3 = _make_group(3, "平稳分布融合", _pick_reds(g3r), _pick_blue(g1b),
                      "马尔可夫平稳分布与一阶转移各50%融合")
 
-    # G4 最近 5 期滑动
-    start = max(0, n - 5)
+    # G4 最近 7 期滑动（5→7：回测整体命中略升、蓝球命中率持平）
+    start = max(0, n - 7)
     seeds4, w4 = [], []
     bseeds4, bw4 = [], []
     for k, d in enumerate(chrono[start:n]):
-        wt = 0.2 + 0.2 * k
+        wt = 0.2 + 0.8 * k / max(1, len(chrono[start:n]) - 1)
         for x in d.get("red_balls", []):
             if x in RED_POOL:
                 seeds4.append(x)
@@ -341,7 +341,7 @@ def _model_markov(chrono, history):
     g4r = trans_from_seeds(seeds4, w4)
     g4b = blue_seed(bseeds4, bw4) if bseeds4 else {b: 1.0 for b in BLUE_POOL}
     g4 = _make_group(4, "滑动多期马尔可夫", _pick_reds(g4r), _pick_blue(g4b),
-                     "最近5期种子衰减加权(0.2→1.0)的转移概率")
+                     "最近7期种子衰减加权(0.2→1.0)的转移概率")
 
     return [g1, g2, g3, g4], g1r, g1b
 
@@ -379,17 +379,17 @@ def _model_bayes(chrono, history):
     r2 = _shrink(chrono, 30, 2, RED_POOL)
     g2 = _make_group(2, "贝叶斯·弱先验", _pick_reds(r2), _pick_blue(blue_shrink(30, 2)),
                      "Beta收缩，先验强度w=2（跟随近期）")
-    # G3 三窗加权似然
+    # G3 三窗加权似然（5:3:2→4:3:3：提升30期占比，回测全sw稳定改善 total/all）
     p5 = _normalize(_shrink(chrono, 5, 4, RED_POOL))
     p10 = _normalize(_shrink(chrono, 10, 4, RED_POOL))
     p30 = _normalize(_shrink(chrono, 30, 4, RED_POOL))
-    r3 = {x: 0.5 * p5[x] + 0.3 * p10[x] + 0.2 * p30[x] for x in RED_POOL}
+    r3 = {x: 0.4 * p5[x] + 0.3 * p10[x] + 0.3 * p30[x] for x in RED_POOL}
     b5 = _normalize(blue_shrink(5, 4))
     b10 = _normalize(blue_shrink(10, 4))
     b30 = _normalize(blue_shrink(30, 4))
-    b3 = {b: 0.5 * b5[b] + 0.3 * b10[b] + 0.2 * b30[b] for b in BLUE_POOL}
+    b3 = {b: 0.4 * b5[b] + 0.3 * b10[b] + 0.3 * b30[b] for b in BLUE_POOL}
     g3 = _make_group(3, "贝叶斯·三窗后验", _pick_reds(r3), _pick_blue(b3),
-                     "5/10/30期似然加权(5:3:2)，先验强度w=4")
+                     "5/10/30期似然加权(4:3:3)，先验强度w=4")
     # G4 全历史后验
     r4 = _shrink(chrono, len(chrono), 6, RED_POOL)
     g4 = _make_group(4, "贝叶斯·全史后验", _pick_reds(r4), _pick_blue(blue_shrink(len(chrono), 6)),
@@ -593,19 +593,19 @@ def _model_cold(chrono, history):
     b2 = {x: bg.get(x, 0) - bm.get(x, n) for x in BLUE_POOL}
     g2 = _make_group(2, "期望回补", _pick_reds(r2), _pick_blue(b2),
                      "遗漏 − 平均遗漏 差值最大Top6")
-    # G3 冷热折中
+    # G3 冷热折中（0.6:0.4→0.5:0.5：回测两时段稳定提升命中，蓝球命中率翻倍）
     hot_r = _hot_score(chrono, 5, 3, 2, RED_POOL)
     hot_b = _hot_score(chrono, 5, 3, 2, BLUE_POOL)
     r3n = _normalize(r2)
     hot_rn = _normalize(hot_r)
-    r3 = {x: 0.6 * r3n[x] + 0.4 * hot_rn[x] for x in RED_POOL}
-    b3 = {b: 0.6 * _normalize(b2)[b] + 0.4 * _normalize(hot_b)[b] for b in BLUE_POOL}
+    r3 = {x: 0.5 * r3n[x] + 0.5 * hot_rn[x] for x in RED_POOL}
+    b3 = {b: 0.5 * _normalize(b2)[b] + 0.5 * _normalize(hot_b)[b] for b in BLUE_POOL}
     g3 = _make_group(3, "冷热折中", _pick_reds(r3), _pick_blue(b3),
-                     "60%期望回补 + 40%频率热号")
-    # G4 和值约束 + 蓝球强遗漏
-    g4 = _make_group(4, "遗漏+和值约束", _top_score_subset(r2, pool_size=12, lo=90, hi=120),
+                     "50%期望回补 + 50%频率热号")
+    # G4 和值约束 + 蓝球强遗漏（[90,120]→[95,125]：更贴合均值区间）
+    g4 = _make_group(4, "遗漏+和值约束", _top_score_subset(r2, pool_size=12, lo=95, hi=125),
                      _pick_blue(bg),
-                     "期望回补Top12内枚举和值[90,120]；蓝球取最强遗漏")
+                     "期望回补Top12内枚举和值[95,125]；蓝球取最强遗漏")
 
     return [g1, g2, g3, g4], r2, b2
 
@@ -768,7 +768,7 @@ _STATS_MODELS = [
 
 
 def generate_stats_predictions(target_period, prediction_date, history_data):
-    """生成 10 个统计模型预测，返回与 AI 模型同结构的 model dict 列表。"""
+    """生成 10 个统计模型预测，返回与预测模型同结构的 model dict 列表。"""
     history = [d for d in history_data
                if isinstance(d, dict) and d.get("red_balls") and d.get("blue_ball")]
     if len(history) < 10:

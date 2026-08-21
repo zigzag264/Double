@@ -1,16 +1,16 @@
-# 双色球 AI 预测系统
+# 双色球 模型预测系统
 
 ## 项目概述
 
-基于 AI 模型的双色球彩票预测与数据分析展示平台，展示 4 个大模型（DeepSeek V3、Kimi K2、DeepSeek V4 Flash、GLM 5.2）对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
+基于 10 个统计/概率/机器学习模型的双色球彩票预测与数据分析展示平台，展示 10 个统计模型对双色球开奖号码的预测，并提供命中率排行、历史开奖分析、每日邮件推送等完整功能。
 
 **核心特性**:
-- 🤖 多 AI 模型预测（通过 API 自动生成）
+- 🤖 10 个统计/概率/ML 模型预测（本地纯标准库计算，确定性）
 - 📊 数据趋势分析（统计卡片 + 历史开奖表格）
 - 🏆 模型命中率排行（最新一期/最近一月/最近一年）与模型分组统计
 - ⏰ 自动更新开奖数据（GitHub Actions）
 - 📧 每日邮件汇总推送
-- 🎨 深色/浅色主题切换、响应式设计
+- 🎨 清新简约视觉风格、响应式设计
 
 **双色球规则**:
 - 红球：从 01-33 中选择 6 个号码
@@ -26,16 +26,15 @@
 double/
 ├── index.html                        # 主页面（3 个 Tab）
 ├── css/
-│   └── style.css                     # 样式（深色/浅色 CSS 变量）
+│   └── style.css                     # 样式（CSS 变量）
 ├── js/
 │   ├── app.js                        # 主应用逻辑
 │   ├── components.js                 # UI 组件（号码球、卡片、对比）
 │   └── data-loader.js                # 数据加载模块（fetch JSON）
 ├── data/                             # 前端数据文件
 │   ├── lottery_history.json          # 历史开奖数据 + 下期开奖信息
-│   ├── ai_predictions.json           # 当前 AI 预测（未开奖期号）
+│   ├── ai_predictions.json           # 当前预测（未开奖期号）
 │   ├── predictions_history.json      # 历史预测对比（已开奖期号）
-│   ├── token_usage.json              # 各模型每次调用的 token 用量统计（生成侧裁剪保留近 52 期）
 │   └── archive/                      # 备份归档（git 忽略）
 │       ├── ai_predictions_backup_*.json
 │       ├── predictions_history_backup_*.json
@@ -43,18 +42,16 @@ double/
 ├── fetch_history/                    # 数据爬取脚本
 │   ├── fetch_lottery_history.py      # 爬虫脚本（同步到 data/lottery_history.json）
 │   └── lottery_data.json             # 爬虫原始数据
-├── doc/
-│   └── prompt2.0.md                  # Prompt 模板 v2.0（★主用）
 ├── .github/workflows/
 │   ├── update-lottery-data.yml       # 爬虫工作流：每天 UTC 14:00（北京 22:00）
-│   ├── generate-ai-prediction.yml    # AI 预测工作流：每周一三五 UTC 00:00
+│   ├── generate-prediction.yml       # 预测工作流：每周一三五 UTC 00:00
 │   ├── email-daily-digest.yml        # 邮件推送工作流：每天 UTC 00:30 + 12:00（北京 08:30 + 20:00）
 │   └── push-notify.yml               # Push 事件邮件通知
 ├── .env.example                      # 环境变量模板
 ├── .env                              # 本地环境变量（git 忽略）
 ├── .vercelignore                     # Vercel 构建忽略
 ├── .gitignore                        # Git 忽略规则
-├── generate_ai_prediction.py         # 预测自动生成脚本（主入口：6 AI + 10 统计模型）
+├── generate_ai_prediction.py         # 预测自动生成脚本（主入口：集成 10 个统计模型）
 ├── stats_models.py                   # 10 种统计/概率/ML 模型预测（纯标准库，确定性）
 ├── email_content_builder.py          # 邮件内容组装模块（纯函数）
 ├── email_smtp_utils.py               # SMTP 邮件发送工具（共享模块）
@@ -62,7 +59,7 @@ double/
 ├── email_push_notify.py              # Push 触发邮件通知
 ├── test_prediction.py                # 预测文件格式测试脚本
 ├── vercel.json                       # Vercel 部署配置
-├── server.py                         # 本地开发服务器（静态文件 + /api/update 触发爬虫与 AI 更新，端口 8080）
+├── server.py                         # 本地开发服务器（静态文件 + /api/update 触发爬虫与预测更新，端口 8080）
 ├── start_server.sh / .bat            # 本地开发服务器启动脚本（运行 server.py）
 ├── LICENSE                           # 许可证
 └── README.md                         # 项目说明
@@ -76,26 +73,26 @@ double/
 
 | Tab | 内容 |
 |-----|------|
-| **最新预测** | Hero Banner（下期期号/日期/倒计时）、AI 模型卡片 + 统计数学模型卡片（共 14 个，各 4 组预测）、免责声明 |
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、统计数学模型卡片（共 10 个，各 4 组预测）、免责声明 |
 | **历史分析** | 4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格、命中记录紧凑摘要 |
-| **模型排行** | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计、Token 用量排行 |
+| **模型排行** | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计 |
 
 ### 页面组件（`components.js`）
 
 - `createLotteryBall()` — 号码球元素（红/蓝、sm/md/lg、命中高亮）
-- `createModelCard()` — AI 模型卡片（含模型头部、策略行、最佳命中徽章）
+- `createModelCard()` — 模型卡片（含模型头部、策略行、最佳命中徽章）
 - `createStrategyRow()` — 策略预测行（含命中统计）
 - `createAccuracySummaryRow()` — 命中记录紧凑摘要行（期号 + 开奖号码 + 最佳命中）
 - `createHistoryTableRow()` — 历史开奖表格行
 - `compareNumbers()` — 命中计算逻辑
 
-### 主题切换
+### 视觉风格
 
-CSS 变量实现深色/浅色模式，偏好保存至 localStorage。
+清新简约：白底 + 细边框 + 轻阴影，无渐变；10 个模型各配一个低饱和度淡彩头部（`--tint-*` CSS 变量），整体大量留白。
 
 ### 数据懒加载
 
-首屏只加载 `lottery_history.json` + `ai_predictions.json`（Tab1 所需）；进入 Tab2/Tab3 时由 `loadSecondaryData()` 并发拉取 `predictions_history.json` + `token_usage.json`（并发去重，仅拉一次）。`/api/update` 响应已含全部 4 个数据源，更新后标记次要数据为已加载，避免重复请求。
+首屏只加载 `lottery_history.json` + `ai_predictions.json`（Tab1 所需）；进入 Tab2/Tab3 时由 `loadSecondaryData()` 并发拉取 `predictions_history.json`（并发去重，仅拉一次）。`/api/update` 响应已含全部 3 个数据源（lottery_history / ai_predictions / predictions_history），更新后标记次要数据为已加载，避免重复请求。
 
 ### 启动方式
 
@@ -107,7 +104,7 @@ start_server.bat
 ./start_server.sh
 
 # 手动（需要 /api/update 更新接口时用 server.py；仅预览静态文件可用 http.server）
-python server.py              # 端口 8080，提供 /api/update 触发爬虫与 AI 预测更新
+python server.py              # 端口 8080，提供 /api/update 触发爬虫与预测更新
 # python -m http.server 8000  # 纯静态预览，无更新接口
 ```
 
@@ -149,15 +146,16 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
   "models": [{
     "prediction_date": "2025-10-27",
     "target_period": "25124",
-    "model_id": "SSB-Team-001",
-    "model_name": "GPT-5",
+    "model_type": "stats",
+    "model_id": "markov-chain",
+    "model_name": "马尔可夫链",
     "predictions": [
       {
         "group_id": 1,
-        "strategy": "热号追随者",
+        "strategy": "一阶马尔可夫",
         "red_balls": ["09", "16", "17", "24", "25", "31"],
         "blue_ball": "13",
-        "description": "基于5期加权频率..."
+        "description": "相邻期红→红转移矩阵..."
       }
     ]
   }]
@@ -173,8 +171,8 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
     "target_period": "25121",
     "actual_result": { "period": "25121", ... },
     "models": [{
-      "model_id": "SSB-Team-001",
-      "model_name": "GPT-5",
+      "model_id": "markov-chain",
+      "model_name": "马尔可夫链",
       "predictions": [{ "...", "hit_result": {
         "red_hits": ["25"],
         "red_hit_count": 1,
@@ -198,17 +196,17 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
 - **依赖**: `requests`, `beautifulsoup4`
 - **推送**: `data/lottery_history.json`, `fetch_history/lottery_data.json`
 
-### 2. `generate-ai-prediction.yml` — 生成 AI 预测
+### 2. `generate-prediction.yml` — 生成预测
 - **触发**: 每周一三五 UTC 00:00（北京时间 08:00）+ 手动
 - **执行**: `python3 generate_ai_prediction.py`
-- **Secrets**: `AI_API_KEY`, `AI_BASE_URL`, `SENSENOVA_API_KEY`, `SENSENOVA_BASE_URL`
-- **推送**: `data/ai_predictions.json`, `data/predictions_history.json`, `data/token_usage.json`
+- **Secrets**: 无（统计模型本地计算，无需凭证）
+- **推送**: `data/ai_predictions.json`, `data/predictions_history.json`
 
 ### 3. `email-daily-digest.yml` — 每日邮件推送
 - **触发**: 每天 UTC 00:30 + 12:00（北京时间 08:30 + 20:00）
 - **执行**: `python3 email_daily_digest.py`
 - **Secrets**: `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_RECIPIENT`
-- **注意**: 早间推送在 AI 预测生成（UTC 00:00）之后 30 分钟运行，留足缓冲确保邮件含最新预测
+- **注意**: 早间推送在预测生成（UTC 00:00）之后 30 分钟运行，留足缓冲确保邮件含最新预测
 
 ### 4. `push-notify.yml` — Push 事件邮件通知
 - **触发**: push 到 master 分支 + 手动
@@ -222,43 +220,26 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
 
 ## 关键脚本
 
-### `generate_ai_prediction.py` — AI 预测自动生成（主入口）
+### `generate_ai_prediction.py` — 预测自动生成（主入口）
 
 **功能**:
-1. 加载 Prompt 模板（`doc/prompt2.0.md`）
-2. 加载历史数据（`data/lottery_history.json`，取最近 30 期给 AI；全量给统计模型）
-3. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
-4. 逐个调用 4 个 AI 模型生成预测
-5. 调用 `stats_models.generate_stats_predictions()` 本地生成 10 个统计/概率/ML 模型预测（**不消耗 token；即使 AI 全部失败也会保留统计模型**）
-6. 每个模型统一做去重/防复读后处理 + 格式校验（4 组、6 红球已排序、蓝球非空、策略名互不相同）
-7. 记录 AI 模型 token 用量到 `token_usage.json`，创建备份并保存
+1. 加载历史数据（`data/lottery_history.json`，全量给统计模型）
+2. **自动归档**：检测旧预测是否已开奖 → 计算命中 → 写入 `predictions_history.json`
+3. 调用 `stats_models.generate_stats_predictions()` 本地生成 10 个统计/概率/ML 模型预测（**不消耗 token**）
+4. 每个模型统一做去重/防复读后处理 + 格式校验（4 组、6 红球已排序、蓝球非空、策略名互不相同）
+5. 创建备份并保存
 
-> 输出的 `ai_predictions.json` 共 **14 个模型**：4 个 AI（`model_type=ai`）+ 10 个统计（`model_type=stats`）。前端按 `model_type` 分区展示。
+> 输出的 `ai_predictions.json` 共 **10 个模型**（全部 `model_type=stats`）。前端按 `model_type` 展示。
 
-**模型配置**（内置）:
-```python
-MODELS = [
-    {"id": "deepseek-v3", "name": "DeepSeek V3", "model_id": "deepseek-v3"},
-    {"id": "Moonshot-Kimi-K2-Instruct", "name": "Kimi K2", "model_id": "Moonshot-Kimi-K2-Instruct"},
-    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "model_id": "deepseek-v4-flash"},
-    {"id": "glm-5.2", "name": "GLM 5.2", "model_id": "glm-5.2"},
-]
-```
-
-**环境变量**（默认 provider 用于 DeepSeek V3 / Kimi；sensenova provider 用于 DeepSeek V4 Flash / GLM 5.2，二者独立凭证）:
-- `AI_API_KEY`（默认 provider，必填）
-- `AI_BASE_URL`（默认 provider，可选）
-- `SENSENOVA_API_KEY`（sensenova provider，必填——缺失则新模型回退到默认凭证并调用失败）
-- `SENSENOVA_BASE_URL`（sensenova provider，默认 `https://token.sensenova.cn/v1`）
+**无需额外依赖**（仅标准库）；爬虫需 `requests beautifulsoup4`。
 
 ```bash
-pip install openai
 python generate_ai_prediction.py
 ```
 
 ### `stats_models.py` — 10 种统计/概率/机器学习模型（纯标准库，确定性）
 
-本地基于全部历史开奖数据计算，不调用 API、不耗 token、无需新依赖（仅 `random/math/statistics/itertools`）。每个模型输出 4 组参数变体，结构同 AI 模型（含 `model_type: "stats"`）。策略覆盖统计、概率、机器学习三大类：
+本地基于全部历史开奖数据计算，不调用 API、不耗 token、无需新依赖（仅 `random/math/statistics/itertools`）。每个模型输出 4 组参数变体，结构同预测模型（含 `model_type: "stats"`）。策略覆盖统计、概率、机器学习三大类：
 
 | model_id | 模型 | 类型 | 核心算法 |
 |---------|------|------|---------|
@@ -289,7 +270,7 @@ python stats_models.py --output x.json    # 写入临时 JSON 供检查
 `email_content_builder.py`（纯函数模块）:
 - `load_data()` — 加载 3 个 JSON 数据源（独立异常隔离）
 - `validate_data()` — 返回 `(errors, warnings)`
-- `build_email_content()` — 渲染邮件正文（最新开奖 / 下期预告 / AI 预测 / 命中情况）
+- `build_email_content()` — 渲染邮件正文（最新开奖 / 下期预告 / 模型预测 / 命中情况）
 
 **环境变量**（详见 `.env.example`）:
 ```
@@ -305,23 +286,10 @@ EMAIL_DRY_RUN=true
 
 | 脚本 | 用途 |
 |------|------|
-| `test_prediction.py` | 验证 `ai_predictions.json` 格式（14 个模型 × 4 组） |
+| `test_prediction.py` | 验证 `ai_predictions.json` 格式（10 个模型 × 4 组） |
 | `stats_models.py` | 生成 10 个统计/概率/ML 模型预测（见上文专项说明） |
 | `email_smtp_utils.py` | SMTP 配置/校验/发送共享模块（两个邮件脚本共用） |
 | `fetch_history/fetch_lottery_history.py` | 从 500.com 爬取开奖历史数据 |
-
----
-
-## AI 预测策略（Prompt v2.0）
-
-Prompt 模板位于 `doc/prompt2.0.md`，每个 AI 模型生成 4 组预测：
-
-| 策略 | 核心逻辑 |
-|------|---------|
-| **热号追随者** | 多周期加权频率（5期×5 + 10期×3 + 30期×2），衰减因子，三区间平衡 |
-| **平衡策略师** | 历史分布拟合，精细约束（AC 值 8-14，总和 100-120），区间分布 |
-| **周期理论家** | 三周期频率交叉，趋势强度评分，周期转折点识别 |
-| **综合决策者** | 加权投票（热30%+冷25%+平衡20%+周期25%），多样性保证 |
 
 ---
 
@@ -334,7 +302,7 @@ Prompt 模板位于 `doc/prompt2.0.md`，每个 AI 模型生成 4 组预测：
   ↓ 北京时间 22:00
 [update-lottery-data.yml] 爬虫 → 更新 lottery_history.json
   ↓ 周一/三/五 北京 08:00
-[generate-ai-prediction.yml] 归档旧预测 + 生成新预测
+[generate-prediction.yml] 归档旧预测 + 生成新预测
   ↓ 北京 08:30
 [email-daily-digest.yml] 发送每日汇总邮件
   ↓
@@ -362,10 +330,6 @@ Vercel 自动重新部署
 
 | 变量 | 用途 | 使用方 |
 |------|------|--------|
-| `AI_API_KEY` | 默认 provider 的 AI 调用凭证 | `generate_ai_prediction.py` |
-| `AI_BASE_URL` | 默认 provider 端点（见 `.env.example`） | `generate_ai_prediction.py` |
-| `SENSENOVA_API_KEY` | sensenova provider 凭证（DeepSeek V4 Flash / GLM 5.2） | `generate_ai_prediction.py` |
-| `SENSENOVA_BASE_URL` | sensenova 端点（默认 `https://token.sensenova.cn/v1`） | `generate_ai_prediction.py` |
 | `SMTP_SERVER` | SMTP 服务器（默认 smtp.qq.com） | `email_daily_digest.py` / `email_push_notify.py` |
 | `SMTP_PORT` | SMTP 端口（默认 465） | 同上 |
 | `SMTP_USER` | 邮箱地址 | 同上 |
@@ -394,8 +358,8 @@ vercel --prod      # 生产部署
 ### 本地开发
 
 ```bash
-# 安装 Python 依赖
-pip install openai requests beautifulsoup4
+# 安装 Python 依赖（爬虫用；预测仅用标准库）
+pip install requests beautifulsoup4
 
 # 启动服务器
 ./start_server.sh    # macOS/Linux
@@ -408,7 +372,7 @@ start_server.bat     # Windows
 
 - **前端**: HTML5, CSS3（CSS Variables, Grid, Flexbox）, Vanilla JS（ES6+）
 - **字体**: Inter（Google Fonts）
-- **Python**: requests + BeautifulSoup4（爬虫）, openai（AI 调用）
+- **Python**: requests + BeautifulSoup4（爬虫），标准库（预测计算）
 - **自动化**: GitHub Actions（4 个工作流）
 - **部署**: Vercel（自动部署 + CDN）
 - **邮件**: smtplib（SMTP_SSL，QQ 邮箱）
@@ -448,7 +412,7 @@ __pycache__/
 
 ## 免责声明
 
-本项目仅供学习交流使用，不构成任何投资建议。彩票具有随机性，AI 预测仅为技术演示，不保证准确性。双色球开奖为随机事件，任何预测均无法保证命中。
+本项目仅供学习交流使用，不构成任何投资建议。彩票具有随机性，预测仅为技术演示，不保证准确性。双色球开奖为随机事件，任何预测均无法保证命中。
 
 ---
 
