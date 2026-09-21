@@ -35,7 +35,7 @@
 
 ```
 ┌─ GitHub Actions ───────────────────────────────────────────────────┐
-│ 爬虫 (UTC 14:00) → 预测 (UTC 00:00) → 邮件推送 (UTC 00:30)         │
+│ 爬虫 (UTC 14:00) → 预测 (UTC 00:00) → 邮件推送 (UTC 04:30)         │
 │                              │ git push                            │
 └──────────────────────────────┼─────────────────────────────────────┘
                                ▼
@@ -94,7 +94,7 @@ double/
 ├── .github/workflows/                # 4 个自动化工作流
 │   ├── update-lottery-data.yml       # 爬虫：每天 UTC 14:00
 │   ├── generate-prediction.yml       # 预测：每周一三五 UTC 00:00
-│   ├── email-daily-digest.yml        # 邮件推送：每天 UTC 00:30
+│   ├── email-daily-digest.yml        # 邮件推送：每天 UTC 04:30（北京 12:30）
 │   └── push-notify.yml               # Push 事件邮件通知
 ├── server.py                         # 本地开发服务器（端口 8080，含 /api/update）
 ├── generate_ai_prediction.py         # ★ 预测生成主入口（集成 10 统计模型）
@@ -207,7 +207,7 @@ python3 generate_ai_prediction.py
 [爬虫] 更新 lottery_history.json
   ↓ 周一/三/五 北京 08:00 (UTC 00:00)
 [预测] 归档旧预测 + 生成新预测
-  ↓ 北京 08:30 (UTC 00:30)
+  ↓ 北京 12:30 (UTC 04:30)
 [邮件推送] 发送每日汇总邮件
   ↓
 Vercel 自动重新部署
@@ -274,7 +274,7 @@ Vercel 自动重新部署
 
 | 类型 | 脚本 | 触发 | 内容 |
 |------|------|------|------|
-| **每日汇总** | `email_daily_digest.py` | 每天 UTC 00:30 | 最新开奖 + 命中排行 + 模型预测 |
+| **每日汇总** | `email_daily_digest.py` | 每天 UTC 04:30（北京 12:30） | 最新开奖 + 命中排行 + 模型预测 |
 | **Push 通知** | `email_push_notify.py` | 每次 push 到 master | 每日汇总 + Git 提交信息 |
 
 ### 配置

@@ -45,7 +45,7 @@ double/
 ├── .github/workflows/
 │   ├── update-lottery-data.yml       # 爬虫工作流：每天 UTC 14:00（北京 22:00）
 │   ├── generate-prediction.yml       # 预测工作流：每周一三五 UTC 00:00
-│   ├── email-daily-digest.yml        # 邮件推送工作流：每天 UTC 00:30 + 12:00（北京 08:30 + 20:00）
+│   ├── email-daily-digest.yml        # 邮件推送工作流：每天 UTC 04:30（北京 12:30，每日一次）
 │   └── push-notify.yml               # Push 事件邮件通知
 ├── .env.example                      # 环境变量模板
 ├── .env                              # 本地环境变量（git 忽略）
@@ -203,10 +203,10 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
 - **推送**: `data/ai_predictions.json`, `data/predictions_history.json`
 
 ### 3. `email-daily-digest.yml` — 每日邮件推送
-- **触发**: 每天 UTC 00:30 + 12:00（北京时间 08:30 + 20:00）
+- **触发**: 每天 UTC 04:30（北京时间 12:30，每日一次）
 - **执行**: `python3 email_daily_digest.py`
 - **Secrets**: `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_RECIPIENT`
-- **注意**: 早间推送在预测生成（UTC 00:00）之后 30 分钟运行，留足缓冲确保邮件含最新预测
+- **注意**: 推送在预测生成（UTC 00:00）之后 4.5 小时运行，缓冲充足，确保邮件含最新预测
 
 ### 4. `push-notify.yml` — Push 事件邮件通知
 - **触发**: push 到 master 分支 + 手动
@@ -303,7 +303,7 @@ EMAIL_DRY_RUN=true
 [update-lottery-data.yml] 爬虫 → 更新 lottery_history.json
   ↓ 周一/三/五 北京 08:00
 [generate-prediction.yml] 归档旧预测 + 生成新预测
-  ↓ 北京 08:30
+  ↓ 北京 12:30
 [email-daily-digest.yml] 发送每日汇总邮件
   ↓
 Vercel 自动重新部署
