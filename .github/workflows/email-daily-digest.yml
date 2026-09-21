@@ -2,10 +2,8 @@ name: Email Daily Digest
 
 on:
   schedule:
-    # 每天 UTC 00:30 = 北京时间 08:30（统计预测 00:00 启动后留 30 分钟缓冲，确保新预测已落盘）
-    # 每天 UTC 12:00 = 北京时间 20:00（晚间推送）
-    - cron: '30 0 * * *'
-    - cron: '0 12 * * *'
+    # 每天 UTC 04:30 = 北京时间 12:30（午间推送；统计预测 UTC 00:00 生成，缓冲充足）
+    - cron: '30 4 * * *'
   workflow_dispatch:
 
 jobs:
