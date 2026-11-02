@@ -12,8 +12,9 @@ let appData = {
 // 各 Tab 渲染标记（懒渲染：首次进入某 Tab 时才构建；更新数据后重置）
 const renderedTabs = { prediction: true };
 
-// 次要数据（Tab2 历史分析 / Tab3 模型排行 用）懒加载状态
-// 首屏只加载 lotteryHistory + aiPredictions；进入 Tab2/3 时再拉取 predictionsHistory
+// 历史预测对比数据状态
+// 首屏会尝试加载 predictionsHistory（用于按历史准确率裁剪模型策略）；
+// 若首屏加载失败，仍保留进入 Tab2/3 时的懒加载重试。
 let secondaryLoaded = false;
 let secondaryLoading = null;
 
@@ -40,24 +41,30 @@ async function initApp() {
     }
 }
 
-// 加载首屏数据（仅 Tab1 所需：历史开奖 + 当前预测，体积小、首屏必需）
+// 加载首屏数据（含历史预测对比：模型卡片需据此裁剪为前 3 策略）
 async function loadAllData() {
     try {
-        const [lotteryHistory, aiPredictions] = await Promise.all([
+        const [lotteryHistory, aiPredictions, predictionsHistory] = await Promise.all([
             DataLoader.loadLotteryHistory(),
-            DataLoader.loadPredictions()
+            DataLoader.loadPredictions(),
+            // 非关键数据：失败时降级为全量策略展示，不阻塞首屏
+            DataLoader.loadPredictionsHistory().catch(error => {
+                console.error('历史预测对比数据加载失败:', error);
+                return null;
+            })
         ]);
 
         appData.lotteryHistory = lotteryHistory;
         appData.aiPredictions = aiPredictions;
+        appData.predictionsHistory = predictionsHistory || { predictions_history: [] };
+        if (predictionsHistory) secondaryLoaded = true;
     } catch (error) {
         console.error('数据加载失败:', error);
         throw error;
     }
 }
 
-// 懒加载次要数据（Tab2/3 所需：历史预测对比）
-// 首次进入任一次要 Tab 时触发，并发去重，仅拉取一次
+// 首屏未取到历史预测对比时，进入 Tab2/3 再重试（并发去重，仅拉取一次）
 // 失败时不标记已加载，允许下次进入 Tab 重试
 async function loadSecondaryData() {
     if (secondaryLoaded) return;
@@ -67,6 +74,8 @@ async function loadSecondaryData() {
                 const predictionsHistory = await DataLoader.loadPredictionsHistory();
                 appData.predictionsHistory = predictionsHistory;
                 secondaryLoaded = true;
+                // 首屏加载失败时曾按全量策略渲染，补载成功后重渲模型卡片
+                if (renderedTabs.prediction) renderModelsGrid();
             } catch (error) {
                 console.error('次要数据加载失败:', error);
                 // 降级：保证后续渲染函数拿到安全空结构而非 null
@@ -79,6 +88,107 @@ async function loadSecondaryData() {
         })();
     }
     await secondaryLoading;
+}
+
+// ==================== 每模型前 3 策略 ====================
+const TOP_STRATEGIES_PER_MODEL = 3;
+
+// 每个模型按历史准确率取前 3 种策略 → Map<modelId, Set<strategy>>
+function computeTopStrategiesByModel(records) {
+    const agg = new Map(); // "modelId|strategy" -> { modelId, strategy, total, blue, periods }
+    records.forEach(rec => {
+        const period = rec.actual_result?.period;
+        (rec.models || []).forEach(model => {
+            const modelId = model.model_id || model.model_name || '';
+            (model.predictions || []).forEach(p => {
+                const hr = p.hit_result;
+                if (!hr) return;
+                const strategy = p.strategy || '—';
+                const key = modelId + '|' + strategy;
+                let e = agg.get(key);
+                if (!e) {
+                    e = { modelId, strategy, total: 0, blue: 0, periods: new Set() };
+                    agg.set(key, e);
+                }
+                e.total += hr.total_hits || 0;
+                e.blue += hr.blue_hit ? 1 : 0;
+                if (period) e.periods.add(period);
+            });
+        });
+    });
+
+    const byModel = new Map();
+    agg.forEach(e => {
+        const games = e.periods.size || 1;
+        const item = { ...e, accuracy: e.total / (games * 7) };
+        if (!byModel.has(e.modelId)) byModel.set(e.modelId, []);
+        byModel.get(e.modelId).push(item);
+    });
+
+    const result = new Map();
+    byModel.forEach((items, modelId) => {
+        items.sort((a, b) =>
+            b.accuracy - a.accuracy || b.total - a.total || b.blue - a.blue ||
+            a.strategy.localeCompare(b.strategy));
+        result.set(modelId, new Set(items.slice(0, TOP_STRATEGIES_PER_MODEL).map(x => x.strategy)));
+    });
+    return result;
+}
+
+// 当前预测按模型裁剪为前 3 策略；历史可判定策略不足时按原顺序补齐
+function filterModelPredictions(model, topByModel, limit = TOP_STRATEGIES_PER_MODEL) {
+    const predictions = model.predictions || [];
+    const modelId = model.model_id || model.model_name || '';
+    const allowed = topByModel && topByModel.get(modelId);
+    if (!allowed || !allowed.size) return predictions;
+
+    const kept = predictions.filter(p => allowed.has(p.strategy || '—'));
+    if (kept.length < limit) {
+        const seen = new Set(kept.map(p => p.strategy || '—'));
+        for (const p of predictions) {
+            const strategy = p.strategy || '—';
+            if (seen.has(strategy)) continue;
+            kept.push(p);
+            seen.add(strategy);
+            if (kept.length >= limit) break;
+        }
+    }
+    const order = new Map(predictions.map((p, i) => [p.strategy || '—', i]));
+    kept.sort((a, b) => (order.get(a.strategy || '—') ?? 0) - (order.get(b.strategy || '—') ?? 0));
+    return kept.slice(0, limit);
+}
+
+// 历史记录裁剪：每个模型只保留前 3 策略，并重算 best_group / best_hit_count
+function filterRecordsByTopStrategies(records, topByModel) {
+    return records.map(rec => {
+        const models = [];
+        (rec.models || []).forEach(model => {
+            const modelId = model.model_id || model.model_name || '';
+            const allowed = topByModel.get(modelId);
+            // 与模型卡片一致：保留原顺序并重新编号为 G1..G3
+            const predictions = (model.predictions || [])
+                .filter(p => !allowed || allowed.has(p.strategy || '—'))
+                .map((p, i) => ({ ...p, group_id: i + 1 }));
+            if (!predictions.length) return;
+
+            let bestHit = 0;
+            let bestGroup = null;
+            predictions.forEach(p => {
+                const hits = p.hit_result?.total_hits || 0;
+                if (hits > bestHit) {
+                    bestHit = hits;
+                    bestGroup = p.group_id;
+                }
+            });
+            models.push({
+                ...model,
+                predictions,
+                best_group: bestGroup,
+                best_hit_count: bestHit,
+            });
+        });
+        return { ...rec, models };
+    });
 }
 
 // 渲染Hero Banner
@@ -137,8 +247,11 @@ function renderModelsGrid() {
         }
     }
 
-    // 渲染统计数学模型
+    // 渲染统计数学模型（每个模型只展示历史准确率前 3 种策略）
     const statsModels = (appData.aiPredictions.models || []).filter(m => m.model_type === 'stats');
+    const topByModel = computeTopStrategiesByModel(
+        appData.predictionsHistory?.predictions_history || []
+    );
 
     if (statsModels.length) {
         const header = document.createElement('div');
@@ -146,7 +259,11 @@ function renderModelsGrid() {
         header.innerHTML = `📊 统计数学模型预测 <span class="models-section-count">${statsModels.length}</span>`;
         modelsGridEl.appendChild(header);
         statsModels.forEach(model => {
-            modelsGridEl.appendChild(Components.createModelCard(model, actualResult));
+            const predictions = filterModelPredictions(model, topByModel)
+                .map((p, i) => ({ ...p, group_id: i + 1 }));
+            modelsGridEl.appendChild(
+                Components.createModelCard({ ...model, predictions }, actualResult)
+            );
         });
     }
 }
@@ -187,11 +304,15 @@ function renderHitRankings() {
     if (!container || !appData.predictionsHistory) return;
     container.innerHTML = '';
 
-    const records = appData.predictionsHistory.predictions_history || [];
-    if (!records.length) {
+    const allRecords = appData.predictionsHistory.predictions_history || [];
+    if (!allRecords.length) {
         container.innerHTML = '<div class="ranking-empty"><p>暂无命中回溯数据</p></div>';
         return;
     }
+
+    // 每个模型只统计历史准确率前 3 种策略
+    const topByModel = computeTopStrategiesByModel(allRecords);
+    const records = filterRecordsByTopStrategies(allRecords, topByModel);
 
     // 时间窗口
     const today = new Date();
@@ -424,11 +545,15 @@ function renderGroupedRankings() {
     if (!container || !appData.predictionsHistory) return;
     container.innerHTML = '';
 
-    const records = appData.predictionsHistory.predictions_history || [];
-    if (!records.length) {
+    const allRecords = appData.predictionsHistory.predictions_history || [];
+    if (!allRecords.length) {
         container.innerHTML = '<div class="ranking-empty"><p>暂无命中回溯数据</p></div>';
         return;
     }
+
+    // 每个模型只统计历史准确率前 3 种策略
+    const topByModel = computeTopStrategiesByModel(allRecords);
+    const records = filterRecordsByTopStrategies(allRecords, topByModel);
 
     // 收集每个模型的命中汇总（策略分组已移除）
     // 注意：每期每模型有 4 组预测，"期数"须按期去重，否则被组数放大 4 倍
@@ -533,11 +658,15 @@ function renderAccuracyCards() {
 
     containerEl.innerHTML = '';
 
-    const records = appData.predictionsHistory.predictions_history || [];
-    if (!records.length) {
+    const allRecords = appData.predictionsHistory.predictions_history || [];
+    if (!allRecords.length) {
         containerEl.innerHTML = '<div class="ranking-empty"><p>暂无命中记录</p></div>';
         return;
     }
+
+    // 每个模型只统计历史准确率前 3 种策略（最佳命中随之重算）
+    const topByModel = computeTopStrategiesByModel(allRecords);
+    const records = filterRecordsByTopStrategies(allRecords, topByModel);
 
     records.forEach(record => {
         containerEl.appendChild(Components.createAccuracySummaryRow(record));
