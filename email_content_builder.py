@@ -129,8 +129,8 @@ def _tint(model_id):
     return _TINTS.get(model_id, ("#f8fafc", "#334155"))
 
 
-def _build_predictions_html(pred, latest_period="", next_period=""):
-    """模型预测 HTML（含过期检测）"""
+def _build_predictions_html(pred, latest_period="", next_period="", top_by_model=None):
+    """模型推荐 HTML（含过期检测；每个模型只展示历史准确率前 3 种策略）。"""
     if not pred or not pred.get("models"):
         return '<p style="color:#94a3b8;font-size:13px">(暂无预测数据)</p>'
 
@@ -147,11 +147,14 @@ def _build_predictions_html(pred, latest_period="", next_period=""):
         warn = ""
 
     models = pred["models"]
+    total_groups = 0
 
     cards = ""
     for m in models:
+        predictions = _filter_model_predictions(m, top_by_model, TOP_STRATEGIES_PER_MODEL)
+        total_groups += len(predictions)
         groups = ""
-        for g in m.get("predictions", []):
+        for idx, g in enumerate(predictions, 1):
             reds = "".join(_ball(b, "red") for b in g.get("red_balls", []))
             blue = _ball(g.get("blue_ball", ""), "blue")
             desc = g.get("description", "")
@@ -159,7 +162,7 @@ def _build_predictions_html(pred, latest_period="", next_period=""):
             groups += f'''
             <div style="padding:8px 12px;border-bottom:1px solid #f1f5f9">
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <span style="font-size:11px;font-weight:700;color:#3b82f6;background:#eff6ff;padding:2px 8px;border-radius:4px">G{g["group_id"]}</span>
+                <span style="font-size:11px;font-weight:700;color:#3b82f6;background:#eff6ff;padding:2px 8px;border-radius:4px">G{idx}</span>
                 <span style="font-size:13px;font-weight:600;color:#1e293b">{g["strategy"]}</span>
               </div>
               <div style="margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">{reds}<span style="color:#94a3b8;margin:0 4px">|</span>{blue}</div>
@@ -176,7 +179,7 @@ def _build_predictions_html(pred, latest_period="", next_period=""):
     return f'''
     {warn}
     <div style="font-size:13px;color:#64748b;margin-bottom:12px">
-      目标期号: {pred.get("target_period","")} · 预测日期: {pred.get("prediction_date","")} · 模型数: {len(models)}
+      目标期号: {pred.get("target_period","")} · 预测日期: {pred.get("prediction_date","")} · 模型数: {len(models)} · 每组策略: {TOP_STRATEGIES_PER_MODEL} · 共 {total_groups} 组
     </div>
     {cards}'''
 
@@ -211,13 +214,86 @@ def _row(rank, cells):
     )
 
 
-def _collect_strategy_stats(hist):
+TOP_STRATEGIES_PER_MODEL = 3
+
+
+def _top_strategies_by_model(hist, limit=TOP_STRATEGIES_PER_MODEL):
+    """每个模型按历史准确率取前 limit 种策略，返回 {model_id: {strategy, ...}}。
+
+    准确率 = 累计命中球数 / (期数 × 7)；并列时依次看累计命中、累计蓝球。
+    """
+    records = hist.get("predictions_history", []) if hist else []
+    agg = {}
+    for rec in records:
+        period = (rec.get("actual_result") or {}).get("period", "")
+        for m in rec.get("models", []):
+            model_id = m.get("model_id") or m.get("model_name", "")
+            for pred in m.get("predictions", []):
+                hr = pred.get("hit_result")
+                if not hr:
+                    continue
+                strategy = pred.get("strategy", "—")
+                e = agg.get((model_id, strategy))
+                if e is None:
+                    e = agg[(model_id, strategy)] = {"total": 0, "blue": 0, "periods": set()}
+                e["total"] += hr.get("total_hits", 0)
+                e["blue"] += 1 if hr.get("blue_hit") else 0
+                if period:
+                    e["periods"].add(period)
+
+    grouped = {}
+    for (model_id, strategy), e in agg.items():
+        games = len(e["periods"]) or 1
+        grouped.setdefault(model_id, []).append({
+            "strategy": strategy,
+            "accuracy": e["total"] / (games * 7),
+            "total": e["total"],
+            "blue": e["blue"],
+        })
+
+    result = {}
+    for model_id, items in grouped.items():
+        items.sort(key=lambda x: (-x["accuracy"], -x["total"], -x["blue"], x["strategy"]))
+        result[model_id] = {x["strategy"] for x in items[:limit]}
+    return result
+
+
+def _filter_model_predictions(model, top_by_model, limit=TOP_STRATEGIES_PER_MODEL):
+    """过滤模型当前预测，只保留历史准确率前 limit 的策略。
+
+    若历史可判定策略不足 limit 种，按原有顺序补齐，保证最多展示 limit 组。
+    """
+    preds = model.get("predictions", [])
+    model_id = model.get("model_id") or model.get("model_name", "")
+    allowed = (top_by_model or {}).get(model_id)
+    if not allowed:
+        return preds
+
+    kept = [p for p in preds if p.get("strategy", "—") in allowed]
+    if len(kept) < limit:
+        seen = {p.get("strategy", "—") for p in kept}
+        for p in preds:
+            strategy = p.get("strategy", "—")
+            if strategy in seen:
+                continue
+            kept.append(p)
+            seen.add(strategy)
+            if len(kept) >= limit:
+                break
+
+    order = {p.get("strategy", "—"): i for i, p in enumerate(preds)}
+    kept.sort(key=lambda p: order.get(p.get("strategy", "—"), len(preds)))
+    return kept[:limit]
+
+
+def _collect_strategy_stats(hist, top_by_model=None):
     """按「模型+策略」聚合全部历史命中。
 
     返回 (stats_by_key, latest_record)。每个条目的字段：
       model_id / model / strategy / total / redTotal / blueTotal / best /
       current / redHits / blueHit / games / accuracy
     其中 games 按期号去重，accuracy = 累计命中球数 / (期数 × 7)。
+    传入 top_by_model 时只统计各模型历史准确率前 3 的策略。
     """
     records = hist.get("predictions_history", []) if hist else []
     if not records:
@@ -230,11 +306,14 @@ def _collect_strategy_stats(hist):
         period = (rec.get("actual_result") or {}).get("period", "")
         for m in rec.get("models", []):
             model_id = m.get("model_id") or m.get("model_name", "")
+            allowed = (top_by_model or {}).get(model_id)
             for pred in m.get("predictions", []):
                 hr = pred.get("hit_result")
                 if not hr:
                     continue
                 strategy = pred.get("strategy", "—")
+                if allowed is not None and strategy not in allowed:
+                    continue
                 key = f"{model_id}|{strategy}"
                 e = stats.get(key)
                 if e is None:
@@ -276,11 +355,11 @@ def _rank_by_accuracy(stats, limit):
     return arr[:limit]
 
 
-def _build_ranking_html(hist, limit=8):
-    """命中排行 HTML — 两段式：最新一期 Top 8 + 历史累计 Top 8（按准确率）。"""
-    stats, _ = _collect_strategy_stats(hist)
+def _build_ranking_parts(hist, limit=8, top_by_model=None):
+    """命中排行 HTML — 拆分为 (最新一期表格, 历史累计表格)，便于邮件排序。"""
+    stats, _ = _collect_strategy_stats(hist, top_by_model)
     if not stats:
-        return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
+        return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>', ''
 
     # === 最新一期排行：按 蓝球✓ → 本期命中数 排序 ===
     latest_arr = [s for s in stats.values() if s["current"] > 0]
@@ -303,7 +382,7 @@ def _build_ranking_html(hist, limit=8):
         )
         rows1.append(_row(i, cells))
     table1 = (
-        '<div style="font-size:13px;font-weight:700;color:#1e293b;margin:12px 0 6px">🏆 最新一期 Top 8</div>'
+        '<div style="font-size:13px;font-weight:700;color:#1e293b;margin:12px 0 6px">本期命中 Top 8</div>'
         + _render_table(["#", "模型", "策略", "本期命中", "命中红球", "蓝球"], rows1)
     )
 
@@ -320,17 +399,74 @@ def _build_ranking_html(hist, limit=8):
             f'<td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["games"]}期</td>'
         )
         rows2.append(_row(i, cells))
-    table2 = (
-        '<div style="font-size:13px;font-weight:700;color:#1e293b;margin:12px 0 6px">📊 历史累计排行 Top 8（按准确率）</div>'
-        + _render_table(["#", "模型", "策略", "准确率", "历史最多", "累计红球", "累计蓝球", "期数"], rows2)
+    table2 = _render_table(
+        ["#", "模型", "策略", "准确率", "历史最多", "累计红球", "累计蓝球", "期数"], rows2
     )
 
-    return table1 + table2
+    return table1, table2
 
 
-def _build_recommendations_html(hist, pred, latest_period="", limit=8):
-    """本期预测推荐 — 取历史准确率 Top 8 的「模型+策略」，附上其对当前期号的预测。"""
-    stats, _ = _collect_strategy_stats(hist)
+def _build_single_ball_hits_html(hist, latest, top_by_model=None):
+    """单球命中 — 最新一期 7 个开奖球分别被哪些模型命中；0 命中留空。"""
+    records = hist.get("predictions_history", []) if hist else []
+    if not records or not latest:
+        return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中数据)</p>'
+
+    record = records[0]
+    if latest.get("period") and record.get("target_period") and \
+            latest["period"] != record["target_period"]:
+        return '<p style="color:#94a3b8;font-size:13px;padding:12px">(最新一期暂无命中数据)</p>'
+
+    red_balls = latest.get("red_balls", [])
+    blue_ball = latest.get("blue_ball", "")
+    red_models = {ball: [] for ball in red_balls}
+    seen_red = {ball: set() for ball in red_balls}
+    blue_models = []
+    seen_blue = set()
+
+    # 只统计各模型保留的前 3 种策略；同一模型命中多个球只记一次
+    for m in record.get("models", []):
+        model_id = m.get("model_id") or m.get("model_name", "")
+        allowed = (top_by_model or {}).get(model_id)
+        model_name = m.get("model_name", "—")
+        for pred in m.get("predictions", []):
+            if allowed is not None and pred.get("strategy", "—") not in allowed:
+                continue
+            hr = pred.get("hit_result") or {}
+            for ball in hr.get("red_hits", []):
+                if ball in red_models and model_name not in seen_red[ball]:
+                    seen_red[ball].add(model_name)
+                    red_models[ball].append(model_name)
+            if hr.get("blue_hit") and model_name not in seen_blue:
+                seen_blue.add(model_name)
+                blue_models.append(model_name)
+
+    rows = []
+    ordered = [(ball, "red") for ball in red_balls] + [(blue_ball, "blue")]
+    for i, (ball, color) in enumerate(ordered):
+        if color == "red":
+            names = red_models.get(ball, [])
+        else:
+            names = blue_models
+        model_text = "、".join(html.escape(str(n)) for n in names) or "&nbsp;"
+        bg = "#f8fafc" if i % 2 == 0 else "#ffffff"
+        rows.append(
+            f'<tr style="background:{bg}">'
+            f'<td style="padding:6px 8px;text-align:center;width:64px">{_ball(ball, color, size=20)}</td>'
+            f'<td style="padding:6px 8px;color:#475569;font-size:12px;line-height:1.6">{model_text}</td>'
+            f'</tr>'
+        )
+
+    note = (
+        f'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'
+        f'第{latest.get("period","")}期 · 按每个模型保留的前 3 种策略统计；未命中留空</div>'
+    )
+    return note + _render_table(["开奖球", "命中模型"], rows)
+
+
+def _build_recommendations_html(hist, pred, latest_period="", limit=8, top_by_model=None):
+    """本期预测推荐 — 取历史准确率 Top N 的「模型+策略」，附上其对当前期号的预测。"""
+    stats, _ = _collect_strategy_stats(hist, top_by_model)
     if not stats:
         return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
     if not pred or not pred.get("models"):
@@ -383,8 +519,8 @@ def _build_recommendations_html(hist, pred, latest_period="", limit=8):
     )
 
 
-def _build_grouped_stats_html(hist, limit=8):
-    """模型分组统计 HTML — 按模型聚合全部历史命中（每期 4 组求和，期数按期去重）。
+def _build_grouped_stats_html(hist, limit=8, top_by_model=None):
+    """模型分组统计 HTML — 按模型聚合历史命中（仅统计各模型前 3 策略，期数按期去重）。
 
     limit 默认 8（邮件只展示前 8 名）；传 None 或 0 显示全部模型。"""
     records = hist.get("predictions_history", []) if hist else []
@@ -395,9 +531,13 @@ def _build_grouped_stats_html(hist, limit=8):
     for rec in records:
         period = (rec.get("actual_result") or {}).get("period")
         for m in rec.get("models", []):
+            model_id = m.get("model_id") or m.get("model_name", "")
+            allowed = (top_by_model or {}).get(model_id)
             for pred in (m.get("predictions") or []):
                 hr = pred.get("hit_result")
                 if not hr:
+                    continue
+                if allowed is not None and pred.get("strategy", "—") not in allowed:
                     continue
                 name = m.get("model_name", "—")
                 e = stats.get(name)
@@ -483,10 +623,21 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
           </td></tr>
         </table>'''
 
+    # 每个模型按历史准确率只保留前 3 种策略（排行、分组统计、推荐均按此过滤）
+    top_by_model = _top_strategies_by_model(hist)
+
+    # 排行拆分为最新一期 / 历史累计两部分，便于按新顺序排版
+    latest_rank_html, history_rank_html = _build_ranking_parts(
+        hist, limit=8, top_by_model=top_by_model
+    )
+
+    # 单球命中（紧跟最新一期）
+    single_ball_html = _build_single_ball_hits_html(hist, latest, top_by_model=top_by_model)
+
     # 模型分组统计（全部历史）— 只展示前 8 名
     grouped_html = (
         f'{_SECTION.format("📦 模型分组统计 Top 8（全部历史）")}'
-        f'{_build_grouped_stats_html(hist, limit=8)}'
+        f'{_build_grouped_stats_html(hist, limit=8, top_by_model=top_by_model)}'
     )
 
     # Footer
@@ -506,15 +657,18 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
       <div style="padding:8px 24px 20px">
         {warn_html}
         {commit_html}
-        {_SECTION.format("🏆 最新开奖")}
+        {_SECTION.format("🏆 最新一期")}
         {_build_latest_draw_html(latest, nd)}
-        {_SECTION.format("📊 命中排行 Top 8")}
-        {_build_ranking_html(hist, limit=8)}
-        {_SECTION.format("🎯 本期预测推荐 · 历史准确率 Top 8")}
-        {_build_recommendations_html(hist, pred, latest_period, limit=8)}
+        {latest_rank_html}
+        {_SECTION.format("🔍 单球命中")}
+        {single_ball_html}
+        {_SECTION.format("📊 历史排行 Top 8（按准确率）")}
+        {history_rank_html}
         {grouped_html}
-        {_SECTION.format("🔮 模型预测（完整 40 组）")}
-        {_build_predictions_html(pred, latest_period, next_period)}
+        {_SECTION.format("🎯 本期预测推荐 Top 10")}
+        {_build_recommendations_html(hist, pred, latest_period, limit=10, top_by_model=top_by_model)}
+        {_SECTION.format("🔮 模型推荐（前 3 策略 · 30 组）")}
+        {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model)}
       </div>
       <div style="background:#f8fafc;padding:16px 24px;text-align:center;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">
         <p style="font-size:12px;color:#94a3b8;margin:0">
