@@ -6,7 +6,7 @@
 纯函数，无网络 IO：
   1. load_data()        — 读取 3 个 JSON 数据文件
   2. validate_data()    — 校验数据完整性，返回 (errors, warnings)
-  3. build_html_digest() — 渲染 HTML 邮件正文（每日汇总）
+  3. build_html_digest() — 渲染 HTML 邮件正文（定时汇总）
 """
 
 import html
@@ -464,6 +464,95 @@ def _build_single_ball_hits_html(hist, latest, top_by_model=None):
     return note + _render_table(["开奖球", "命中模型"], rows)
 
 
+def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5):
+    """最佳组合 — 两两组合不同的「模型+策略」，统计同一期命中球去重后 ≥5 球的次数。"""
+    records = hist.get("predictions_history", []) if hist else []
+    if not records:
+        return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
+
+    pair_stats = {}
+    for rec in records:
+        entries = []
+        seen = set()
+        for m in rec.get("models", []):
+            model_id = m.get("model_id") or m.get("model_name", "")
+            allowed = (top_by_model or {}).get(model_id)
+            model_name = m.get("model_name", "—")
+            for pred in m.get("predictions", []):
+                strategy = pred.get("strategy", "—")
+                if allowed is not None and strategy not in allowed:
+                    continue
+                hr = pred.get("hit_result")
+                if not hr:
+                    continue
+                key = (model_id, strategy)
+                if key in seen:
+                    continue
+                seen.add(key)
+                hits = set(hr.get("red_hits", []))
+                if hr.get("blue_hit"):
+                    hits.add("__blue__")
+                entries.append((key, model_name, strategy, hits))
+
+        for i in range(len(entries)):
+            for j in range(i + 1, len(entries)):
+                k1, n1, s1, h1 = entries[i]
+                k2, n2, s2, h2 = entries[j]
+                pair_key = tuple(sorted([k1, k2]))
+                e = pair_stats.get(pair_key)
+                if e is None:
+                    if k1 <= k2:
+                        names = (n1, s1, n2, s2)
+                    else:
+                        names = (n2, s2, n1, s1)
+                    e = pair_stats[pair_key] = {
+                        "names": names, "count": 0, "periods": 0, "max": 0, "sum": 0,
+                    }
+                total = len(h1 | h2)
+                e["periods"] += 1
+                e["sum"] += total
+                if total > e["max"]:
+                    e["max"] = total
+                if total >= min_hits:
+                    e["count"] += 1
+
+    arr = [e for e in pair_stats.values() if e["count"] > 0]
+    if not arr:
+        return f'<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无单期 ≥{min_hits} 球的组合)</p>'
+
+    arr.sort(key=lambda x: (
+        -x["count"], -x["max"], -(x["sum"] / x["periods"]), x["names"]
+    ))
+    arr = arr[:limit]
+    stat_periods = max(e["periods"] for e in pair_stats.values())
+
+    rows = []
+    for i, e in enumerate(arr):
+        n1, s1, n2, s2 = e["names"]
+        combo = (
+            f'<div style="font-size:12px;color:#1e293b;line-height:1.55">'
+            f'<span style="color:#2563eb;font-weight:700">A</span> '
+            f'{html.escape(str(n1))} · {html.escape(str(s1))}<br>'
+            f'<span style="color:#3b82f6;font-weight:700">B</span> '
+            f'{html.escape(str(n2))} · {html.escape(str(s2))}</div>'
+        )
+        cells = (
+            f'<td style="padding:6px 8px">{combo}</td>'
+            f'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#2563eb;font-size:12px">{e["count"]} 次</td>'
+            f'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#ef4444;font-size:12px">{e["max"]} 球</td>'
+        )
+        rows.append(_row(i, cells))
+
+    note = (
+        f'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'
+        f'两两组合不同「模型+策略」，同一期命中球去重后 ≥{min_hits} 球计 1 次；'
+        f'共统计 {stat_periods} 期，展示前 {len(arr)} 名</div>'
+    )
+    return note + _render_table(
+        ["#", "最佳组合（模型+策略）", "≥5球次数", "最高命中"], rows
+    )
+
+
 def _build_recommendations_html(hist, pred, latest_period="", limit=8, top_by_model=None):
     """本期预测推荐 — 取历史准确率 Top N 的「模型+策略」，附上其对当前期号的预测。"""
     stats, _ = _collect_strategy_stats(hist, top_by_model)
@@ -595,7 +684,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
 
     # 邮件类型（决定 subtitle 和 footer）
     is_push = commit_info is not None
-    subtitle = "项目更新通知" if is_push else "每日汇总"
+    subtitle = "项目更新通知" if is_push else "定时汇总"
 
     # 警告
     warn_html = ""
@@ -634,6 +723,9 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
     # 单球命中（紧跟最新一期）
     single_ball_html = _build_single_ball_hits_html(hist, latest, top_by_model=top_by_model)
 
+    # 最佳组合（历史两两组合统计）
+    best_combo_html = _build_best_combinations_html(hist, top_by_model=top_by_model, limit=10)
+
     # 模型分组统计（全部历史）— 只展示前 8 名
     grouped_html = (
         f'{_SECTION.format("📦 模型分组统计 Top 8（全部历史）")}'
@@ -664,6 +756,8 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {single_ball_html}
         {_SECTION.format("📊 历史排行 Top 8（按准确率）")}
         {history_rank_html}
+        {_SECTION.format("🏅 最佳组合 Top 10（单期 ≥5 球）")}
+        {best_combo_html}
         {grouped_html}
         {_SECTION.format("🎯 本期预测推荐 Top 10")}
         {_build_recommendations_html(hist, pred, latest_period, limit=10, top_by_model=top_by_model)}
