@@ -214,6 +214,10 @@ function renderHitRankings() {
         const panel = buildRankingPanel(win.label, win.sub, records, win.filter, win.key === 'latest');
         container.appendChild(panel);
     });
+
+    // 新增：历史准确率 Top8 + 本期预测
+    const recPanel = buildRecommendationPanel(records);
+    if (recPanel) container.appendChild(recPanel);
 }
 
 // 构建单个时间窗口排行面板（最新一期 / 最近一月 / 最近一年 共用一套渲染）
@@ -277,23 +281,24 @@ function buildRankingPanel(title, sub, records, dateFilter, isLatest) {
         return panel;
     }
 
-    // 排序 + Top10：最新一期按 蓝球 → 本期命中；其余按 总球数 → 累计蓝球
+    // 排序 + Top8：最新一期按 蓝球 → 本期命中；其余按 准确率 → 总球数
     if (isLatest) {
         arr.sort((a, b) =>
             (b.hitNumbers.includes('蓝✓') ? 1 : 0) - (a.hitNumbers.includes('蓝✓') ? 1 : 0) ||
             b.currentHits - a.currentHits);
     } else {
-        arr.sort((a, b) => b.totalHits - a.totalHits || b.blueHits - a.blueHits);
+        const acc = (e) => e.games ? e.totalHits / (e.games * 7) : 0;
+        arr.sort((a, b) => acc(b) - acc(a) || b.totalHits - a.totalHits || b.blueHits - a.blueHits);
     }
-    const top10 = arr.slice(0, 10);
+    const top8 = arr.slice(0, 8);
 
-    // 两套列配置共用表格构建逻辑
+    // 两套列配置共用表格构建逻辑（累计榜新增「准确率」列）
     const headers = isLatest
         ? ['模型', '策略', '本期命中', '命中红球', '蓝球']
-        : ['模型', '策略', '历史最多', '累计红球', '累计蓝球', '总球数', '期数'];
+        : ['模型', '策略', '准确率', '历史最多', '累计红球', '累计蓝球', '总球数', '期数'];
     const keys = isLatest
         ? ['model', 'strategy', 'current', 'reds', 'blue']
-        : ['model', 'strategy', 'best', 'redTotal', 'blueTotal', 'total', 'games'];
+        : ['model', 'strategy', 'accuracy', 'best', 'redTotal', 'blueTotal', 'total', 'games'];
 
     const cell = {
         model: (e) => `<td class="rank-model">${escHtml(e.modelName)}</td>`,
@@ -301,6 +306,7 @@ function buildRankingPanel(title, sub, records, dateFilter, isLatest) {
         current: (e) => `<td class="rank-current">${e.currentHits} 球</td>`,
         reds: (e) => `<td class="rank-hits">${escHtml(e.hitNumbers.split('蓝✓')[0].replace('红:', '').trim() || '—')}</td>`,
         blue: (e) => `<td class="rank-blue">${e.hitNumbers.includes('蓝✓') ? '✓' : '—'}</td>`,
+        accuracy: (e) => `<td class="rank-accuracy">${e.games ? (e.totalHits / (e.games * 7) * 100).toFixed(1) : '0.0'}%</td>`,
         best: (e) => `<td class="rank-best ${e.bestHit >= 5 ? 'excellent' : e.bestHit >= 3 ? 'good' : ''}">${e.bestHit} 球</td>`,
         redTotal: (e) => `<td class="rank-total">${e.redTotal} 球</td>`,
         blueTotal: (e) => `<td class="rank-blue">${e.blueHits} 球</td>`,
@@ -315,7 +321,7 @@ function buildRankingPanel(title, sub, records, dateFilter, isLatest) {
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
-    top10.forEach((e, i) => {
+    top8.forEach((e, i) => {
         const rankClass = i < 3 ? ' rank-' + (i + 1) : '';
         const tr = document.createElement('tr');
         tr.innerHTML = `<td class="rank-num${rankClass}">${i + 1}</td>` + keys.map(k => cell[k](e)).join('');
@@ -324,6 +330,91 @@ function buildRankingPanel(title, sub, records, dateFilter, isLatest) {
     table.appendChild(tbody);
     panel.appendChild(table);
 
+    return panel;
+}
+
+// 历史准确率 Top8 × 本期预测（按「模型+策略」聚合）
+function buildRecommendationPanel(records) {
+    const pred = appData.aiPredictions;
+    if (!pred || !pred.models || !pred.models.length) return null;
+
+    // 聚合全部历史命中，期数按期号去重
+    const stats = {};
+    records.forEach(rec => {
+        const period = rec.actual_result?.period;
+        (rec.models || []).forEach(model => {
+            const modelId = model.model_id || model.model_name || '';
+            (model.predictions || []).forEach(p => {
+                const hr = p.hit_result;
+                if (!hr) return;
+                const key = modelId + '|' + (p.strategy || '—');
+                const e = stats[key] || (stats[key] = {
+                    modelId,
+                    modelName: model.model_name || '—',
+                    strategy: p.strategy || '—',
+                    totalHits: 0,
+                    blueHits: 0,
+                    periods: new Set(),
+                });
+                e.totalHits += hr.total_hits || 0;
+                e.blueHits += hr.blue_hit ? 1 : 0;
+                if (period) e.periods.add(period);
+            });
+        });
+    });
+
+    const arr = Object.values(stats).map(e => ({
+        ...e,
+        games: e.periods.size,
+        accuracy: e.periods.size ? e.totalHits / (e.periods.size * 7) * 100 : 0,
+    })).sort((a, b) =>
+        b.accuracy - a.accuracy || b.totalHits - a.totalHits || b.blueHits - a.blueHits
+    ).slice(0, 8);
+    if (!arr.length) return null;
+
+    // 当前期预测索引（model_id|strategy）
+    const current = new Map();
+    (pred.models || []).forEach(m => {
+        const modelId = m.model_id || m.model_name || '';
+        (m.predictions || []).forEach(p => current.set(modelId + '|' + (p.strategy || '—'), p));
+    });
+
+    const latestDrawPeriod = appData.lotteryHistory?.data?.[0]?.period;
+    const stale = pred.target_period && latestDrawPeriod
+        && parseInt(pred.target_period, 10) <= parseInt(latestDrawPeriod, 10);
+    const targetLabel = `模型+策略 · 目标 ${pred.target_period || '—'} 期${stale ? '（已开奖）' : ''}`;
+
+    const panel = document.createElement('div');
+    panel.className = 'ranking-panel';
+    panel.innerHTML = '<div class="ranking-header">'
+        + '<span class="ranking-title">历史准确率 Top 8 · 本期预测</span>'
+        + `<span class="ranking-sub">${escHtml(targetLabel)}</span></div>`;
+
+    const table = document.createElement('table');
+    table.className = 'ranking-table';
+    table.innerHTML = '<thead><tr><th>#</th><th>模型</th><th>策略</th>'
+        + '<th>准确率</th><th>累计命中</th><th>本期预测</th></tr></thead>';
+
+    const tbody = document.createElement('tbody');
+    arr.forEach((e, i) => {
+        const p = current.get(e.modelId + '|' + e.strategy);
+        const rankClass = i === 0 ? ' rank-1' : i === 1 ? ' rank-2' : i === 2 ? ' rank-3' : '';
+        const predHtml = p
+            ? `<span class="rank-pred-red">${escHtml((p.red_balls || []).join(' '))}</span>`
+              + '<span class="rank-pred-sep">+</span>'
+              + `<span class="rank-pred-blue">${escHtml(p.blue_ball || '')}</span>`
+            : '<span class="rank-muted">—</span>';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="rank-num${rankClass}">${i + 1}</td>`
+            + `<td class="rank-model">${escHtml(e.modelName)}</td>`
+            + `<td class="rank-strategy">${escHtml(e.strategy)}</td>`
+            + `<td class="rank-accuracy">${e.accuracy.toFixed(1)}%</td>`
+            + `<td class="rank-total">${e.totalHits} 球</td>`
+            + `<td class="rank-pred">${predHtml}</td>`;
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    panel.appendChild(table);
     return panel;
 }
 
@@ -370,10 +461,12 @@ function renderGroupedRankings() {
     // 期数 = 该模型实际参与的不同期号数（去重）
     Object.values(stats).forEach(e => { e.games = e.periods.size; });
 
-    // 按 总球数 降序排序
-    const arr = Object.values(stats).sort((a, b) => b.totalHits - a.totalHits || b.blueHits - a.blueHits);
+    // 按 总球数 降序排序，只展示前 8 名
+    const arr = Object.values(stats)
+        .sort((a, b) => b.totalHits - a.totalHits || b.blueHits - a.blueHits)
+        .slice(0, 8);
 
-    const modelPanel = buildGroupedPanel('模型分组', '按模型统计命中（全部历史）', arr);
+    const modelPanel = buildGroupedPanel('模型分组 Top 8', '按模型统计命中（全部历史）', arr);
     if (modelPanel) container.appendChild(modelPanel);
 }
 
