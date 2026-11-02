@@ -1,10 +1,10 @@
-name: Email Digest (Mon/Wed/Fri/Sun)
+name: Email Digest (Daily)
 
 on:
   schedule:
-    # 周一/三/五/日 UTC 09:00 = 北京时间 17:00
-    # 统计预测在周一/三/五 UTC 00:00（北京 08:00）生成，邮件晚 9 小时发送
-    - cron: '0 9 * * 1,3,5,0'
+    # 每天 UTC 09:00 = 北京时间 17:00
+    # 统计预测在周一/三/五 UTC 00:00（北京 08:00）生成，非预测日的邮件沿用最近一期预测
+    - cron: '0 9 * * *'
   workflow_dispatch:
 
 jobs:
