@@ -73,7 +73,7 @@ double/
 
 | Tab | 内容 |
 |-----|------|
-| **最新预测** | Hero Banner（下期期号/日期/倒计时）、统计数学模型卡片（共 10 个，各 4 组预测）、免责声明 |
+| **最新预测** | Hero Banner（下期期号/日期/倒计时）、统计数学模型卡片（共 10 个，各展示历史准确率前 3 种策略）、免责声明 |
 | **历史分析** | 4 个统计卡（数据样本/最热红球/最热蓝球/平均和值）、历史开奖号码表格、命中记录紧凑摘要 |
 | **模型排行** | 模型命中率排行（最新一期/最近一月/最近一年）、模型分组统计 |
 
@@ -90,9 +90,11 @@ double/
 
 清新简约：白底 + 细边框 + 轻阴影，无渐变；10 个模型各配一个低饱和度淡彩头部（`--tint-*` CSS 变量），整体大量留白。
 
-### 数据懒加载
+### 数据加载与策略裁剪
 
-首屏只加载 `lottery_history.json` + `ai_predictions.json`（Tab1 所需）；进入 Tab2/Tab3 时由 `loadSecondaryData()` 并发拉取 `predictions_history.json`（并发去重，仅拉一次）。`/api/update` 响应已含全部 3 个数据源（lottery_history / ai_predictions / predictions_history），更新后标记次要数据为已加载，避免重复请求。
+首屏会加载全部 3 个数据源（`lottery_history.json` + `ai_predictions.json` + `predictions_history.json`），因为 Tab1 模型卡片需要依据历史准确率为每个模型裁剪出前 3 种策略。`predictions_history.json` 加载失败时降级为展示全部策略，进入 Tab2/Tab3 时 `loadSecondaryData()` 会重试并补渲模型卡片。`/api/update` 响应已含全部 3 个数据源，更新后标记为已加载，避免重复请求。
+
+策略裁剪规则：按「累计命中球数 ÷（期数 × 7）」计算每个模型各策略的历史准确率，仅保留前 3 名；排行统计、模型分组、命中记录与邮件预测均使用同一规则。
 
 ### 启动方式
 
