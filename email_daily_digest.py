@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-双色球每日邮件汇总 — 主入口
+双色球定时邮件汇总 — 主入口
 
 流程：读取环境变量配置 → 加载数据 → 校验 → 组装内容 → 发送邮件
 
@@ -16,7 +16,7 @@ from email_smtp_utils import beijing_time, send_digest
 # ==================== 主流程 ====================
 
 def _build(now):
-    """加载数据并组装每日汇总正文。返回 (html, commit_info=None)。"""
+    """加载数据并组装汇总正文。返回 (html, commit_info=None)。"""
     data = load_data()
     errors, warnings = validate_data(data)
     for e in errors:
@@ -36,10 +36,10 @@ def _build(now):
 
 def main():
     print("=" * 50)
-    print("📧 双色球每日邮件汇总")
+    print("📧 双色球定时邮件汇总")
     print("=" * 50)
 
-    subject = f"[双色球] 每日汇总 · {beijing_time()[:10]}"
+    subject = f"[双色球] 定时汇总 · {beijing_time()[:10]}"
     send_digest(subject, _build)
 
 

@@ -1,9 +1,10 @@
-name: Email Daily Digest
+name: Email Digest (Mon/Wed/Fri/Sun)
 
 on:
   schedule:
-    # 每天 UTC 04:30 = 北京时间 12:30（午间推送；统计预测 UTC 00:00 生成，缓冲充足）
-    - cron: '30 4 * * *'
+    # 周一/三/五/日 UTC 09:00 = 北京时间 17:00
+    # 统计预测在周一/三/五 UTC 00:00（北京 08:00）生成，邮件晚 9 小时发送
+    - cron: '0 9 * * 1,3,5,0'
   workflow_dispatch:
 
 jobs:
@@ -18,7 +19,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Send daily digest email
+      - name: Send digest email
         run: python3 email_daily_digest.py
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}

@@ -6,7 +6,7 @@
 纯函数，无网络 IO：
   1. load_data()        — 读取 3 个 JSON 数据文件
   2. validate_data()    — 校验数据完整性，返回 (errors, warnings)
-  3. build_html_digest() — 渲染 HTML 邮件正文（每日汇总）
+  3. build_html_digest() — 渲染 HTML 邮件正文（定时汇总）
 """
 
 import html
@@ -595,7 +595,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
 
     # 邮件类型（决定 subtitle 和 footer）
     is_push = commit_info is not None
-    subtitle = "项目更新通知" if is_push else "每日汇总"
+    subtitle = "项目更新通知" if is_push else "定时汇总"
 
     # 警告
     warn_html = ""
