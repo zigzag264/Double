@@ -381,10 +381,7 @@ def _build_ranking_parts(hist, limit=8, top_by_model=None):
             f'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#3b82f6;font-size:13px">{blue_mark}</td>'
         )
         rows1.append(_row(i, cells))
-    table1 = (
-        '<div style="font-size:13px;font-weight:700;color:#1e293b;margin:12px 0 6px">本期命中 Top 8</div>'
-        + _render_table(["#", "模型", "策略", "本期命中", "命中红球", "蓝球"], rows1)
-    )
+    table1 = _render_table(["#", "模型", "策略", "本期命中", "命中红球", "蓝球"], rows1)
 
     # --- 历史累计排行表格（新增「准确率」列）---
     rows2 = []
@@ -720,7 +717,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         hist, limit=8, top_by_model=top_by_model
     )
 
-    # 单球命中（紧跟最新一期）
+    # 单球命中（紧随最新一期）
     single_ball_html = _build_single_ball_hits_html(hist, latest, top_by_model=top_by_model)
 
     # 最佳组合（历史两两组合统计）
@@ -739,6 +736,9 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         '本邮件由自动系统生成 · 彩票预测仅供娱乐参考，不构成投资建议'
     )
 
+    # 邮件板块顺序：
+    # 最新一期 → 单球命中 → 本期命中 Top 8 → 历史排行 Top 8
+    # → 模型分组统计 Top 8 → 本期预测推荐 Top 10 → 最佳组合 Top 10 → 模型推荐
     html = f'''
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#ffffff;padding:0;color:#1e293b">
       <div style="border-top:4px solid #3b82f6;padding:24px;text-align:center">
@@ -751,16 +751,17 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {commit_html}
         {_SECTION.format("🏆 最新一期")}
         {_build_latest_draw_html(latest, nd)}
-        {latest_rank_html}
         {_SECTION.format("🔍 单球命中")}
         {single_ball_html}
+        {_SECTION.format("🎯 本期命中 Top 8")}
+        {latest_rank_html}
         {_SECTION.format("📊 历史排行 Top 8（按准确率）")}
         {history_rank_html}
-        {_SECTION.format("🏅 最佳组合 Top 10（单期 ≥5 球）")}
-        {best_combo_html}
         {grouped_html}
         {_SECTION.format("🎯 本期预测推荐 Top 10")}
         {_build_recommendations_html(hist, pred, latest_period, limit=10, top_by_model=top_by_model)}
+        {_SECTION.format("🏅 最佳组合 Top 10（单期 ≥5 球）")}
+        {best_combo_html}
         {_SECTION.format("🔮 模型推荐（前 3 策略 · 30 组）")}
         {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model)}
       </div>

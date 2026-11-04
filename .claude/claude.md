@@ -272,7 +272,7 @@ python stats_models.py --output x.json    # 写入临时 JSON 供检查
 `email_content_builder.py`（纯函数模块）:
 - `load_data()` — 加载 3 个 JSON 数据源（独立异常隔离）
 - `validate_data()` — 返回 `(errors, warnings)`
-- `build_html_digest()` — 渲染邮件正文（最新一期 / 单球命中 / 历史排行 / 最佳组合 / 模型分组 / 本期推荐 / 模型推荐）
+- `build_html_digest()` — 渲染邮件正文（最新一期 / 单球命中 / 本期命中 Top 8 / 历史排行 / 模型分组 / 本期推荐 / 最佳组合 / 模型推荐）
 
 **环境变量**（详见 `.env.example`）:
 ```
