@@ -9,7 +9,7 @@
 - 📊 数据趋势分析（统计卡片 + 历史开奖表格）
 - 🏆 模型命中率排行（最新一期/最近一月/最近一年）与模型分组统计
 - ⏰ 自动更新开奖数据（GitHub Actions）
-- 📧 定时邮件汇总推送（周一/三/五/日 北京 17:00）
+- 📧 定时邮件汇总推送（每日 北京 17:00）
 - 🎨 清新简约视觉风格、响应式设计
 
 **双色球规则**:
@@ -45,7 +45,7 @@ double/
 ├── .github/workflows/
 │   ├── update-lottery-data.yml       # 爬虫工作流：每天 UTC 14:00（北京 22:00）
 │   ├── generate-prediction.yml       # 预测工作流：每周一三五 UTC 00:00
-│   ├── email-daily-digest.yml        # 邮件推送工作流：周一/三/五/日 UTC 09:00（北京 17:00）
+│   ├── email-daily-digest.yml        # 邮件推送工作流：每日 UTC 09:00（北京 17:00）
 │   └── push-notify.yml               # Push 事件邮件通知
 ├── .env.example                      # 环境变量模板
 ├── .env                              # 本地环境变量（git 忽略）
@@ -55,7 +55,7 @@ double/
 ├── stats_models.py                   # 10 种统计/概率/ML 模型预测（纯标准库，确定性）
 ├── email_content_builder.py          # 邮件内容组装模块（纯函数）
 ├── email_smtp_utils.py               # SMTP 邮件发送工具（共享模块）
-├── email_daily_digest.py             # 定时邮件推送主入口（周一/三/五/日）
+├── email_daily_digest.py             # 定时邮件推送主入口（每日）
 ├── email_push_notify.py              # Push 触发邮件通知
 ├── test_prediction.py                # 预测文件格式测试脚本
 ├── vercel.json                       # Vercel 部署配置
@@ -205,10 +205,10 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
 - **推送**: `data/ai_predictions.json`, `data/predictions_history.json`
 
 ### 3. `email-daily-digest.yml` — 定时邮件推送
-- **触发**: 每周一/三/五/日 UTC 09:00（北京时间 17:00）+ 手动
+- **触发**: 每日 UTC 09:00（北京时间 17:00）+ 手动
 - **执行**: `python3 email_daily_digest.py`
 - **Secrets**: `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_RECIPIENT`
-- **注意**: 周一/三/五的邮件在预测生成（UTC 00:00）之后 9 小时发送；周日沿用周五生成的预测（周日 21:15 开奖前仍有效）
+- **注意**: 周一/三/五的邮件在预测生成（UTC 00:00）之后 9 小时发送；其余日期沿用最近一期生成的预测（开奖前仍有效）
 
 ### 4. `push-notify.yml` — Push 事件邮件通知
 - **触发**: push 到 master 分支 + 手动
@@ -266,7 +266,7 @@ python stats_models.py --output x.json    # 写入临时 JSON 供检查
 
 两个脚本共用 `email_smtp_utils.py`（SMTP 配置/校验/发送）和 `email_content_builder.py`（内容组装）：
 
-- `email_daily_digest.py` — **周一/三/五/日定时**推送，主题 `[双色球] 定时汇总 · YYYY-MM-DD`
+- `email_daily_digest.py` — **每日定时**推送，主题 `[双色球] 定时汇总 · YYYY-MM-DD`
 - `email_push_notify.py` — **Git push** 触发推送，额外包含 commit 信息，主题 `[双色球] 项目更新 · MM-DD HH:MM`
 
 `email_content_builder.py`（纯函数模块）:
@@ -305,7 +305,7 @@ EMAIL_DRY_RUN=true
 [update-lottery-data.yml] 爬虫 → 更新 lottery_history.json
   ↓ 周一/三/五 北京 08:00
 [generate-prediction.yml] 归档旧预测 + 生成新预测
-  ↓ 周一/三/五/日 北京 17:00
+  ↓ 每天 北京 17:00
 [email-daily-digest.yml] 发送汇总邮件
   ↓
 Vercel 自动重新部署
