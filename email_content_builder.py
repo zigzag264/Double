@@ -461,9 +461,10 @@ def _build_single_ball_hits_html(hist, latest, top_by_model=None):
     return note + _render_table(["开奖球", "命中模型"], rows)
 
 
-def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5, min_red_hits=4):
+def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_model=None,
+                                  limit=20, min_hits=5, min_red_hits=4):
     """最佳组合 — 两两组合不同的「模型+策略」，统计同一期命中球去重后 ≥5 球的次数，
-    以及红球去重后 ≥4 球的次数。"""
+    以及红球去重后 ≥4 球的次数；同时展示该组合对下期未开奖期号的预测号码。"""
     records = hist.get("predictions_history", []) if hist else []
     if not records:
         return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
@@ -501,10 +502,13 @@ def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5,
                 if e is None:
                     if k1 <= k2:
                         names = (n1, s1, n2, s2)
+                        keys = (k1, k2)
                     else:
                         names = (n2, s2, n1, s1)
+                        keys = (k2, k1)
                     e = pair_stats[pair_key] = {
-                        "names": names, "count": 0, "red4": 0, "periods": 0, "max": 0, "sum": 0,
+                        "names": names, "keys": keys,
+                        "count": 0, "red4": 0, "periods": 0, "max": 0, "sum": 0,
                     }
                 total = len(h1 | h2)
                 red_total = len({h for h in (h1 | h2) if h != "__blue__"})
@@ -527,15 +531,47 @@ def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5,
     arr = arr[:limit]
     stat_periods = max(e["periods"] for e in pair_stats.values())
 
+    # 下期未开奖预测索引：{(model_id, strategy): prediction}
+    pred_map = {}
+    target_period = str(ai_pred.get("target_period", "")) if ai_pred else ""
+    pred_valid = False
+    try:
+        pred_valid = bool(target_period) and int(target_period) > int(latest_period)
+    except (TypeError, ValueError):
+        pred_valid = bool(target_period) and target_period != latest_period
+    if pred_valid:
+        for model in ai_pred.get("models", []):
+            model_id = model.get("model_id") or model.get("model_name", "")
+            for p in model.get("predictions", []):
+                pred_map[(model_id, p.get("strategy", ""))] = p
+
+    def _combo_line(label, color, name, strategy, key):
+        head = (
+            f'<div style="font-size:12px;color:#1e293b;line-height:1.45">'
+            f'<span style="color:{color};font-weight:700">{label}</span> '
+            f'{html.escape(str(name))} · {html.escape(str(strategy))}</div>'
+        )
+        p = pred_map.get(key)
+        if p and p.get("red_balls") and p.get("blue_ball"):
+            reds = " ".join(html.escape(str(x)) for x in p["red_balls"])
+            blue = html.escape(str(p["blue_ball"]))
+            nums = (
+                f'<div style="font-size:11px;font-family:Consolas,Menlo,monospace;'
+                f'color:#dc2626;letter-spacing:.4px;margin:1px 0 3px 17px">'
+                f'{reds} <span style="color:#2563eb;font-weight:700">+{blue}</span></div>'
+            )
+        else:
+            msg = "（下期无该策略预测）" if pred_valid else "（当前预测已过期）"
+            nums = f'<div style="font-size:10px;color:#94a3b8;margin:1px 0 3px 17px">{msg}</div>'
+        return head + nums
+
     rows = []
     for i, e in enumerate(arr):
         n1, s1, n2, s2 = e["names"]
+        k1, k2 = e["keys"]
         combo = (
-            f'<div style="font-size:12px;color:#1e293b;line-height:1.55">'
-            f'<span style="color:#2563eb;font-weight:700">A</span> '
-            f'{html.escape(str(n1))} · {html.escape(str(s1))}<br>'
-            f'<span style="color:#3b82f6;font-weight:700">B</span> '
-            f'{html.escape(str(n2))} · {html.escape(str(s2))}</div>'
+            _combo_line("A", "#2563eb", n1, s1, k1)
+            + _combo_line("B", "#3b82f6", n2, s2, k2)
         )
         cells = (
             f'<td style="padding:6px 8px">{combo}</td>'
@@ -545,14 +581,18 @@ def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5,
         )
         rows.append(_row(i, cells))
 
+    pred_note = (
+        f'；红字为第 {html.escape(target_period)} 期（未开奖）预测号码'
+        if pred_valid else "；当前预测目标期已开奖，暂无下期预测号码"
+    )
     note = (
         f'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'
         f'两两组合不同「模型+策略」，同一期命中球去重后 ≥{min_hits} 球计 1 次；'
         f'红球去重后 ≥{min_red_hits} 球另计 1 次；'
-        f'共统计 {stat_periods} 期，展示前 {len(arr)} 名</div>'
+        f'共统计 {stat_periods} 期，展示前 {len(arr)} 名{pred_note}</div>'
     )
     return note + _render_table(
-        ["#", "最佳组合（模型+策略）", "≥5球次数", "≥4红球次数", "最高命中"], rows
+        ["#", "最佳组合（模型+策略）与下期预测", "≥5球次数", "≥4红球次数", "最高命中"], rows
     )
 
 
@@ -726,8 +766,10 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
     # 单球命中（紧随最新一期）
     single_ball_html = _build_single_ball_hits_html(hist, latest, top_by_model=top_by_model)
 
-    # 最佳组合（历史两两组合统计）
-    best_combo_html = _build_best_combinations_html(hist, top_by_model=top_by_model, limit=10)
+    # 最佳组合（历史两两组合统计 + 下期预测号码）
+    best_combo_html = _build_best_combinations_html(
+        hist, pred, latest_period, top_by_model=top_by_model, limit=20
+    )
 
     # 模型分组统计（全部历史）— 只展示前 8 名
     grouped_html = (
@@ -744,7 +786,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
 
     # 邮件板块顺序：
     # 最新一期 → 单球命中 → 本期命中 Top 8 → 历史排行 Top 8
-    # → 模型分组统计 Top 8 → 本期预测推荐 Top 10 → 最佳组合 Top 10 → 模型推荐
+    # → 模型分组统计 Top 8 → 本期预测推荐 Top 10 → 最佳组合 Top 20 → 模型推荐
     html = f'''
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#ffffff;padding:0;color:#1e293b">
       <div style="border-top:4px solid #3b82f6;padding:24px;text-align:center">
@@ -766,7 +808,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {grouped_html}
         {_SECTION.format("🎯 本期预测推荐 Top 10")}
         {_build_recommendations_html(hist, pred, latest_period, limit=10, top_by_model=top_by_model)}
-        {_SECTION.format("🏅 最佳组合 Top 10（单期 ≥5 球）")}
+        {_SECTION.format("🏅 最佳组合 Top 20（单期 ≥5 球 · 含下期预测）")}
         {best_combo_html}
         {_SECTION.format("🔮 模型推荐（前 3 策略 · 30 组）")}
         {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model)}
