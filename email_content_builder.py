@@ -461,8 +461,9 @@ def _build_single_ball_hits_html(hist, latest, top_by_model=None):
     return note + _render_table(["开奖球", "命中模型"], rows)
 
 
-def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5):
-    """最佳组合 — 两两组合不同的「模型+策略」，统计同一期命中球去重后 ≥5 球的次数。"""
+def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5, min_red_hits=4):
+    """最佳组合 — 两两组合不同的「模型+策略」，统计同一期命中球去重后 ≥5 球的次数，
+    以及红球去重后 ≥4 球的次数。"""
     records = hist.get("predictions_history", []) if hist else []
     if not records:
         return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
@@ -503,15 +504,18 @@ def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5)
                     else:
                         names = (n2, s2, n1, s1)
                     e = pair_stats[pair_key] = {
-                        "names": names, "count": 0, "periods": 0, "max": 0, "sum": 0,
+                        "names": names, "count": 0, "red4": 0, "periods": 0, "max": 0, "sum": 0,
                     }
                 total = len(h1 | h2)
+                red_total = len({h for h in (h1 | h2) if h != "__blue__"})
                 e["periods"] += 1
                 e["sum"] += total
                 if total > e["max"]:
                     e["max"] = total
                 if total >= min_hits:
                     e["count"] += 1
+                if red_total >= min_red_hits:
+                    e["red4"] += 1
 
     arr = [e for e in pair_stats.values() if e["count"] > 0]
     if not arr:
@@ -536,6 +540,7 @@ def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5)
         cells = (
             f'<td style="padding:6px 8px">{combo}</td>'
             f'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#2563eb;font-size:12px">{e["count"]} 次</td>'
+            f'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#dc2626;font-size:12px">{e["red4"]} 次</td>'
             f'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#ef4444;font-size:12px">{e["max"]} 球</td>'
         )
         rows.append(_row(i, cells))
@@ -543,10 +548,11 @@ def _build_best_combinations_html(hist, top_by_model=None, limit=10, min_hits=5)
     note = (
         f'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'
         f'两两组合不同「模型+策略」，同一期命中球去重后 ≥{min_hits} 球计 1 次；'
+        f'红球去重后 ≥{min_red_hits} 球另计 1 次；'
         f'共统计 {stat_periods} 期，展示前 {len(arr)} 名</div>'
     )
     return note + _render_table(
-        ["#", "最佳组合（模型+策略）", "≥5球次数", "最高命中"], rows
+        ["#", "最佳组合（模型+策略）", "≥5球次数", "≥4红球次数", "最高命中"], rows
     )
 
 
