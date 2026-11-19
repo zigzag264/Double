@@ -35,7 +35,7 @@
 
 ```
 ┌─ GitHub Actions ───────────────────────────────────────────────────┐
-│ 爬虫 (UTC 14:00) → 预测 (UTC 00:00) → 邮件 (UTC 09:00 一/三/五/日) │
+│ 爬虫+预测 (UTC 14:30) → 邮件 (UTC 09:00 每天)                      │
 │                              │ git push                            │
 └──────────────────────────────┼─────────────────────────────────────┘
                                ▼
@@ -92,8 +92,8 @@ double/
 │   ├── fetch_lottery_history.py      # 500.com 爬虫（BeautifulSoup）
 │   └── lottery_data.json             # 爬虫原始数据
 ├── .github/workflows/                # 4 个自动化工作流
-│   ├── update-lottery-data.yml       # 爬虫：每天 UTC 14:00
-│   ├── generate-prediction.yml       # 预测：每周一三五 UTC 00:00
+│   ├── update-lottery-data.yml       # 爬虫+预测：每天 UTC 14:30（北京 22:30）
+│   ├── generate-prediction.yml       # 兜底预测：每周一三五 UTC 00:00
 │   ├── email-daily-digest.yml        # 邮件推送：每日 UTC 09:00（北京 17:00）
 │   └── push-notify.yml               # Push 事件邮件通知
 ├── server.py                         # 本地开发服务器（端口 8080，含 /api/update）
@@ -203,19 +203,21 @@ python3 generate_ai_prediction.py
 
 ```
 开奖 (周二/四/日 21:15)
-  ↓ 北京 22:00 (UTC 14:00)
-[爬虫] 更新 lottery_history.json
-  ↓ 周一/三/五 北京 08:00 (UTC 00:00)
-[预测] 归档旧预测 + 生成新预测
+  ↓ 每天 北京 22:30 (UTC 14:30)
+[爬虫+预测] 更新开奖数据 → 归档旧预测 → 生成下一期预测（同一次提交推送）
   ↓ 每天 北京 17:00 (UTC 09:00)
 [邮件推送] 发送汇总邮件
   ↓
 Vercel 自动重新部署
 ```
 
+> 数据抓取与预测生成放在同一个工作流/同一次提交中：push 邮件不会出现
+> “开奖数据已更新、预测还停留在上一期”的中间状态；`generate_ai_prediction.py`
+> 会校验开奖数据新鲜度，过期时直接失败而不是重复推送已开奖期号的预测。
+
 ### 手动触发
 
-1. **立即更新开奖数据**: GitHub Actions → Update Lottery Data → Run workflow
+1. **立即更新开奖数据（含预测）**: GitHub Actions → Update Lottery Data → Run workflow
 2. **手动生成预测**: `python3 generate_ai_prediction.py`
 3. **一键更新（本地）**: `curl -X POST http://localhost:8080/api/update`
 4. **测试邮件**: `EMAIL_DRY_RUN=true python3 email_daily_digest.py`

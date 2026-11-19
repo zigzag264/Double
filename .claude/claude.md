@@ -43,8 +43,8 @@ double/
 │   ├── fetch_lottery_history.py      # 爬虫脚本（同步到 data/lottery_history.json）
 │   └── lottery_data.json             # 爬虫原始数据
 ├── .github/workflows/
-│   ├── update-lottery-data.yml       # 爬虫工作流：每天 UTC 14:00（北京 22:00）
-│   ├── generate-prediction.yml       # 预测工作流：每周一三五 UTC 00:00
+│   ├── update-lottery-data.yml       # 爬虫+预测工作流：每天 UTC 14:30（北京 22:30）
+│   ├── generate-prediction.yml       # 兜底预测工作流：每周一三五 UTC 00:00
 │   ├── email-daily-digest.yml        # 邮件推送工作流：每日 UTC 09:00（北京 17:00）
 │   └── push-notify.yml               # Push 事件邮件通知
 ├── .env.example                      # 环境变量模板
@@ -192,23 +192,24 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
 
 ## GitHub Actions 自动化（4 个工作流）
 
-### 1. `update-lottery-data.yml` — 爬取开奖数据
-- **触发**: 每天 UTC 14:00（北京时间 22:00）+ 手动
-- **执行**: `fetch_history/fetch_lottery_history.py`
-- **依赖**: `requests`, `beautifulsoup4`
-- **推送**: `data/lottery_history.json`, `fetch_history/lottery_data.json`
+### 1. `update-lottery-data.yml` — 爬取开奖数据 + 生成预测
+- **触发**: 每天 UTC 14:30（北京时间 22:30）+ 手动
+- **执行**: 先 `fetch_history/fetch_lottery_history.py`，再 `python3 generate_ai_prediction.py`
+- **依赖**: 爬虫需 `requests`, `beautifulsoup4`；预测仅标准库
+- **推送**: `data/lottery_history.json`, `data/ai_predictions.json`, `data/predictions_history.json`, `fetch_history/lottery_data.json`（同一次提交）
+- **注意**: 抓取与预测在同一工作流/同一次提交中完成，push 邮件不会出现“数据已更新、预测还是上一期”的中间状态
 
-### 2. `generate-prediction.yml` — 生成预测
+### 2. `generate-prediction.yml` — 兜底生成预测
 - **触发**: 每周一三五 UTC 00:00（北京时间 08:00）+ 手动
-- **执行**: `python3 generate_ai_prediction.py`
+- **执行**: 尽力抓取最新开奖数据 → `python3 generate_ai_prediction.py`
 - **Secrets**: 无（统计模型本地计算，无需凭证）
-- **推送**: `data/ai_predictions.json`, `data/predictions_history.json`
+- **推送**: 同更新工作流（含开奖历史，因会先尝试抓取）
 
 ### 3. `email-daily-digest.yml` — 定时邮件推送
 - **触发**: 每日 UTC 09:00（北京时间 17:00）+ 手动
 - **执行**: `python3 email_daily_digest.py`
 - **Secrets**: `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_RECIPIENT`
-- **注意**: 周一/三/五的邮件在预测生成（UTC 00:00）之后 9 小时发送；其余日期沿用最近一期生成的预测（开奖前仍有效）
+- **注意**: 预测在每次开奖当晚（北京 22:30）随开奖数据一起更新；若下期预告的开奖时间已过但数据未更新，邮件会显示过期警告并隐藏过期预测，而不是当作本期预测推送
 
 ### 4. `push-notify.yml` — Push 事件邮件通知
 - **触发**: push 到 master 分支 + 手动
@@ -301,19 +302,21 @@ EMAIL_DRY_RUN=true
 
 ```
 开奖 (周二/四/日 21:15)
-  ↓ 北京时间 22:00
-[update-lottery-data.yml] 爬虫 → 更新 lottery_history.json
-  ↓ 周一/三/五 北京 08:00
-[generate-prediction.yml] 归档旧预测 + 生成新预测
+  ↓ 每天 北京时间 22:30
+[update-lottery-data.yml] 爬虫更新开奖数据 → 归档旧预测 → 生成下一期预测（同一次提交推送）
   ↓ 每天 北京 17:00
 [email-daily-digest.yml] 发送汇总邮件
   ↓
 Vercel 自动重新部署
 ```
 
+> `generate_ai_prediction.py` 内置换算开奖日历的新鲜度校验：若最新开奖数据落后于
+> “应当已公布”的期次，或下期预告的开奖时间已过，则直接失败，避免把已开奖期号的
+> 预测重复推送；邮件侧同时按日期判断过期并显示警告。
+
 ### 手动触发
 
-1. **立即更新开奖数据**: GitHub Actions → Update Lottery Data → Run workflow
+1. **立即更新开奖数据（含预测）**: GitHub Actions → Update Lottery Data → Run workflow
 2. **手动生成预测**: `python generate_ai_prediction.py`
 3. **测试邮件**: 设置 `EMAIL_DRY_RUN=true` 后运行 `python email_daily_digest.py`
 

@@ -12,11 +12,35 @@
 import html
 import os
 import json
+from datetime import datetime, time as dtime, timedelta, timezone
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE     = os.path.join(BASE_DIR, "data", "lottery_history.json")
 PREDICTIONS_FILE = os.path.join(BASE_DIR, "data", "ai_predictions.json")
 HIT_HISTORY_FILE = os.path.join(BASE_DIR, "data", "predictions_history.json")
+
+# 双色球开奖：每周二/四/日 21:15（北京时间）
+BEIJING_TZ = timezone(timedelta(hours=8))
+DRAW_TIME = dtime(21, 15)
+
+
+def _beijing_now():
+    return datetime.now(BEIJING_TZ)
+
+
+def _parse_draw_datetime(date_str):
+    """把 'YYYY-MM-DD' 解析为当天 21:15 的北京时间；格式非法返回 None。"""
+    try:
+        day = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+    return datetime.combine(day, DRAW_TIME, BEIJING_TZ)
+
+
+def next_draw_passed(nd, now=None):
+    """下期预告的开奖时间已过 → 开奖数据未更新（爬虫滞后）。"""
+    draw_dt = _parse_draw_datetime((nd or {}).get("next_date", ""))
+    return bool(draw_dt) and (now or _beijing_now()) >= draw_dt
 
 
 def _load(path):
@@ -82,7 +106,7 @@ def _ball(num, color, size=24):
     )
 
 
-def _build_latest_draw_html(latest, nd):
+def _build_latest_draw_html(latest, nd, data_stale=False):
     """最新开奖 + 下期预告 HTML"""
     if not latest:
         return '<p style="color:#94a3b8;font-size:13px">(暂无数据)</p>'
@@ -99,12 +123,18 @@ def _build_latest_draw_html(latest, nd):
       </td></tr>
     </table>'''
     if nd:
+        stale_note = (
+            '<div style="font-size:12px;color:#b45309;margin-top:6px">'
+            '⚠️ 该开奖时间已过但仍未获取到开奖结果，开奖数据可能尚未更新'
+            '</div>'
+        ) if data_stale else ""
         html += f'''
     <table style="width:100%;border-collapse:collapse;background:#eff6ff;border-radius:8px;overflow:hidden;margin-top:8px">
       <tr><td style="padding:10px 16px">
         <span style="font-size:13px;color:#64748b">下期预告</span>
         <span style="font-size:15px;font-weight:700;color:#1e293b;margin-left:8px">{nd.get("next_period","")}</span>
         <span style="font-size:13px;color:#475569;margin-left:8px">{nd.get("next_date_display","")} {nd.get("weekday","")} {nd.get("draw_time","21:15")}</span>
+        {stale_note}
       </td></tr>
     </table>'''
     return html
@@ -129,22 +159,25 @@ def _tint(model_id):
     return _TINTS.get(model_id, ("#f8fafc", "#334155"))
 
 
-def _build_predictions_html(pred, latest_period="", next_period="", top_by_model=None):
+def _build_predictions_html(pred, latest_period="", next_period="", top_by_model=None, data_stale=False):
     """模型推荐 HTML（含过期检测；每个模型只展示历史准确率前 3 种策略）。"""
     if not pred or not pred.get("models"):
         return '<p style="color:#94a3b8;font-size:13px">(暂无预测数据)</p>'
 
     target = pred.get("target_period", "")
-    # 检测预测是否已过期（目标期号 ≤ 最新开奖期号）
-    stale = bool(target and latest_period) and int(target) <= int(latest_period)
+    # 检测预测是否已过期：目标期号 ≤ 最新开奖期号，或下期预告已过开奖时间（数据未更新）
+    try:
+        target_drawn = bool(target and latest_period) and int(target) <= int(latest_period)
+    except (TypeError, ValueError):
+        target_drawn = False
+    stale = data_stale or target_drawn
     if stale:
-        warn = f'''
+        # 过期预测不再展示号码，避免把已开奖期号的推荐再次推送出去
+        return f'''
         <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e">
-          ⚠️ 当前预测目标为<b>第{target}期</b>，该期已开奖（最新开奖为第{latest_period}期），预测已过期。<br>
+          ⚠️ 当前预测目标为<b>第{target or "?"}期</b>，该期已开奖或开奖数据尚未更新（最新开奖为第{latest_period}期），预测已过期，过期号码已隐藏。<br>
           下一期未开奖：<b>第{next_period}期</b>，待预测更新后将自动显示。
         </div>'''
-    else:
-        warn = ""
 
     models = pred["models"]
     total_groups = 0
@@ -177,7 +210,6 @@ def _build_predictions_html(pred, latest_period="", next_period="", top_by_model
           {groups}
         </div>'''
     return f'''
-    {warn}
     <div style="font-size:13px;color:#64748b;margin-bottom:12px">
       目标期号: {pred.get("target_period","")} · 预测日期: {pred.get("prediction_date","")} · 模型数: {len(models)} · 每组策略: {TOP_STRATEGIES_PER_MODEL} · 共 {total_groups} 组
     </div>
@@ -462,7 +494,7 @@ def _build_single_ball_hits_html(hist, latest, top_by_model=None):
 
 
 def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_model=None,
-                                  limit=20, min_hits=5, min_red_hits=4):
+                                  limit=20, min_hits=5, min_red_hits=4, data_stale=False):
     """最佳组合 — 两两组合不同的「模型+策略」，统计同一期命中球去重后 ≥5 球的次数，
     以及红球去重后 ≥4 球的次数；同时展示该组合对下期未开奖期号的预测号码。"""
     records = hist.get("predictions_history", []) if hist else []
@@ -539,6 +571,8 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
         pred_valid = bool(target_period) and int(target_period) > int(latest_period)
     except (TypeError, ValueError):
         pred_valid = bool(target_period) and target_period != latest_period
+    if data_stale:
+        pred_valid = False
     if pred_valid:
         for model in ai_pred.get("models", []):
             model_id = model.get("model_id") or model.get("model_name", "")
@@ -596,7 +630,8 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
     )
 
 
-def _build_recommendations_html(hist, pred, latest_period="", limit=8, top_by_model=None):
+def _build_recommendations_html(hist, pred, latest_period="", limit=8, top_by_model=None,
+                                data_stale=False):
     """本期预测推荐 — 取历史准确率 Top N 的「模型+策略」，附上其对当前期号的预测。"""
     stats, _ = _collect_strategy_stats(hist, top_by_model)
     if not stats:
@@ -609,10 +644,11 @@ def _build_recommendations_html(hist, pred, latest_period="", limit=8, top_by_mo
         stale = bool(target and latest_period) and int(target) <= int(latest_period)
     except (TypeError, ValueError):
         stale = False
-    if stale:
+    if stale or data_stale:
         return (
             f'<p style="color:#92400e;font-size:13px;padding:12px;background:#fef3c7;'
-            f'border-radius:8px">⚠️ 当前预测目标第{target}期已开奖，暂无有效本期预测。</p>'
+            f'border-radius:8px">⚠️ 当前预测目标第{target}期已开奖或开奖数据尚未更新，'
+            f'暂无有效本期预测。</p>'
         )
 
     current = {}
@@ -725,6 +761,21 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
     latest_period = latest.get("period", "")
     next_period = nd.get("next_period", "")
 
+    # 开奖数据是否已过期：下期预告的开奖时间已过但仍无最新结果
+    # （爬虫滞后时，预测仍是上一期的，不能当作“本期预测”推送）
+    data_stale = next_draw_passed(nd, _beijing_now())
+    warnings = list(warnings)
+    if data_stale:
+        warnings.append(
+            f"开奖数据未更新：下期预告第{next_period}期（{nd.get('next_date', '')}）"
+            f"已过开奖时间，请等待下一次数据更新"
+        )
+    pred_target = pred.get("target_period", "")
+    if not data_stale and pred_target and next_period and pred_target != next_period:
+        warnings.append(
+            f"当前预测目标为第{pred_target}期，与下期预告第{next_period}期不一致"
+        )
+
     # 邮件类型（决定 subtitle 和 footer）
     is_push = commit_info is not None
     subtitle = "项目更新通知" if is_push else "定时汇总"
@@ -768,7 +819,8 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
 
     # 最佳组合（历史两两组合统计 + 下期预测号码）
     best_combo_html = _build_best_combinations_html(
-        hist, pred, latest_period, top_by_model=top_by_model, limit=20
+        hist, pred, latest_period, top_by_model=top_by_model, limit=20,
+        data_stale=data_stale,
     )
 
     # 模型分组统计（全部历史）— 只展示前 8 名
@@ -798,7 +850,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {warn_html}
         {commit_html}
         {_SECTION.format("🏆 最新一期")}
-        {_build_latest_draw_html(latest, nd)}
+        {_build_latest_draw_html(latest, nd, data_stale=data_stale)}
         {_SECTION.format("🔍 单球命中")}
         {single_ball_html}
         {_SECTION.format("🎯 本期命中 Top 8")}
@@ -807,11 +859,11 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {history_rank_html}
         {grouped_html}
         {_SECTION.format("🎯 本期预测推荐 Top 10")}
-        {_build_recommendations_html(hist, pred, latest_period, limit=10, top_by_model=top_by_model)}
+        {_build_recommendations_html(hist, pred, latest_period, limit=10, top_by_model=top_by_model, data_stale=data_stale)}
         {_SECTION.format("🏅 最佳组合 Top 20（单期 ≥5 球 · 含下期预测）")}
         {best_combo_html}
         {_SECTION.format("🔮 模型推荐（前 3 策略 · 30 组）")}
-        {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model)}
+        {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model, data_stale=data_stale)}
       </div>
       <div style="background:#f8fafc;padding:16px 24px;text-align:center;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">
         <p style="font-size:12px;color:#94a3b8;margin:0">

@@ -9,7 +9,7 @@
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, time as dtime, timedelta, timezone
 
 from typing import Dict, Any
 
@@ -22,7 +22,84 @@ LOTTERY_HISTORY_FILE = os.path.join(SCRIPT_DIR, "data", "lottery_history.json")
 AI_PREDICTIONS_FILE = os.path.join(SCRIPT_DIR, "data", "ai_predictions.json")
 PREDICTIONS_HISTORY_FILE = os.path.join(SCRIPT_DIR, "data", "predictions_history.json")
 
+# 双色球开奖：每周二/四/日 21:15（北京时间）
+BEIJING_TZ = timezone(timedelta(hours=8))
+DRAW_WEEKDAYS = {1, 3, 6}          # 周一=0，故 1=周二、3=周四、6=周日
+DRAW_TIME = dtime(21, 15)
+# 开奖后留出结果公布缓冲，避免刚开奖就误判“数据未更新”
+RESULT_GRACE_HOURS = 6
+
 # ==================== 工具函数 ====================
+
+def _beijing_now() -> datetime:
+    """当前北京时间（带时区）。"""
+    return datetime.now(BEIJING_TZ)
+
+
+def _parse_draw_datetime(date_str: str):
+    """把 'YYYY-MM-DD' 解析为当天 21:15 的北京时间；格式非法返回 None。"""
+    try:
+        day = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+    return datetime.combine(day, DRAW_TIME, BEIJING_TZ)
+
+
+def _expected_latest_draw_date(now: datetime):
+    """最近一期“结果应当已公布”的开奖日期（开奖 21:15 后留缓冲）。"""
+    day = now.date()
+    for _ in range(14):
+        if day.weekday() in DRAW_WEEKDAYS:
+            draw_dt = datetime.combine(day, DRAW_TIME, BEIJING_TZ)
+            if now >= draw_dt + timedelta(hours=RESULT_GRACE_HOURS):
+                return day
+        day -= timedelta(days=1)
+    return None
+
+
+def check_data_freshness(lottery_data: Dict[str, Any]) -> None:
+    """校验开奖数据与下期预告是否过期；过期则中止，避免推送已开奖期号的预测。
+
+    邮件/推送会随每次 git push 发送，只要爬虫未及时更新，旧预测就会以“本期预测”
+    的身份被再次推送（如周三仍推送周二期号的预测）。这里按开奖日历硬性拦截。
+    """
+    draws = lottery_data.get("data") or []
+    latest = draws[0] if draws else {}
+    latest_date = latest.get("date", "")
+    latest_period = latest.get("period", "")
+    next_draw = lottery_data.get("next_draw") or {}
+    now = _beijing_now()
+
+    latest_dt = _parse_draw_datetime(latest_date)
+    if latest_dt is None:
+        raise RuntimeError(f"最新开奖日期无法解析（附 latest={latest!r}），请先更新开奖数据")
+
+    expected = _expected_latest_draw_date(now)
+    if expected and latest_dt.date() < expected:
+        raise RuntimeError(
+            f"开奖数据未更新：最新仅到第{latest_period}期（{latest_date}），"
+            f"按开奖日历 {expected:%Y-%m-%d} 的开奖结果应当已公布。"
+            f"请先运行 fetch_history/fetch_lottery_history.py 更新数据，拒绝生成过期预测"
+        )
+
+    next_dt = _parse_draw_datetime(next_draw.get("next_date", ""))
+    if next_dt is None:
+        raise RuntimeError("缺少有效的下期开奖日期（next_draw.next_date），请先更新开奖数据")
+    if next_dt.weekday() not in DRAW_WEEKDAYS:
+        raise RuntimeError(
+            f"下期开奖日期 {next_draw.get('next_date', '')} 不是周二/周四/周日，数据异常"
+        )
+    if next_dt <= now:
+        raise RuntimeError(
+            f"下期预告第{next_draw.get('next_period', '')}期（{next_draw.get('next_date', '')} "
+            f"{DRAW_TIME.strftime('%H:%M')}）已过开奖时间，开奖数据尚未更新。"
+            f"拒绝按已开奖期号生成预测，请先运行爬虫更新数据"
+        )
+
+    print(f"  ✓ 数据新鲜度校验通过（最新第{latest_period}期 {latest_date}，"
+          f"下期第{next_draw.get('next_period', '')}期 {next_draw.get('next_date', '')}）")
+
+
 
 def _dump_json(obj) -> str:
     """紧凑 JSON（无缩进）序列化，用于落盘的数据文件。
@@ -128,6 +205,10 @@ def generate_predictions() -> Dict[str, Any]:
     # 加载历史数据
     print("📊 加载历史开奖数据...")
     lottery_data = load_lottery_history()
+
+    # 数据过期时直接中止（先于归档/保存，避免把已开奖期号的预测重新推送出去）
+    print("🔎 校验开奖数据与下期预告...")
+    check_data_freshness(lottery_data)
 
     # 归档旧预测（如果已开奖）
     archived = archive_old_prediction(lottery_data)

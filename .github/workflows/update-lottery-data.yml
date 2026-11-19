@@ -2,8 +2,10 @@ name: Update Lottery Data
 
 on:
   schedule:
-    # 每天北京时间 22:00 (UTC 14:00) 运行
-    - cron: '0 14 * * *'
+    # 每天北京时间 22:30（UTC 14:30）运行：开奖 21:15 后留出结果公布时间
+    # 抓取开奖数据后立即归档旧预测并生成下一期预测，两者放在同一次提交里推送，
+    # 避免「开奖数据已更新、预测还停留在上一期」的中间状态被 push 邮件推送出去
+    - cron: '30 14 * * *'
   workflow_dispatch: # 允许手动触发
 
 jobs:
@@ -33,27 +35,42 @@ jobs:
           cd fetch_history
           python3 fetch_lottery_history.py
 
+      # 与数据抓取放在同一个工作流里：抓完立即归档旧预测、生成下一期预测。
+      # generate_ai_prediction.py 会校验数据新鲜度，过期时直接失败，不会推送旧期号预测。
+      # 生成失败时仍继续提交开奖数据（预测文件保持原样），并在最后把任务标记为失败。
+      - name: Generate predictions for next draw
+        id: generate
+        continue-on-error: true
+        run: python3 generate_ai_prediction.py
+
       - name: Check for changes
         id: check_changes
         run: |
-          git diff --quiet data/ || echo "changed=true" >> $GITHUB_OUTPUT
+          git diff --quiet data/ fetch_history/lottery_data.json || echo "changed=true" >> $GITHUB_OUTPUT
 
       - name: Commit and push if changed
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/lottery_history.json fetch_history/lottery_data.json
-          git commit -m "chore: auto-update lottery data $(date +'%Y-%m-%d %H:%M:%S')"
+          git add data/lottery_history.json data/ai_predictions.json data/predictions_history.json fetch_history/lottery_data.json
+          git commit -m "chore: update lottery data & predictions $(date +'%Y-%m-%d %H:%M:%S')"
+          git pull --rebase origin master
           git push
 
       - name: Summary
         if: steps.check_changes.outputs.changed == 'true'
         run: |
-          echo "✅ Lottery data updated successfully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Lottery data & predictions updated successfully" >> $GITHUB_STEP_SUMMARY
           echo "Updated at: $(date)" >> $GITHUB_STEP_SUMMARY
 
       - name: No changes
         if: steps.check_changes.outputs.changed != 'true'
         run: |
           echo "ℹ️ No new lottery data available" >> $GITHUB_STEP_SUMMARY
+
+      - name: Report prediction failure
+        if: steps.generate.outcome == 'failure'
+        run: |
+          echo "❌ 预测生成失败（开奖数据可能尚未公布），开奖数据已尽量提交；下次运行将自动重试" >> $GITHUB_STEP_SUMMARY
+          exit 1
