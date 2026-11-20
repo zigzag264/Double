@@ -387,7 +387,7 @@ def _rank_by_accuracy(stats, limit):
     return arr[:limit]
 
 
-def _build_ranking_parts(hist, limit=8, top_by_model=None):
+def _build_ranking_parts(hist, limit=10, top_by_model=None):
     """命中排行 HTML — 拆分为 (最新一期表格, 历史累计表格)，便于邮件排序。"""
     stats, _ = _collect_strategy_stats(hist, top_by_model)
     if not stats:
@@ -681,7 +681,7 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
     )
 
 
-def _build_recommendations_html(hist, pred, latest_period="", limit=8, top_by_model=None,
+def _build_recommendations_html(hist, pred, latest_period="", limit=5, top_by_model=None,
                                 data_stale=False):
     """本期预测推荐 — 取历史准确率 Top N 的「模型+策略」，附上其对当前期号的预测。"""
     stats, _ = _collect_strategy_stats(hist, top_by_model)
@@ -738,10 +738,10 @@ def _build_recommendations_html(hist, pred, latest_period="", limit=8, top_by_mo
     )
 
 
-def _build_grouped_stats_html(hist, limit=8, top_by_model=None):
+def _build_grouped_stats_html(hist, limit=10, top_by_model=None):
     """模型分组统计 HTML — 按模型聚合历史命中（仅统计各模型前 3 策略，期数按期去重）。
 
-    limit 默认 8（邮件只展示前 8 名）；传 None 或 0 显示全部模型。"""
+    limit 默认 10（邮件只展示前 10 名）；传 None 或 0 显示全部模型。"""
     records = hist.get("predictions_history", []) if hist else []
     if not records:
         return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
@@ -862,7 +862,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
 
     # 排行拆分为最新一期 / 历史累计两部分，便于按新顺序排版
     latest_rank_html, history_rank_html = _build_ranking_parts(
-        hist, limit=8, top_by_model=top_by_model
+        hist, limit=10, top_by_model=top_by_model
     )
 
     # 单球命中（紧随最新一期）
@@ -874,10 +874,10 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         data_stale=data_stale,
     )
 
-    # 模型分组统计（全部历史）— 只展示前 8 名
+    # 模型分组统计（全部历史）— 只展示前 10 名
     grouped_html = (
-        f'{_SECTION.format("📦 模型分组统计 Top 8（全部历史）")}'
-        f'{_build_grouped_stats_html(hist, limit=8, top_by_model=top_by_model)}'
+        f'{_SECTION.format("📦 模型分组统计 Top 10（全部历史）")}'
+        f'{_build_grouped_stats_html(hist, limit=10, top_by_model=top_by_model)}'
     )
 
     # Footer
@@ -888,8 +888,8 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
     )
 
     # 邮件板块顺序：
-    # 最新一期 → 单球命中 → 本期命中 Top 8 → 历史排行 Top 8
-    # → 模型分组统计 Top 8 → 本期预测推荐 Top 10 → 最佳组合 Top 10 → 模型推荐
+    # 最新一期 → 单球命中 → 本期命中 Top 10 → 历史排行 Top 10
+    # → 模型分组统计 Top 10 → 本期预测推荐 Top 5 → 最佳组合 Top 10 → 模型推荐
     html = f'''
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#ffffff;padding:0;color:#1e293b">
       <div style="border-top:4px solid #3b82f6;padding:24px;text-align:center">
@@ -904,13 +904,13 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {_build_latest_draw_html(latest, nd, data_stale=data_stale)}
         {_SECTION.format("🔍 单球命中")}
         {single_ball_html}
-        {_SECTION.format("🎯 本期命中 Top 8")}
+        {_SECTION.format("🎯 本期命中 Top 10")}
         {latest_rank_html}
-        {_SECTION.format("📊 历史排行 Top 8（按准确率）")}
+        {_SECTION.format("📊 历史排行 Top 10（按准确率）")}
         {history_rank_html}
         {grouped_html}
-        {_SECTION.format("🎯 本期预测推荐 Top 10")}
-        {_build_recommendations_html(hist, pred, latest_period, limit=10, top_by_model=top_by_model, data_stale=data_stale)}
+        {_SECTION.format("🎯 本期预测推荐 Top 5")}
+        {_build_recommendations_html(hist, pred, latest_period, limit=5, top_by_model=top_by_model, data_stale=data_stale)}
         {_SECTION.format("🏅 最佳组合 Top 10（单期 ≥4 红球 · 含下期预测）")}
         {best_combo_html}
         {_SECTION.format("🔮 模型推荐（前 3 策略 · 30 组）")}
