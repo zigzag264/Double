@@ -207,9 +207,9 @@ python server.py              # 端口 8080，提供 /api/update 触发爬虫与
 
 ### 3. `email-daily-digest.yml` — 定时邮件推送
 - **触发**: 每日 UTC 09:00（北京时间 17:00）+ 手动
-- **执行**: `python3 email_daily_digest.py`
+- **执行**: 发送前先尽力刷新数据（`fetch_lottery_history.py` → `generate_ai_prediction.py`，`continue-on-error`），再 `python3 email_daily_digest.py`
 - **Secrets**: `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_RECIPIENT`
-- **注意**: 预测在每次开奖当晚（北京 22:30）随开奖数据一起更新；若下期预告的开奖时间已过但数据未更新，邮件会显示过期警告并隐藏过期预测，而不是当作本期预测推送
+- **注意**: GitHub 定时任务可能延迟数小时且各工作流延迟不一致，邮件任务可能先于数据更新任务触发（开奖夜误报“未更新”）。因此邮件侧先自查刷新，失败时沿用现有数据并显示过期警告；该刷新不推送，线上数据仍由更新工作流提交
 
 ### 4. `push-notify.yml` — Push 事件邮件通知
 - **触发**: push 到 master 分支 + 手动
@@ -302,10 +302,10 @@ EMAIL_DRY_RUN=true
 
 ```
 开奖 (周二/四/日 21:15)
-  ↓ 每天 北京时间 22:30
+  ↓ 每天 北京时间 22:30（GitHub 定时任务实际可能延迟数小时）
 [update-lottery-data.yml] 爬虫更新开奖数据 → 归档旧预测 → 生成下一期预测（同一次提交推送）
-  ↓ 每天 北京 17:00
-[email-daily-digest.yml] 发送汇总邮件
+  ↓ 每天 北京 17:00（同样可能延迟）
+[email-daily-digest.yml] 先自查刷新数据（不推送）→ 发送汇总邮件
   ↓
 Vercel 自动重新部署
 ```
