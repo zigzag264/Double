@@ -160,8 +160,13 @@ def _tint(model_id):
     return _TINTS.get(model_id, ("#f8fafc", "#334155"))
 
 
-def _build_predictions_html(pred, latest_period="", next_period="", top_by_model=None, data_stale=False):
-    """模型推荐 HTML（含过期检测；每个模型只展示历史准确率前 3 种策略）。"""
+def _build_predictions_html(pred, latest_period="", next_period="", top_by_model=None,
+                            data_stale=False, hist=None):
+    """模型推荐 HTML（含过期检测；每个模型只展示历史准确率前 3 种策略）。
+
+    整体以单个表格展示全部「模型+策略」预测；模型按其历史累计红球命中
+    （展示策略的 redTotal 之和）从高到低排列。
+    """
     if not pred or not pred.get("models"):
         return '<p style="color:#94a3b8;font-size:13px">(暂无预测数据)</p>'
 
@@ -181,35 +186,62 @@ def _build_predictions_html(pred, latest_period="", next_period="", top_by_model
         </div>'''
 
     models = pred["models"]
-    total_groups = 0
+    stats, _ = _collect_strategy_stats(hist, top_by_model)
 
-    cards = ""
-    for m in models:
+    # 先按模型聚合展示策略的累计红球，再按总数降序（同分保持原顺序）
+    model_rows = []
+    for order, m in enumerate(models):
+        model_id = m.get("model_id") or m.get("model_name", "")
         predictions = _filter_model_predictions(m, top_by_model, TOP_STRATEGIES_PER_MODEL)
-        total_groups += len(predictions)
-        groups = ""
-        for idx, g in enumerate(predictions, 1):
+        total = 0
+        for g in predictions:
+            st = stats.get(f"{model_id}|{g.get('strategy', '—')}")
+            if st:
+                total += st["redTotal"]
+        model_rows.append((total, order, m, predictions))
+    model_rows.sort(key=lambda x: (-x[0], x[1]))
+
+    total_groups = sum(len(x[3]) for x in model_rows)
+
+    rows = []
+    for total, _, m, predictions in model_rows:
+        model_id = m.get("model_id") or m.get("model_name", "")
+        name = html.escape(str(m.get("model_name", "—")))
+        bg, fg = _tint(model_id)
+        n = len(predictions)
+        total_txt = f'{total}球' if stats else "—"
+        for j, g in enumerate(predictions):
             reds = "".join(_ball(b, "red", size=18) for b in g.get("red_balls", []))
             blue = _ball(g.get("blue_ball", ""), "blue", size=18)
-            groups += f'''
-            <div style="padding:4px 12px;border-bottom:1px solid #f1f5f9;white-space:nowrap;line-height:1.8">
-              <span style="font-size:10px;font-weight:700;color:#3b82f6;background:#eff6ff;padding:1px 5px;border-radius:4px">G{idx}</span>
-              <span style="font-size:12px;font-weight:600;color:#1e293b;margin:0 6px 0 4px">{html.escape(str(g["strategy"]))}</span>
-              {reds}<span style="color:#cbd5e1;margin:0 3px">|</span>{blue}
-            </div>'''
-        bg, fg = _tint(m.get("model_id", ""))
-        cards += f'''
-        <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:12px">
-          <div style="background:{bg};padding:10px 14px;border-bottom:1px solid #e2e8f0">
-            <span style="font-size:14px;font-weight:700;color:{fg}">{m["model_name"]}</span>
-          </div>
-          {groups}
-        </div>'''
+            st = stats.get(f"{model_id}|{g.get('strategy', '—')}")
+            stat_txt = f'{st["redTotal"]}/{st["games"]}' if st else "—"
+            cells = ""
+            if j == 0:
+                cells += (
+                    f'<td rowspan="{n}" style="padding:4px 6px;background:{bg};color:{fg};'
+                    f'font-size:11px;font-weight:700;white-space:nowrap;vertical-align:middle">'
+                    f'{name} · {total_txt}</td>'
+                )
+            cells += (
+                f'<td style="padding:4px 6px;white-space:nowrap;font-size:11px;color:#475569">'
+                f'<span style="font-size:9px;font-weight:700;color:#3b82f6;background:#eff6ff;'
+                f'padding:0 4px;border-radius:3px;margin-right:4px">G{j+1}</span>'
+                f'{html.escape(str(g.get("strategy", "—")))}</td>'
+                f'<td style="padding:4px 6px;white-space:nowrap">{reds}</td>'
+                f'<td style="padding:4px 6px;white-space:nowrap">{blue}</td>'
+                f'<td style="padding:4px 6px;white-space:nowrap;text-align:center;'
+                f'font-size:11px;color:#64748b">{stat_txt}</td>'
+            )
+            rows.append(f'<tr style="background:{bg}">{cells}</tr>')
+
+    table = _render_table(
+        ["模型（累计红球）", "策略", "红球预测", "蓝球", "红球/期数"], rows, first_align="left"
+    )
     return f'''
     <div style="font-size:13px;color:#64748b;margin-bottom:12px">
-      目标期号: {pred.get("target_period","")} · 预测日期: {pred.get("prediction_date","")} · 模型数: {len(models)} · 每组策略: {TOP_STRATEGIES_PER_MODEL} · 共 {total_groups} 组
+      目标期号: {pred.get("target_period","")} · 预测日期: {pred.get("prediction_date","")} · 模型数: {len(models)} · 每组策略: {TOP_STRATEGIES_PER_MODEL} · 共 {total_groups} 组 · 按模型历史累计红球降序
     </div>
-    {cards}'''
+    {table}'''
 
 
 def _build_omission_prediction_html(pred, latest_period="", next_period="", top_by_model=None,
@@ -279,14 +311,14 @@ def _build_omission_prediction_html(pred, latest_period="", next_period="", top_
     return note + _render_table(["被预测次数", "红球（01-33）", "蓝球（01-16）"], rows)
 
 
-def _render_table(headers, rows):
+def _render_table(headers, rows, first_align="center"):
     """渲染统一风格的邮件数据表格。
 
-    headers: 列标题列表（首个居中、其余左对齐）
+    headers: 列标题列表（首个 first_align、其余左对齐）
     rows: 已拼好的 <tr> 字符串列表
     """
     head_cells = "".join(
-        f'<th style="padding:6px 8px;text-align:{"center" if i==0 else "left"};'
+        f'<th style="padding:6px 8px;text-align:{first_align if i == 0 else "left"};'
         f'color:#64748b;font-size:11px;white-space:nowrap">{h}</th>'
         for i, h in enumerate(headers)
     )
@@ -469,11 +501,11 @@ def _build_ranking_parts(hist, limit=10, top_by_model=None):
     for i, r in enumerate(latest_top):
         blue_mark = "✓" if r["blueHit"] else "—"
         cells = (
-            f'<td style="padding:6px 8px;font-weight:600;color:#1e293b;font-size:12px">{r["model"]}</td>'
-            f'<td style="padding:6px 8px;color:#475569;font-size:11px">{r["strategy"]}</td>'
-            f'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#ef4444;font-size:13px">{r["current"]}球</td>'
-            f'<td style="padding:6px 8px;color:#2563eb;font-size:11px;font-family:monospace">{r["redHits"]}</td>'
-            f'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#3b82f6;font-size:13px">{blue_mark}</td>'
+            f'<td style="padding:4px 6px;font-weight:600;color:#1e293b;font-size:12px;white-space:nowrap">{r["model"]}</td>'
+            f'<td style="padding:4px 6px;color:#475569;font-size:11px;white-space:nowrap">{r["strategy"]}</td>'
+            f'<td style="padding:4px 6px;text-align:center;font-weight:700;color:#ef4444;font-size:13px;white-space:nowrap">{r["current"]}球</td>'
+            f'<td style="padding:4px 6px;color:#2563eb;font-size:11px;font-family:monospace;white-space:nowrap">{r["redHits"]}</td>'
+            f'<td style="padding:4px 6px;text-align:center;font-weight:700;color:#3b82f6;font-size:13px;white-space:nowrap">{blue_mark}</td>'
         )
         rows1.append(_row(i, cells))
     table1 = _render_table(["#", "模型", "策略", "本期命中", "命中红球", "蓝球"], rows1)
@@ -482,13 +514,13 @@ def _build_ranking_parts(hist, limit=10, top_by_model=None):
     rows2 = []
     for i, r in enumerate(hist_top):
         cells = (
-            f'<td style="padding:6px 8px;font-weight:600;color:#1e293b;font-size:12px">{r["model"]}</td>'
-            f'<td style="padding:6px 8px;color:#475569;font-size:11px">{r["strategy"]}</td>'
-            f'<td style="padding:6px 8px;text-align:center;color:#2563eb;font-weight:700;font-size:12px">{r["accuracy"]:.1f}%</td>'
-            f'<td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["best"]}球</td>'
-            f'<td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["redTotal"]}球</td>'
-            f'<td style="padding:6px 8px;text-align:center;color:#3b82f6;font-weight:600;font-size:12px">{r["blueTotal"]}球</td>'
-            f'<td style="padding:6px 8px;text-align:center;color:#475569;font-size:12px">{r["games"]}期</td>'
+            f'<td style="padding:4px 6px;font-weight:600;color:#1e293b;font-size:12px;white-space:nowrap">{r["model"]}</td>'
+            f'<td style="padding:4px 6px;color:#475569;font-size:11px;white-space:nowrap">{r["strategy"]}</td>'
+            f'<td style="padding:4px 6px;text-align:center;color:#2563eb;font-weight:700;font-size:12px;white-space:nowrap">{r["accuracy"]:.1f}%</td>'
+            f'<td style="padding:4px 6px;text-align:center;color:#475569;font-size:12px;white-space:nowrap">{r["best"]}球</td>'
+            f'<td style="padding:4px 6px;text-align:center;color:#475569;font-size:12px;white-space:nowrap">{r["redTotal"]}球</td>'
+            f'<td style="padding:4px 6px;text-align:center;color:#3b82f6;font-weight:600;font-size:12px;white-space:nowrap">{r["blueTotal"]}球</td>'
+            f'<td style="padding:4px 6px;text-align:center;color:#475569;font-size:12px;white-space:nowrap">{r["games"]}期</td>'
         )
         rows2.append(_row(i, cells))
     table2 = _render_table(
@@ -991,7 +1023,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {_SECTION.format("🏅 最佳组合 Top 10（单期 ≥4 红球 · 含下期红球预测）")}
         {best_combo_html}
         {_SECTION.format("🔮 模型推荐（前 3 策略 · 30 组）")}
-        {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model, data_stale=data_stale)}
+        {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model, data_stale=data_stale, hist=hist)}
         {_SECTION.format("❄️ 遗漏预测（模型推荐 30 组 · 红/蓝球被预测次数）")}
         {omission_html}
       </div>
