@@ -640,11 +640,15 @@ def _short_strategy_name(strategy):
 def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_model=None,
                                   limit=10, min_red_hits=4, data_stale=False):
     """最佳组合 — 两两组合不同的「模型+策略」，统计同一期红球去重后 ≥4 球的次数，
-    按该次数与去重后最高命中排序；同时展示该组合对下期未开奖期号的红球预测，
-    以及每组「模型+策略」历史累计红球命中/统计期数。"""
+    按 ≥4 红球次数、组合去重后最高命中、组合内模型累计红球排序；同时展示该组合对
+    下期未开奖期号的红球预测，以及每组「模型+策略」历史累计红球命中/统计期数。
+    榜单内每个「模型+策略」只出现一次。"""
     records = hist.get("predictions_history", []) if hist else []
     if not records:
         return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
+
+    # 各「模型+策略」历史累计红球命中 / 统计期数（用于排序与行内展示）
+    entry_stats, _ = _collect_strategy_stats(hist, top_by_model)
 
     pair_stats = {}
     for rec in records:
@@ -686,8 +690,13 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
                     else:
                         names = (n2, s2, n1, s1)
                         keys = (k2, k1)
+                    model_total = 0
+                    for k in keys:
+                        st = entry_stats.get(f"{k[0]}|{k[1]}")
+                        if st:
+                            model_total += st["redTotal"]
                     e = pair_stats[pair_key] = {
-                        "names": names, "keys": keys,
+                        "names": names, "keys": keys, "modelTotal": model_total,
                         "red4": 0, "periods": 0, "max": 0, "sum": 0,
                     }
                 red_total = len(h1 | h2)  # 组合内红球去重
@@ -702,10 +711,19 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
     if not arr:
         return f'<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无单期 ≥{min_red_hits} 红球的组合)</p>'
 
-    arr.sort(key=lambda x: (
-        -x["red4"], -x["max"], -(x["sum"] / x["periods"]), x["names"]
-    ))
-    arr = arr[:limit]
+    arr.sort(key=lambda x: (-x["red4"], -x["max"], -x["modelTotal"], x["names"]))
+
+    # 去重：每个「模型+策略」只出现一次，按排序贪心选取互不重复的组合
+    selected, used = [], set()
+    for e in arr:
+        k1, k2 = e["keys"]
+        if k1 in used or k2 in used:
+            continue
+        selected.append(e)
+        used.update((k1, k2))
+        if len(selected) >= limit:
+            break
+    arr = selected
     stat_periods = max(e["periods"] for e in pair_stats.values())
 
     # 下期未开奖预测索引：{(model_id, strategy): prediction}
@@ -723,9 +741,6 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
             model_id = model.get("model_id") or model.get("model_name", "")
             for p in model.get("predictions", []):
                 pred_map[(model_id, p.get("strategy", ""))] = p
-
-    # 各「模型+策略」历史累计红球命中 / 统计期数
-    entry_stats, _ = _collect_strategy_stats(hist, top_by_model)
 
     def _combo_line(label, color, name, strategy, key):
         """单组「模型·策略 + 下期红球预测 + 累计红球/期数」压成一行（不换行）。"""
@@ -776,8 +791,8 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
     note = (
         f'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'
         f'两两组合不同「模型+策略」，同一期命中红球去重后 ≥{min_red_hits} 球计 1 次；'
-        f'按 ≥{min_red_hits} 红球次数、组合去重后最高命中排序；'
-        f'共统计 {stat_periods} 期，展示前 {len(arr)} 名；'
+        f'按 ≥{min_red_hits} 红球次数、组合去重后最高命中、组合内模型累计红球排序；'
+        f'榜单内每个模型+策略仅出现一次；共统计 {stat_periods} 期，展示前 {len(arr)} 名；'
         f'每组末尾「红X球/Y期」为该模型·策略历史累计红球命中/统计期数{pred_note}</div>'
     )
     return note + _render_table(
@@ -1020,7 +1035,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {grouped_html}
         {_SECTION.format("🎯 本期预测推荐 Top 5")}
         {_build_recommendations_html(hist, pred, latest_period, limit=5, top_by_model=top_by_model, data_stale=data_stale)}
-        {_SECTION.format("🏅 最佳组合 Top 10（单期 ≥4 红球 · 含下期红球预测）")}
+        {_SECTION.format("🏅 最佳组合 Top 10（单期 ≥4 红球 · 去重 · 含下期红球预测）")}
         {best_combo_html}
         {_SECTION.format("🔮 模型推荐（前 3 策略 · 30 组）")}
         {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model, data_stale=data_stale, hist=hist)}
