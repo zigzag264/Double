@@ -642,7 +642,7 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
     """最佳组合 — 两两组合不同的「模型+策略」，统计同一期红球去重后 ≥4 球的次数，
     按 ≥4 红球次数、组合去重后最高命中、组合内模型累计红球排序；同时展示该组合对
     下期未开奖期号的红球预测，以及每组「模型+策略」历史累计红球命中/统计期数。
-    榜单内每个「模型+策略」只出现一次。"""
+    榜单内每个「模型+策略」最多出现两次。"""
     records = hist.get("predictions_history", []) if hist else []
     if not records:
         return '<p style="color:#94a3b8;font-size:13px;padding:12px">(暂无命中记录)</p>'
@@ -713,14 +713,15 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
 
     arr.sort(key=lambda x: (-x["red4"], -x["max"], -x["modelTotal"], x["names"]))
 
-    # 去重：每个「模型+策略」只出现一次，按排序贪心选取互不重复的组合
-    selected, used = [], set()
+    # 去重：每个「模型+策略」最多出现两次，按排序贪心选取组合
+    selected, used = [], {}
     for e in arr:
         k1, k2 = e["keys"]
-        if k1 in used or k2 in used:
+        if used.get(k1, 0) >= 2 or used.get(k2, 0) >= 2:
             continue
         selected.append(e)
-        used.update((k1, k2))
+        used[k1] = used.get(k1, 0) + 1
+        used[k2] = used.get(k2, 0) + 1
         if len(selected) >= limit:
             break
     arr = selected
@@ -792,7 +793,7 @@ def _build_best_combinations_html(hist, ai_pred=None, latest_period="", top_by_m
         f'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'
         f'两两组合不同「模型+策略」，同一期命中红球去重后 ≥{min_red_hits} 球计 1 次；'
         f'按 ≥{min_red_hits} 红球次数、组合去重后最高命中、组合内模型累计红球排序；'
-        f'榜单内每个模型+策略仅出现一次；共统计 {stat_periods} 期，展示前 {len(arr)} 名；'
+        f'榜单内每个模型+策略最多出现两次；共统计 {stat_periods} 期，展示前 {len(arr)} 名；'
         f'每组末尾「红X球/Y期」为该模型·策略历史累计红球命中/统计期数{pred_note}</div>'
     )
     return note + _render_table(
