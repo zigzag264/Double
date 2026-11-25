@@ -12,6 +12,7 @@
 import html
 import os
 import json
+from collections import Counter
 from datetime import datetime, time as dtime, timedelta, timezone
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -214,6 +215,73 @@ def _build_predictions_html(pred, latest_period="", next_period="", top_by_model
       目标期号: {pred.get("target_period","")} · 预测日期: {pred.get("prediction_date","")} · 模型数: {len(models)} · 每组策略: {TOP_STRATEGIES_PER_MODEL} · 共 {total_groups} 组
     </div>
     {cards}'''
+
+
+def _build_omission_prediction_html(pred, latest_period="", next_period="", top_by_model=None,
+                                    data_stale=False):
+    """遗漏预测 — 统计模型推荐各组中各红/蓝球被预测的次数。
+
+    统计口径与「模型推荐」一致（各模型保留历史准确率前 3 策略，共约 30 组），
+    按 0/1/2/3 次分组列出号码，突出被模型遗漏（少被推荐）的号码；
+    ≥4 次的共识号仅在说明中给出数量。
+    """
+    if not pred or not pred.get("models"):
+        return '<p style="color:#94a3b8;font-size:13px">(暂无预测数据)</p>'
+
+    target = pred.get("target_period", "")
+    try:
+        target_drawn = bool(target and latest_period) and int(target) <= int(latest_period)
+    except (TypeError, ValueError):
+        target_drawn = False
+    if data_stale or target_drawn:
+        return (
+            f'<p style="color:#94a3b8;font-size:13px">'
+            f'(当前预测目标第{target or "?"}期已开奖或开奖数据尚未更新，暂无遗漏统计)</p>'
+        )
+
+    red = Counter()
+    blue = Counter()
+    total_groups = 0
+    for m in pred.get("models", []):
+        for g in _filter_model_predictions(m, top_by_model, TOP_STRATEGIES_PER_MODEL):
+            total_groups += 1
+            for b in g.get("red_balls", []):
+                red[str(b).zfill(2)] += 1
+            b = g.get("blue_ball")
+            if b not in (None, ""):
+                blue[str(b).zfill(2)] += 1
+
+    red_nums = [f"{i:02d}" for i in range(1, 34)]
+    blue_nums = [f"{i:02d}" for i in range(1, 17)]
+    red_high = sum(1 for x in red_nums if red[x] >= 4)
+    blue_high = sum(1 for x in blue_nums if blue[x] >= 4)
+
+    labels = {0: "0 次（完全遗漏）", 1: "1 次", 2: "2 次", 3: "3 次"}
+    rows = []
+    for i, n in enumerate(range(4)):
+        bg = "#f8fafc" if i % 2 == 0 else "#ffffff"
+        red_html = "".join(_ball(x, "red", size=20) for x in red_nums if red[x] == n) \
+            or '<span style="color:#cbd5e1">—</span>'
+        blue_html = "".join(_ball(x, "blue", size=20) for x in blue_nums if blue[x] == n) \
+            or '<span style="color:#cbd5e1">—</span>'
+        rows.append(
+            f'<tr style="background:{bg}">'
+            f'<td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:600;'
+            f'color:#475569;white-space:nowrap">{labels[n]}</td>'
+            f'<td style="padding:6px 8px;line-height:1.9">{red_html}</td>'
+            f'<td style="padding:6px 8px;line-height:1.9">{blue_html}</td>'
+            f'</tr>'
+        )
+
+    model_count = len(pred.get("models", []))
+    note = (
+        f'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'
+        f'统计模型推荐 {total_groups} 组（{model_count} 个模型，各取历史准确率前 '
+        f'{TOP_STRATEGIES_PER_MODEL} 策略）中各号码被预测的次数；仅列出被预测 ≤3 次的号码，'
+        f'其余 {red_high} 个红球、{blue_high} 个蓝球被预测 ≥4 次（共识号）。'
+        f'0 次为模型完全未推荐的号码。</div>'
+    )
+    return note + _render_table(["被预测次数", "红球（01-33）", "蓝球（01-16）"], rows)
 
 
 def _render_table(headers, rows):
@@ -880,6 +948,11 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         f'{_build_grouped_stats_html(hist, limit=10, top_by_model=top_by_model)}'
     )
 
+    # 遗漏预测（模型推荐 30 组中各红/蓝球被预测次数）
+    omission_html = _build_omission_prediction_html(
+        pred, latest_period, next_period, top_by_model=top_by_model, data_stale=data_stale,
+    )
+
     # Footer
     footer_text = (
         '本邮件由 GitHub Actions 自动推送'
@@ -889,7 +962,7 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
 
     # 邮件板块顺序：
     # 最新一期 → 单球命中 → 本期命中 Top 10 → 历史排行 Top 10
-    # → 模型分组统计 Top 10 → 本期预测推荐 Top 5 → 最佳组合 Top 15 → 模型推荐
+    # → 模型分组统计 Top 10 → 本期预测推荐 Top 5 → 最佳组合 Top 15 → 模型推荐 → 遗漏预测
     html = f'''
     <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#ffffff;padding:0;color:#1e293b">
       <div style="border-top:4px solid #3b82f6;padding:24px;text-align:center">
@@ -915,6 +988,8 @@ def build_html_digest(data, warnings, generated_at, commit_info=None):
         {best_combo_html}
         {_SECTION.format("🔮 模型推荐（前 3 策略 · 30 组）")}
         {_build_predictions_html(pred, latest_period, next_period, top_by_model=top_by_model, data_stale=data_stale)}
+        {_SECTION.format("❄️ 遗漏预测（模型推荐 30 组 · 红/蓝球被预测次数）")}
+        {omission_html}
       </div>
       <div style="background:#f8fafc;padding:16px 24px;text-align:center;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">
         <p style="font-size:12px;color:#94a3b8;margin:0">
